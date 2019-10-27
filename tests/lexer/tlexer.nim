@@ -18,7 +18,7 @@ template run_test(title, stimuli: string; reference: seq[Token],
    open_lexer(lex, "test", new_string_stream(stimuli))
    while true:
       get_token(lex, tok)
-      if tok.type == TokenType.EndOfFile:
+      if tok.type == TokenType.TkEndOfFile:
          break
       add(response, tok)
    close_lexer(lex)
@@ -44,21 +44,49 @@ template run_test(title, stimuli: string; reference: seq[Token],
 
 
 # Constructor for a new identifier token
-template init(t: Token, line, col: int) =
+template init(t: Token, tt: TokenType, line, col: int) =
    init(t)
    (t.line, t.col) = (line, col)
+   t.type = tt
 
 
-proc new_literal(t: typedesc[Token], line, col: int, literal: string): Token =
-   init(result, line, col)
-   result.type = Literal
-   result.literal = literal
+proc new_token(t: typedesc[Token], `type`: TokenType, line, col: int): Token =
+   init(result, `type`, line, col)
+
+
+proc new_symbol(t: typedesc[Token], line, col: int, ident: string): Token =
+   init(result, TkSymbol, line, col)
+   result.ident = ident
+
+
+proc new_comment(t: typedesc[Token], line, col: int, comment: string): Token =
+   init(result, TkComment, line, col)
+   result.literal = comment
+
+
+proc new_keyword(t: typedesc[Token], `type`: TokenType, line, col: int): Token =
+   init(result, `type`, line, col)
+   result.ident = TokenTypeToStr[`type`]
 
 
 # Run test cases
-run_test("Control word", """localparam FOO = 1;""", @[
-   Token.new_literal(1, 0, "")
-], true)
+run_test("One line comment", """
+// ** This is a one line comment **
+""", @[
+   Token.new_comment(1, 0, "** This is a one line comment **")
+])
+
+
+run_test("Multi line comment", """
+/* This is a multi line comment //
+ * continuing over
+ * here */
+""", @[
+   Token.new_comment(1, 0, """
+This is a multi line comment //
+ * continuing over
+ * here""")
+])
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
