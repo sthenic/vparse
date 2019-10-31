@@ -2,6 +2,7 @@ import lexbase
 import streams
 import strutils
 
+import ./identifier
 
 type
    TokenType* = enum
@@ -54,7 +55,7 @@ type
 
    Token* = object
       `type`*: TokenType
-      ident*: string # Identifier, may need its own type
+      ident*: PIdentifier # Identifier
       literal*: string # String literal, also comments
       inumber*: BiggestInt # Integer literal
       fnumber*: BiggestFloat # Floating point literal
@@ -62,7 +63,8 @@ type
       line*, col*: int
 
    Lexer* = object of BaseLexer
-      filename: string
+      filename*: string
+      cache*: IdentifierCache
 
    LexerError = object of Exception
 
@@ -153,7 +155,7 @@ proc new_lexer_error(msg: string, args: varargs[string, `$`]): ref LexerError =
 
 proc init*(t: var Token) =
    t.type = TkInvalid
-   set_len(t.ident, 0)
+   t.ident = nil
    set_len(t.literal, 0)
    t.inumber = 0
    t.fnumber = 0.0
@@ -191,18 +193,7 @@ proc find_str(a: openarray[string], s: string): int =
 
 
 proc get_symbol(l: var Lexer, tok: var Token) =
-   var pos = l.bufpos
-
-   while l.buf[pos] in SymChars:
-      add(tok.ident, l.buf[pos])
-      inc(pos)
-
-   if tok.ident in SpecialWords:
-      tok.type = TokenType(ord(TkSymbol) + find_str(SpecialWords, tok.ident))
-   else:
-      tok.type = TkSymbol
-
-   l.bufpos = pos
+   discard
 
 
 proc skip(l: var Lexer, pos: int): int =
@@ -263,7 +254,7 @@ proc handle_forward_slash(l: var Lexer, tok: var Token) =
    if l.buf[l.bufpos + 1] in {'/', '*'}:
       handle_comment(l, tok)
    else:
-      tok.ident = $l.buf[l.bufpos]
+      # FIXME: Initialize the ident field
       tok.type = TkOperator
       inc(l.bufpos)
 

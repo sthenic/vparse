@@ -14,6 +14,7 @@ task tests, "Run the test suite":
 
 task lexertests, "Run the lexer test suite":
    withDir("tests/lexer"):
+      exec("nim c -r tidentifier")
       exec("nim c -r tlexer")
    setCommand "nop"
 
