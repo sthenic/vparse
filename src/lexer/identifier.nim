@@ -23,7 +23,8 @@ proc `$`*(x: PIdentifier): string =
    echo "  next (id): ", if x.next == nil: "nil" else: $x.next.id
 
 
-proc get_identifier*(ic: IdentifierCache, identifier: string, h: Hash): PIdentifier =
+proc get_identifier*(ic: IdentifierCache, identifier: cstring,
+                     length: int, h: Hash): PIdentifier =
    # Use the hash as our starting point to search the buckets, but keep within
    # the bucket boundaries.
    var idx = h and high(ic.buckets)
@@ -50,7 +51,9 @@ proc get_identifier*(ic: IdentifierCache, identifier: string, h: Hash): PIdentif
    # Initialize a new identifier.
    new(result)
    result.h = h
-   result.s = identifier
+   result.s = new_string(length)
+   for i in 0..<length:
+      result.s[i] = identifier[i]
    result.next = ic.buckets[idx]
    ic.buckets[idx] = result
 
@@ -60,7 +63,13 @@ proc get_identifier*(ic: IdentifierCache, identifier: string, h: Hash): PIdentif
 
 
 proc get_identifier*(ic: IdentifierCache, identifier: string): PIdentifier =
-   result = get_identifier(ic, identifier, hash(identifier))
+   result = get_identifier(ic, cstring(identifier), len(identifier),
+                           hash(identifier))
+
+
+proc get_identifier*(ic: IdentifierCache, identifier: string,
+                     h: Hash): PIdentifier =
+   result = get_identifier(ic, cstring(identifier), len(identifier), h)
 
 
 proc new_ident_cache*(): IdentifierCache =
