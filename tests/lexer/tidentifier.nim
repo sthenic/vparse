@@ -1,4 +1,4 @@
-import algorithm
+# import algorithm
 import terminal
 import strformat
 
@@ -44,16 +44,6 @@ template run_test(title: string, new_cache: bool, body: untyped) =
 
 
 # Run testcases
-run_test("Alphabetical order", false):
-   var tmp = SpecialWords
-   sort(tmp)
-   passed = true
-   for i in 0..<len(tmp):
-      if tmp[i] != SpecialWords[i]:
-         passed = false
-         break
-
-
 run_test("Initialize cache", true):
    passed = identifier_cache.nof_identifiers == len(SpecialWords)
 

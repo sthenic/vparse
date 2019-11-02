@@ -17,10 +17,11 @@ type
 
 
 proc `$`*(x: PIdentifier): string =
-   echo "Identifier (", x.id, ")"
-   echo "  s: ", x.s
-   echo "  hash: ", x.h
-   echo "  next (id): ", if x.next == nil: "nil" else: $x.next.id
+   result = "(" & $x.id & ")" & " s: '" & x.s & "' hash: " & $x.h & " next: "
+   if x.next == nil:
+      add(result, "nil")
+   else:
+      add(result, "(" & $x.next.id & ")")
 
 
 proc get_identifier*(ic: IdentifierCache, identifier: cstring,
@@ -64,7 +65,7 @@ proc get_identifier*(ic: IdentifierCache, identifier: cstring,
 
 proc get_identifier*(ic: IdentifierCache, identifier: string): PIdentifier =
    result = get_identifier(ic, cstring(identifier), len(identifier),
-                           hash(identifier))
+                           hash_ignore_style(identifier))
 
 
 proc get_identifier*(ic: IdentifierCache, identifier: string,

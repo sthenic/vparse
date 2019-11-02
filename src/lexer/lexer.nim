@@ -1,14 +1,13 @@
 import lexbase
 import streams
 import strutils
+import hashes
 
 import ./identifier
 
 type
    TokenType* = enum
-      TkInvalid, TkEndOfFile,
-      TkLiteral, TkComment,
-      TkSymbol, # begin keywords:
+      TkInvalid, # begin keywords:
       TkAlways, TkAnd, TkAssign, TkAutomatic,
       TkBegin, TkBuf, TkBufif0, TkBufif1,
       TkCase, TkCasex, TkCasez, TkCell, TkCmos, TkConfig,
@@ -26,7 +25,7 @@ type
       TkMacromodule, TkMedium, TkModule,
       TkNand, TkNegedge, TkNmos, TkNor, TkNoshowCancelled,
       TkNot, TkNotif0, TkNotif1,
-      TkOperator, TkOr, TkOutput,
+      TkOr, TkOutput,
       TkParameter, TkPathpulse, TkPmos, TkPosedge, TkPrimitive, TkPull0,
       TkPull1, TkPulldown, TkPullup, TkPulsestyleOndetect, TkPulsestyleOnevent,
       TkRcmos, TkReal, TkRealtime, TkReg TkRelease, TkRepeat, TkRnmos, TkRpmos,
@@ -38,15 +37,14 @@ type
       TkUse
       TkVectored,
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
-      TkXnor, TkXor, # end keywords
+      TkXnor, TkXor, # end keywords, begin special characters:
       TkComma, TkDot, TkSemicolon,
-      TkHash, TkStar, TkForwardSlash,
-      TkLparen, TkRparen, TkEquals,
-      TkTick,
-      TkDollarFullSkew,
-      TkDollarHold, TkDollarNochange, TkDollarPeriod, TkDollarRecovery,
-      TkDollarRecrem, TkDollarRemoval, TkDollarSetup, TkDollarSetupHold,
-      TkDollarSkew, TkDollarTimeSkew, TkDollarWidth
+      TkHash, TkLparen, TkRparen, TkEquals,
+      TkTick, # end special characters, begin dollars:
+      TkDollarFullSkew, TkDollarHold, TkDollarNochange, TkDollarPeriod,
+      TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
+      TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
+      TkSymbol, TkOperator,  TkLiteral, TkComment, TkEndOfFile
 
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
@@ -55,7 +53,7 @@ type
 
    Token* = object
       `type`*: TokenType
-      ident*: PIdentifier # Identifier
+      identifier*: PIdentifier # Identifier
       literal*: string # String literal, also comments
       inumber*: BiggestInt # Integer literal
       fnumber*: BiggestFloat # Floating point literal
@@ -77,41 +75,8 @@ const
                           '<', '>'}
    SpaceChars*: set[char] = {' ', '\t'}
 
-   SpecialWords = ["",
-      "always", "and", "assign", "automatic",
-      "begin", "buf", "bufif0", "bufif1",
-      "case", "casex", "casez", "cell", "cmos", "config",
-      "deassign", "default", "defparam", "design", "disable",
-      "edge", "edge0", "edge01", "edge1", "edge10", "edgex", "edgez", "else",
-      "end", "endcase", "endconfig", "endfunction", "endgenerate", "endmodule",
-      "endprimitive", "endspecify", "endtable", "endtask", "event",
-      "for", "force", "forever", "fork", "function",
-      "generate", "genvar",
-      "highz0", "highz1",
-      "if", "ifnone", "incdir", "include", "initial", "inout", "input",
-      "instance", "integer",
-      "join",
-      "large", "liblist", "library", "localparam",
-      "macromodule", "medium", "module",
-      "nand", "negedge", "nmos", "nor", "noshowcancelled",
-      "not", "notif0", "notif1",
-      "operator", "or", "output",
-      "parameter", "pathpulse", "pmos", "posedge", "primitive", "pull0",
-      "pull1", "pulldown", "pullup", "pulsestyleondetect", "pulsestyleonevent",
-      "rcmos", "real", "realtime", "reg", "release", "repeat", "rnmos", "rpmos",
-      "rtran", "rtranif0", "rtranif1",
-      "scalared", "showcancelled", "signed", "small", "specify", "specparam",
-      "strong0", "strong1", "supply0", "supply1",
-      "table", "task", "time", "tran", "tranif0", "tranif1", "tri",
-      "tri0", "tri1", "triand", "trior", "trireg",
-      "use",
-      "vectored",
-      "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
-      "xnor", "xor"
-   ]
-
    TokenTypeToStr*: array[TokenType, string] = [
-      "Invalid", "[EOF]", "Literal", "Comment", "Symbol",
+      "Invalid",
       "always", "and", "assign", "automatic",
       "begin", "buf", "bufif0", "bufif1",
       "case", "casex", "casez", "cell", "cmos", "config",
@@ -129,7 +94,7 @@ const
       "macromodule", "medium", "module",
       "nand", "negedge", "nmos", "nor", "noshowcancelled",
       "not", "notif0", "notif1",
-      "operator", "or", "output",
+      "or", "output",
       "parameter", "pathpulse", "pmos", "posedge", "primitive", "pull0",
       "pull1", "pulldown", "pullup", "pulsestyleondetect", "pulsestyleonevent",
       "rcmos", "real", "realtime", "reg", "release", "repeat", "rnmos", "rpmos",
@@ -142,9 +107,10 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      ",", ".", ";", "#", "*", "/", "(", ")", "=", "`",
+      ",", ".", ";", "#", "(", ")", "=", "`",
       "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
-      "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width"
+      "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
+      "Symbol", "Operator", "Literal", "Comment", "[EOF]"
    ]
 
 
@@ -155,7 +121,7 @@ proc new_lexer_error(msg: string, args: varargs[string, `$`]): ref LexerError =
 
 proc init*(t: var Token) =
    t.type = TkInvalid
-   t.ident = nil
+   t.identifier = nil
    set_len(t.literal, 0)
    t.inumber = 0
    t.fnumber = 0.0
@@ -249,13 +215,45 @@ proc handle_comment(l: var Lexer, tok: var Token) =
    l.bufpos = pos
 
 
+proc handle_operator(l: var Lexer, tok: var Token) =
+   var pos = l.bufpos
+   var h: Hash = 0
+   while true:
+      let c = l.buf[pos]
+      if c notin OpChars:
+         break
+      h = h !& ord(c)
+      inc(pos)
+   h = !$h
+
+   update_token_position(l, tok)
+   tok.identifier =
+      get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
+
+   if tok.identifier.id < ord(TkComma) or tok.identifier.id > ord(TkTick):
+      # Generic operator
+      tok.type = TkOperator
+   else:
+      # Operator identified by a special token id.
+      tok.type = TokenType(tok.identifier.id)
+   l.bufpos = pos
+
+
 proc handle_forward_slash(l: var Lexer, tok: var Token) =
    # Either we're dealing with the binary operator or a comment.
    if l.buf[l.bufpos + 1] in {'/', '*'}:
       handle_comment(l, tok)
    else:
-      # FIXME: Initialize the ident field
-      tok.type = TkOperator
+      handle_operator(l, tok)
+
+
+proc handle_equals(l: var Lexer, tok: var Token) =
+   # Either we're dealing with an operator or the assignment token.
+   if l.buf[l.bufpos + 1] == '=':
+      handle_operator(l, tok)
+   else:
+      update_token_position(l, tok)
+      tok.type = TkEquals
       inc(l.bufpos)
 
 
@@ -292,35 +290,10 @@ proc get_token*(l: var Lexer, tok: var Token) =
       get_token(l, tok)
    of SymStartChars:
       get_symbol(l, tok)
-   of ',':
-      tok.type = TkComma
-      inc(l.bufpos)
-   of '.':
-      tok.type = TkDot
-      inc(l.bufpos)
-   of ';':
-      tok.type = TkSemicolon
-      inc(l.bufpos)
-   of '#':
-      tok.type = TkSemicolon
-      inc(l.bufpos)
-   of '*':
-      tok.type = TkStar
-      inc(l.bufpos)
    of '/':
       handle_forward_slash(l, tok)
-   of '(':
-      tok.type = TkLparen
-      inc(l.bufpos)
-   of ')':
-      tok.type = TkRparen
-      inc(l.bufpos)
    of '=':
-      tok.type = TkEquals
-      inc(l.bufpos)
-   of '`':
-      tok.type = TkTick
-      inc(l.bufpos)
+      handle_equals(l, tok)
    of '$':
       handle_dollar(l, tok)
    of '"':
@@ -328,14 +301,18 @@ proc get_token*(l: var Lexer, tok: var Token) =
    of '\'', '0' .. '9':
       handle_number(l, tok)
    else:
-      echo "Invalid token: '", c, "'"
-      tok.type = TkInvalid
-      inc(l.bufpos)
+      if c in OpChars:
+         handle_operator(l, tok)
+      else:
+         echo "Invalid token: '", c, "'"
+         tok.type = TkInvalid
+         inc(l.bufpos)
 
 
 proc open_lexer*(l: var Lexer, filename: string, s: Stream) =
    lexbase.open(l, s)
    l.filename = filename
+   l.cache = new_ident_cache()
 
 
 proc close_lexer*(l: var Lexer) =

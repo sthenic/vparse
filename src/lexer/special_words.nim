@@ -4,6 +4,7 @@
 
 const
    SpecialWords* = ["",
+      # Keywords
       "always", "and", "assign", "automatic",
       "begin", "buf", "bufif0", "bufif1",
       "case", "casex", "casez", "cell", "cmos", "config",
@@ -21,7 +22,7 @@ const
       "macromodule", "medium", "module",
       "nand", "negedge", "nmos", "nor", "noshowcancelled",
       "not", "notif0", "notif1",
-      "operator", "or", "output",
+      "or", "output",
       "parameter", "pathpulse", "pmos", "posedge", "primitive", "pull0",
       "pull1", "pulldown", "pullup", "pulsestyleondetect", "pulsestyleonevent",
       "rcmos", "real", "realtime", "reg", "release", "repeat", "rnmos", "rpmos",
@@ -33,5 +34,10 @@ const
       "use",
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
-      "xnor", "xor"
+      "xnor", "xor",
+      # Special character
+      ",", ".", ";", "#", "(", ")", "=", "`",
+      # Dollars
+      "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
+      "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width"
    ]
