@@ -19,7 +19,7 @@ type
       TkGenerate, TkGenvar,
       TkHighz0, TkHighz1,
       TkIf, TkIfnone, TkIncdir, TkInclude, TkInitial, TkInout, TkInput,
-      TkInstance, TkInteger,
+      TkInstance,
       TkJoin,
       TkLarge, TkLiblist, TkLibrary, TkLocalparam,
       TkMacromodule, TkMedium, TkModule,
@@ -44,7 +44,9 @@ type
       TkDollarFullSkew, TkDollarHold, TkDollarNochange, TkDollarPeriod,
       TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
       TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
-      TkSymbol, TkOperator,  TkLiteral, TkComment, TkEndOfFile
+      TkSymbol, TkOperator, TkStrLit,
+      TkDecLit, TkOctLit, TkBinLit, TkHexLit, TkRealLit,
+      TkComment, TkEndOfFile
 
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
@@ -58,6 +60,7 @@ type
       inumber*: BiggestInt # Integer literal
       fnumber*: BiggestFloat # Floating point literal
       base*: NumericalBase # The numerical base
+      size*: int # The size field of number
       line*, col*: int
 
    Lexer* = object of BaseLexer
@@ -68,7 +71,12 @@ type
 
 
 const
-   NumChars*: set[char] = {'0'..'9', 'a'..'f', 'A'..'F', 'x', 'X', 'z', 'Z', '?'}
+   DecimalChars*: set[char] = {'0'..'9'}
+   ZChars*: set[char] = {'z', 'Z', '?'}
+   XChars*: set[char] = {'x', 'X'}
+   BinaryChars*: set[char] = {'0', '1'} + ZChars + XChars
+   OctalChars*: set[char] = {'0'..'7'} + ZChars + XChars
+   HexChars*: set[char] = {'0'..'9', 'a'..'f', 'A'..'F'} + ZChars + XChars
    SymChars*: set[char] = {'0'..'9', 'a'..'z', 'A'..'Z', '_'}
    SymStartChars*: set[char] = {'a'..'z', 'A'..'Z', '_'}
    OpChars*: set[char] = {'+', '-', '!', '~', '&', '|', '^', '*', '/', '%', '=',
@@ -88,7 +96,7 @@ const
       "generate", "genvar",
       "highz0", "highz1",
       "if", "ifnone", "incdir", "include", "initial", "inout", "input",
-      "instance", "integer",
+      "instance",
       "join",
       "large", "liblist", "library", "localparam",
       "macromodule", "medium", "module",
@@ -110,7 +118,9 @@ const
       ",", ".", ";", "#", "(", ")", "=", "`",
       "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
       "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
-      "Symbol", "Operator", "Literal", "Comment", "[EOF]"
+      "TkSymbol", "TkOperator", "TkStrLit",
+      "TkDecLit", "TkOctLit", "TkBinLit", "TkHexLit", "TkRealLit",
+      "TkComment", "[EOF]"
    ]
 
 
@@ -126,6 +136,7 @@ proc init*(t: var Token) =
    t.inumber = 0
    t.fnumber = 0.0
    t.base = Base10
+   t.size = 0
    t.line = 0
    t.col = 0
 
@@ -263,13 +274,99 @@ proc handle_dollar(l: var Lexer, tok: var Token) =
 
 
 proc handle_literal(l: var Lexer, tok: var Token) =
-   tok.type = TkLiteral
+   tok.type = TkStrLit
    inc(l.bufpos)
+
+
+proc get_base(l: var Lexer, tok: var Token) =
+   if l.buf[l.bufpos] == '\'':
+      if l.buf[l.bufpos + 1] in {'s', 'S'}:
+         inc(l.bufpos, 2)
+      else:
+         inc(l.bufpos, 1)
+
+      case l.buf[l.bufpos]
+      of 'd', 'D':
+         tok.base = Base10
+      of 'b', 'B':
+         tok.base = Base2
+      of 'o', 'O':
+         tok.base = Base8
+      of 'h', 'H':
+         tok.base = Base16
+      else:
+         # Unexpected character, set the token as invalid.
+         tok.type = TkInvalid
+
+      inc(l.bufpos)
+   else:
+      # If there's no base in the buffer, assume base 10.
+      tok.base = Base10
+
+
+# Forward declaration
+proc handle_number(l: var Lexer, tok: var Token)
+
+proc handle_decimal(l: var Lexer, tok: var Token) =
+   # We're reading a base 10 number, but this may be the size field of a number
+   # with another base. We also have to handle X- and Z-digits separately.
+   tok.type = TkDecLit
+   let c = l.buf[l.bufpos]
+   if c in XChars + ZChars:
+      tok.literal = $to_lower_ascii(c)
+      if l.buf[l.bufpos + 1] == '_':
+         inc(l.bufpos, 2)
+      else:
+         inc(l.bufpos, 1)
+      return
+
+   while true:
+      let c = l.buf[l.bufpos]
+      case c
+      of DecimalChars:
+         add(tok.literal, c)
+      of '_':
+         discard
+      else:
+         # First character that's not part of the number. Check if it's the
+         # start of a base specifier, in which case what we've been grabbing
+         # from the buffer up until now has been the size field.
+         # TODO: What about a zero base? Invalid?
+         if c == '\'':
+            tok.size = parse_int(tok.literal)
+            set_len(tok.literal, 0)
+            handle_number(l, tok)
+            return
+         break
+      inc(l.bufpos)
+
+   tok.inumber = parse_int(tok.literal)
+
+proc handle_binary(l: var Lexer, tok: var Token) =
+   discard
+
+
+proc handle_octal(l: var Lexer, tok: var Token) =
+   discard
+
+
+proc handle_hex(l: var Lexer, tok: var Token) =
+   discard
 
 
 proc handle_number(l: var Lexer, tok: var Token) =
-   tok.type = TkInteger
-   inc(l.bufpos)
+   # Attempt to read the base from the buffer.
+   get_base(l, tok)
+
+   case tok.base
+   of Base2:
+      handle_binary(l, tok)
+   of Base8:
+      handle_octal(l, tok)
+   of Base16:
+      handle_hex(l, tok)
+   of Base10:
+      handle_decimal(l, tok)
 
 
 proc get_token*(l: var Lexer, tok: var Token) =
@@ -298,7 +395,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       handle_dollar(l, tok)
    of '"':
       handle_literal(l, tok)
-   of '\'', '0' .. '9':
+   of '\'', '0'..'9':
       handle_number(l, tok)
    else:
       if c in OpChars:

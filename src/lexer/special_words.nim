@@ -16,7 +16,7 @@ const
       "generate", "genvar",
       "highz0", "highz1",
       "if", "ifnone", "incdir", "include", "initial", "inout", "input",
-      "instance", "integer",
+      "instance",
       "join",
       "large", "liblist", "library", "localparam",
       "macromodule", "medium", "module",

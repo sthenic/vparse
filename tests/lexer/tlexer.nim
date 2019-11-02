@@ -59,6 +59,16 @@ proc new_comment(t: typedesc[Token], line, col: int, comment: string): Token =
    result.literal = comment
 
 
+proc new_inumber(t: typedesc[Token], `type`: TokenType, line, col: int,
+                 inumber: int, base: NumericalBase, size: int,
+                 literal: string): Token =
+   init(result, type, line, col)
+   result.inumber = inumber
+   result.base = base
+   result.size = size
+   result.literal = literal
+
+
 proc new_identifier(t: typedesc[Token], `type`: TokenType, line, col: int,
                     identifier: string): Token =
    init(result, `type`, line, col)
@@ -128,6 +138,34 @@ run_test("Binary operators", "+ - * / % == != === !== && || ** < <= > >= & | ^ ^
 
 run_test("Assigment operator", "=", @[
    Token.new_token(TkEquals, 1, 0)
+])
+
+run_test("Decimal number: unsigned", "1234567890 231", @[
+   Token.new_inumber(TkDecLit, 1, 0, 1234567890, Base10, 0, "1234567890"),
+   Token.new_inumber(TkDecLit, 1, 11, 231, Base10, 0, "231")
+])
+
+run_test("Decimal number: with base", "32'd2617 18'D32 'd77", @[
+   Token.new_inumber(TkDecLit, 1, 0, 2617, Base10, 32, "2617"),
+   Token.new_inumber(TkDecLit, 1, 9, 32, Base10, 18, "32"),
+   Token.new_inumber(TkDecLit, 1, 16, 77, Base10, 0, "77")
+])
+
+run_test("Decimal number: underscore", "2617_123_", @[
+   Token.new_inumber(TkDecLit, 1, 0, 2617123, Base10, 0, "2617123")
+])
+
+run_test("Decimal number: X-digit", "8'dX 7'dx 16'dX_", @[
+   Token.new_inumber(TkDecLit, 1, 0, 0, Base10, 8, "x"),
+   Token.new_inumber(TkDecLit, 1, 5, 0, Base10, 7, "x"),
+   Token.new_inumber(TkDecLit, 1, 10, 0, Base10, 16, "x")
+])
+
+run_test("Decimal number: Z-digit", "8'dZ 7'dz 16'dZ_ 2'd?", @[
+   Token.new_inumber(TkDecLit, 1, 0, 0, Base10, 8, "z"),
+   Token.new_inumber(TkDecLit, 1, 5, 0, Base10, 7, "z"),
+   Token.new_inumber(TkDecLit, 1, 10, 0, Base10, 16, "z"),
+   Token.new_inumber(TkDecLit, 1, 17, 0, Base10, 2, "?")
 ])
 
 
