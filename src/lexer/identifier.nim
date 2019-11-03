@@ -13,7 +13,7 @@ type
 
    IdentifierCache* = ref object
       buckets: array[0..4096 * 2 - 1, PIdentifier]
-      nof_identifiers*: int
+      nof_identifiers: int
 
 
 proc `$`*(x: PIdentifier): string =

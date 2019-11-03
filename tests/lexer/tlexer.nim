@@ -416,7 +416,7 @@ run_test("Identifier: complex", "_MyPArAmeter10$_2$", @[
 ])
 
 run_test("Assign statement", "localparam foo = 123;", @[
-   Token.new_identifier(TkSymbol, 1, 0, "localparam"),
+   Token.new_identifier(TkLocalparam, 1, 0, "localparam"),
    Token.new_identifier(TkSymbol, 1, 11, "foo"),
    Token.new_token(TkEquals, 1, 15),
    Token.new_inumber(TkIntLit, 1, 17, 123, Base10, -1, "123"),

@@ -39,7 +39,8 @@ type
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
       TkBackslash, TkComma, TkDot, TkSemicolon, TkColon, TkAt, TkHash,
-      TkLparen, TkRparen, TkEquals, # end special characters
+      TkLparen, TkRparen, TkLbracket, TkRbracket, TkRbrace, TkLbrace,
+      TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
@@ -113,7 +114,7 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      "\\", ",", ".", ";", ":", "@", "#", "(", ")", "=",
+      "\\", ",", ".", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}", "=",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
@@ -213,12 +214,13 @@ proc handle_comment(l: var Lexer, tok: var Token) =
    l.bufpos = pos
 
 
-proc handle_operator(l: var Lexer, tok: var Token) =
+proc handle_identifier(l: var Lexer, tok: var Token, char_set: set[char]) =
+   # Grab characters in 'a'..'z', '_'.
    var pos = l.bufpos
    var h: Hash = 0
    while true:
       let c = l.buf[pos]
-      if c notin OpChars:
+      if c notin char_set:
          break
       h = h !& ord(c)
       inc(pos)
@@ -227,13 +229,28 @@ proc handle_operator(l: var Lexer, tok: var Token) =
    tok.identifier =
       get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
 
+   l.bufpos = pos
+
+
+proc handle_symbol(l: var Lexer, tok: var Token) =
+   handle_identifier(l, tok, SymChars)
+
+   if tok.identifier.id > ord(TkInvalid) and
+         tok.identifier.id < ord(TkBackslash):
+      tok.type = TokenType(tok.identifier.id)
+   else:
+      tok.type = TkSymbol
+
+
+proc handle_operator(l: var Lexer, tok: var Token) =
+   handle_identifier(l, tok, OpChars)
+
    if tok.identifier.id < ord(TkBackslash) or tok.identifier.id > ord(TkEquals):
       # Generic operator
       tok.type = TkOperator
    else:
       # Operator identified by a special token id.
       tok.type = TokenType(tok.identifier.id)
-   l.bufpos = pos
 
 
 proc handle_forward_slash(l: var Lexer, tok: var Token) =
@@ -252,24 +269,6 @@ proc handle_equals(l: var Lexer, tok: var Token) =
       update_token_position(l, tok)
       tok.type = TkEquals
       inc(l.bufpos)
-
-
-proc handle_identifier(l: var Lexer, tok: var Token, char_set: set[char]) =
-   # Grab characters in 'a'..'z', '_'.
-   var pos = l.bufpos
-   var h: Hash = 0
-   while true:
-      let c = l.buf[pos]
-      if c notin char_set:
-         break
-      h = h !& ord(c)
-      inc(pos)
-   h = !$h
-
-   tok.identifier =
-      get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
-
-   l.bufpos = pos
 
 
 proc handle_string(l: var Lexer, tok: var Token) =
@@ -496,8 +495,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       # TODO: Risk of stack overflow?
       get_token(l, tok)
    of SymStartChars:
-      tok.type = TkSymbol
-      handle_identifier(l, tok, SymChars)
+      handle_symbol(l, tok)
    of '/':
       handle_forward_slash(l, tok)
    of '=':
@@ -536,6 +534,18 @@ proc get_token*(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
    of ')':
       tok.type = TkRparen
+      inc(l.bufpos)
+   of '[':
+      tok.type = TkLbracket
+      inc(l.bufpos)
+   of ']':
+      tok.type = TkRbracket
+      inc(l.bufpos)
+   of '{':
+      tok.type = TkLbrace
+      inc(l.bufpos)
+   of '}':
+      tok.type = TkRbrace
       inc(l.bufpos)
    of '`':
       tok.type = TkDirective
