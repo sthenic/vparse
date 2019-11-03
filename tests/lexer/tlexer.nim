@@ -153,12 +153,13 @@ run_test("Decimal number: signed", "1234567890 231", @[
    Token.new_inumber(TkIntLit, 1, 11, 231, Base10, -1, "231")
 ])
 
-run_test("Decimal number: with base", "32'd2617 18'D32 'd77 'sd90 'Sd100", @[
+run_test("Decimal number: with base", "32'd2617 18'D32 'd77 'sd90 'Sd100 5'D 3", @[
    Token.new_inumber(TkUIntLit, 1, 0, 2617, Base10, 32, "2617"),
    Token.new_inumber(TkUIntLit, 1, 9, 32, Base10, 18, "32"),
    Token.new_inumber(TkUIntLit, 1, 16, 77, Base10, -1, "77"),
    Token.new_inumber(TkIntLit, 1, 21, 90, Base10, -1, "90"),
-   Token.new_inumber(TkIntLit, 1, 27, 100, Base10, -1, "100")
+   Token.new_inumber(TkIntLit, 1, 27, 100, Base10, -1, "100"),
+   Token.new_inumber(TkUIntLit, 1, 34, 3, Base10, 5, "3"),
 ])
 
 run_test("Decimal number: underscore", "2617_123_", @[
@@ -216,8 +217,9 @@ run_test("Binary number: underscore", "8'B1001_0110_", @[
    Token.new_inumber(TkUIntLit, 1, 0, 150, Base2, 8, "10010110"),
 ])
 
-run_test("Binary number: invalid", "8'B", @[
-   Token.new_inumber(TkInvalid, 1, 0, 0, Base2, 8, "")
+run_test("Binary number: invalid", "8'B 8'b11", @[
+   Token.new_inumber(TkInvalid, 1, 0, 0, Base2, 8, ""),
+   Token.new_inumber(TkUIntLit, 1, 4, 3, Base2, 8, "11")
 ])
 
 run_test("Binary number: Z-digit", "2'b0Z 2'bz1 2'b??", @[
@@ -264,12 +266,15 @@ run_test("Octal number: X-digit", "2'o0X 2'ox1 2'o1_X", @[
    Token.new_inumber(TkAmbUIntLit, 1, 12, 0, Base8, 2, "1x"),
 ])
 
-run_test("Hex number: simple", "'hFF 'H64 'sH77 'ShAC", @[
+run_test("Hex number: simple", "'hFF 'H64 'sH77 'ShAC 'h 837FF", @[
    Token.new_inumber(TkUIntLit, 1, 0, 255, Base16, -1, "FF"),
    Token.new_inumber(TkUIntLit, 1, 5, 100, Base16, -1, "64"),
    Token.new_inumber(TkIntLit, 1, 10, 119, Base16, -1, "77"),
    Token.new_inumber(TkIntLit, 1, 16, 172, Base16, -1, "AC"),
+   Token.new_inumber(TkUIntLit, 1, 22, 538623, Base16, -1, "837FF"),
 ])
+
+# TODO: Test illegal hex number like 4af
 
 run_test("Hex number: size", "2'hC8 4'H2301", @[
    Token.new_inumber(TkUIntLit, 1, 0, 200, Base16, 2, "C8"),

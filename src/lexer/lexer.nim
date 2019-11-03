@@ -167,7 +167,7 @@ template update_token_position(l: Lexer, tok: var Token) =
 
 
 proc get_symbol(l: var Lexer, tok: var Token) =
-   discard
+   inc(l.bufpos)
 
 
 proc skip(l: var Lexer, pos: int): int =
@@ -298,8 +298,13 @@ proc get_base(l: var Lexer, tok: var Token) =
       else:
          # Unexpected character, set the token as invalid.
          tok.type = TkInvalid
+         inc(l.bufpos)
+         return
 
+      # Spaces are allowed after the base format.
       inc(l.bufpos)
+      l.bufpos = skip(l, l.bufpos)
+
    else:
       # If there's no base format in the buffer, assume base 10 and signed
       # until we have more information.
@@ -442,6 +447,8 @@ proc handle_hex(l: var Lexer, tok: var Token) =
 proc handle_number(l: var Lexer, tok: var Token) =
    # Attempt to read the base from the buffer.
    get_base(l, tok)
+   if tok.type == TkInvalid:
+      return
 
    case tok.base
    of Base2:
