@@ -258,6 +258,36 @@ run_test("Octal number: X-digit", "2'o0X 2'ox1 2'o1_X", @[
    Token.new_inumber(TkAmbOctLit, 1, 12, 0, Base8, 2, "1x"),
 ])
 
+run_test("Hex number: simple", "'hFF 'H64", @[
+   Token.new_inumber(TkHexLit, 1, 0, 255, Base16, 0, "FF"),
+   Token.new_inumber(TkHexLit, 1, 5, 100, Base16, 0, "64"),
+])
+
+run_test("Hex number: size", "2'hC8 4'H2301", @[
+   Token.new_inumber(TkHexLit, 1, 0, 200, Base16, 2, "C8"),
+   Token.new_inumber(TkHexLit, 1, 6, 8961, Base16, 4, "2301"),
+])
+
+run_test("Hex number: underscore", "32'hFFFF_FFFF", @[
+   Token.new_inumber(TkHexLit, 1, 0, (1 shl 32)-1, Base16, 32, "FFFFFFFF"),
+])
+
+run_test("Hex number: invalid", "8'H", @[
+   Token.new_inumber(TkInvalid, 1, 0, 0, Base16, 8, "")
+])
+
+run_test("Hex number: Z-digit", "2'h0Z 2'hz1 2'h??", @[
+   Token.new_inumber(TkAmbHexLit, 1, 0, 0, Base16, 2, "0z"),
+   Token.new_inumber(TkAmbHexLit, 1, 6, 0, Base16, 2, "z1"),
+   Token.new_inumber(TkAmbHexLit, 1, 12, 0, Base16, 2, "??"),
+])
+
+run_test("Hex number: X-digit", "2'h0X 2'hx1 2'h1_X", @[
+   Token.new_inumber(TkAmbHexLit, 1, 0, 0, Base16, 2, "0x"),
+   Token.new_inumber(TkAmbHexLit, 1, 6, 0, Base16, 2, "x1"),
+   Token.new_inumber(TkAmbHexLit, 1, 12, 0, Base16, 2, "1x"),
+])
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

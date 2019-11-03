@@ -407,7 +407,29 @@ proc handle_octal(l: var Lexer, tok: var Token) =
 
 
 proc handle_hex(l: var Lexer, tok: var Token) =
-   discard
+   # If this proc is called, we know that we only have to handle a hexadecimal
+   # value and not any size or base specifier.
+   tok.type = TkHexLit
+   while true:
+      let c = l.buf[l.bufpos]
+      case c
+      of HexChars:
+         add(tok.literal, c)
+      of '_':
+         discard
+      of XChars + ZChars:
+         add(tok.literal, to_lower_ascii(c))
+         tok.type = TkAmbHexLit
+      else:
+         if len(tok.literal) == 0:
+            tok.type = TkInvalid
+            return
+         break
+
+      inc(l.bufpos)
+
+   if tok.type == TkHexLit:
+      tok.inumber = parse_hex_int(tok.literal)
 
 
 proc handle_number(l: var Lexer, tok: var Token) =
