@@ -164,16 +164,16 @@ run_test("Decimal number: underscore", "2617_123_", @[
 ])
 
 run_test("Decimal number: X-digit", "8'dX 7'dx 16'dX_", @[
-   Token.new_inumber(TkDecLit, 1, 0, 0, Base10, 8, "x"),
-   Token.new_inumber(TkDecLit, 1, 5, 0, Base10, 7, "x"),
-   Token.new_inumber(TkDecLit, 1, 10, 0, Base10, 16, "x")
+   Token.new_inumber(TkAmbDecLit, 1, 0, 0, Base10, 8, "x"),
+   Token.new_inumber(TkAmbDecLit, 1, 5, 0, Base10, 7, "x"),
+   Token.new_inumber(TkAmbDecLit, 1, 10, 0, Base10, 16, "x")
 ])
 
 run_test("Decimal number: Z-digit", "8'dZ 7'dz 16'dZ_ 2'd?", @[
-   Token.new_inumber(TkDecLit, 1, 0, 0, Base10, 8, "z"),
-   Token.new_inumber(TkDecLit, 1, 5, 0, Base10, 7, "z"),
-   Token.new_inumber(TkDecLit, 1, 10, 0, Base10, 16, "z"),
-   Token.new_inumber(TkDecLit, 1, 17, 0, Base10, 2, "?")
+   Token.new_inumber(TkAmbDecLit, 1, 0, 0, Base10, 8, "z"),
+   Token.new_inumber(TkAmbDecLit, 1, 5, 0, Base10, 7, "z"),
+   Token.new_inumber(TkAmbDecLit, 1, 10, 0, Base10, 16, "z"),
+   Token.new_inumber(TkAmbDecLit, 1, 17, 0, Base10, 2, "?")
 ])
 
 run_test("Real number: simple", "3.14159", @[
@@ -216,6 +216,18 @@ run_test("Binary number: invalid", "8'B", @[
    Token.new_inumber(TkInvalid, 1, 0, 0, Base2, 8, "")
 ])
 
+run_test("Binary number: Z-digit", "2'b0Z 2'bz1 2'b??", @[
+   Token.new_inumber(TkAmbBinLit, 1, 0, 0, Base2, 2, "0z"),
+   Token.new_inumber(TkAmbBinLit, 1, 6, 0, Base2, 2, "z1"),
+   Token.new_inumber(TkAmbBinLit, 1, 12, 0, Base2, 2, "??"),
+])
+
+run_test("Binary number: X-digit", "2'b0X 2'bx1 2'b1_X", @[
+   Token.new_inumber(TkAmbBinLit, 1, 0, 0, Base2, 2, "0x"),
+   Token.new_inumber(TkAmbBinLit, 1, 6, 0, Base2, 2, "x1"),
+   Token.new_inumber(TkAmbBinLit, 1, 12, 0, Base2, 2, "1x"),
+])
+
 run_test("Octal number: simple", "'o072 'O0176", @[
    Token.new_inumber(TkOctLit, 1, 0, 58, Base8, 0, "072"),
    Token.new_inumber(TkOctLit, 1, 6, 126, Base8, 0, "0176"),
@@ -232,6 +244,18 @@ run_test("Octal number: underscore", "8'O54_71_02_31_", @[
 
 run_test("Octal number: invalid", "8'O", @[
    Token.new_inumber(TkInvalid, 1, 0, 0, Base8, 8, "")
+])
+
+run_test("Octal number: Z-digit", "2'o0Z 2'oz1 2'o??", @[
+   Token.new_inumber(TkAmbOctLit, 1, 0, 0, Base8, 2, "0z"),
+   Token.new_inumber(TkAmbOctLit, 1, 6, 0, Base8, 2, "z1"),
+   Token.new_inumber(TkAmbOctLit, 1, 12, 0, Base8, 2, "??"),
+])
+
+run_test("Octal number: X-digit", "2'o0X 2'ox1 2'o1_X", @[
+   Token.new_inumber(TkAmbOctLit, 1, 0, 0, Base8, 2, "0x"),
+   Token.new_inumber(TkAmbOctLit, 1, 6, 0, Base8, 2, "x1"),
+   Token.new_inumber(TkAmbOctLit, 1, 12, 0, Base8, 2, "1x"),
 ])
 
 

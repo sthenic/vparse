@@ -45,7 +45,9 @@ type
       TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
       TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
       TkSymbol, TkOperator, TkStrLit,
-      TkDecLit, TkOctLit, TkBinLit, TkHexLit, TkRealLit,
+      TkDecLit, TkOctLit, TkBinLit, TkHexLit,
+      TkAmbDecLit, TkAmbOctLit, TkAmbBinLit, TkAmbHexLit, # Ambiguous literals
+      TkRealLit,
       TkComment, TkEndOfFile
 
    NumericalBase* = enum
@@ -119,7 +121,9 @@ const
       "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
       "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
       "TkSymbol", "TkOperator", "TkStrLit",
-      "TkDecLit", "TkOctLit", "TkBinLit", "TkHexLit", "TkRealLit",
+      "TkDecLit", "TkOctLit", "TkBinLit", "TkHexLit",
+      "TkAmbDecLit", "TkAmbOctLit", "TkAmbBinLit", "TkAmbHexLit",
+      "TkRealLit",
       "TkComment", "[EOF]"
    ]
 
@@ -313,6 +317,7 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
    tok.type = TkDecLit
    let c = l.buf[l.bufpos]
    if c in XChars + ZChars:
+      tok.type = TkAmbDecLit
       tok.literal = $to_lower_ascii(c)
       if l.buf[l.bufpos + 1] == '_':
          inc(l.bufpos, 2)
@@ -358,6 +363,9 @@ proc handle_binary(l: var Lexer, tok: var Token) =
       case c
       of BinaryChars:
          add(tok.literal, c)
+      of XChars + ZChars:
+         add(tok.literal, to_lower_ascii(c))
+         tok.type = TkAmbBinLit
       of '_':
          discard
       else:
@@ -368,7 +376,8 @@ proc handle_binary(l: var Lexer, tok: var Token) =
 
       inc(l.bufpos)
 
-   tok.inumber = parse_bin_int(tok.literal)
+   if tok.type == TkBinLit:
+      tok.inumber = parse_bin_int(tok.literal)
 
 
 proc handle_octal(l: var Lexer, tok: var Token) =
@@ -383,7 +392,8 @@ proc handle_octal(l: var Lexer, tok: var Token) =
       of '_':
          discard
       of XChars + ZChars:
-         add(tok.literal, c)
+         add(tok.literal, to_lower_ascii(c))
+         tok.type = TkAmbOctLit
       else:
          if len(tok.literal) == 0:
             tok.type = TkInvalid
@@ -392,7 +402,8 @@ proc handle_octal(l: var Lexer, tok: var Token) =
 
       inc(l.bufpos)
 
-   tok.inumber = parse_oct_int(tok.literal)
+   if tok.type == TkOctLit:
+      tok.inumber = parse_oct_int(tok.literal)
 
 
 proc handle_hex(l: var Lexer, tok: var Token) =
