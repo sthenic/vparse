@@ -307,7 +307,7 @@ proc get_base(l: var Lexer, tok: var Token) =
 # Forward declaration
 proc handle_number(l: var Lexer, tok: var Token)
 
-proc handle_decimal(l: var Lexer, tok: var Token) =
+proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
    # We're reading a base 10 number, but this may be the size field of a number
    # with another base. We also have to handle X- and Z-digits separately.
    tok.type = TkDecLit
@@ -327,6 +327,9 @@ proc handle_decimal(l: var Lexer, tok: var Token) =
          add(tok.literal, c)
       of '_':
          discard
+      of '.', 'e', 'E', '+', '-':
+         tok.type = TkRealLit
+         add(tok.literal, c)
       else:
          # First character that's not part of the number. Check if it's the
          # start of a base specifier, in which case what we've been grabbing
@@ -340,7 +343,10 @@ proc handle_decimal(l: var Lexer, tok: var Token) =
          break
       inc(l.bufpos)
 
-   tok.inumber = parse_int(tok.literal)
+   if tok.type == TkRealLit:
+      tok.fnumber = parse_float(tok.literal)
+   else:
+      tok.inumber = parse_int(tok.literal)
 
 proc handle_binary(l: var Lexer, tok: var Token) =
    discard
@@ -366,7 +372,7 @@ proc handle_number(l: var Lexer, tok: var Token) =
    of Base16:
       handle_hex(l, tok)
    of Base10:
-      handle_decimal(l, tok)
+      handle_real_and_decimal(l, tok)
 
 
 proc get_token*(l: var Lexer, tok: var Token) =

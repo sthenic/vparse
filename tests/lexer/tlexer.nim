@@ -59,6 +59,14 @@ proc new_comment(t: typedesc[Token], line, col: int, comment: string): Token =
    result.literal = comment
 
 
+proc new_fnumber(t: typedesc[Token], `type`: TokenType, line, col: int,
+                 fnumber: float, literal: string): Token =
+   init(result, type, line, col)
+   result.fnumber = fnumber
+   result.base = Base10
+   result.literal = literal
+
+
 proc new_inumber(t: typedesc[Token], `type`: TokenType, line, col: int,
                  inumber: int, base: NumericalBase, size: int,
                  literal: string): Token =
@@ -166,6 +174,24 @@ run_test("Decimal number: Z-digit", "8'dZ 7'dz 16'dZ_ 2'd?", @[
    Token.new_inumber(TkDecLit, 1, 5, 0, Base10, 7, "z"),
    Token.new_inumber(TkDecLit, 1, 10, 0, Base10, 16, "z"),
    Token.new_inumber(TkDecLit, 1, 17, 0, Base10, 2, "?")
+])
+
+run_test("Real number: simple", "3.14159", @[
+   Token.new_fnumber(TkRealLit, 1, 0, 3.14159, "3.14159")
+])
+
+run_test("Real number: positive exponent", "3e2 14E2", @[
+   Token.new_fnumber(TkRealLit, 1, 0, 300, "3e2"),
+   Token.new_fnumber(TkRealLit, 1, 4, 1400, "14E2")
+])
+
+run_test("Real number: negative exponent", "1e-3 5E-1", @[
+   Token.new_fnumber(TkRealLit, 1, 0, 0.001, "1e-3"),
+   Token.new_fnumber(TkRealLit, 1, 5, 0.5, "5E-1")
+])
+
+run_test("Real number: full", "221.45e-2", @[
+   Token.new_fnumber(TkRealLit, 1, 0, 2.2145, "221.45e-2")
 ])
 
 
