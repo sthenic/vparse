@@ -334,6 +334,14 @@ run_test("Special character: semicolon", ";", @[
    Token.new_token(TkSemicolon, 1, 0),
 ])
 
+run_test("Special character: colon", ":", @[
+   Token.new_token(TkColon, 1, 0),
+])
+
+run_test("Special character: at", "@", @[
+   Token.new_token(TkAt, 1, 0),
+])
+
 run_test("Special character: hash", "#", @[
    Token.new_token(TkHash, 1, 0),
 ])
@@ -348,6 +356,18 @@ run_test("Special character: right parenthesis", ")", @[
 
 run_test("Compiler directive: default_nettype", "`default_nettype", @[
    Token.new_identifier(TkDirective, 1, 0, "default_nettype"),
+])
+
+run_test("Identifier", "foo", @[
+   Token.new_identifier(TkSymbol, 1, 0, "foo"),
+])
+
+run_test("Assign statement", "localparam foo = 123;", @[
+   Token.new_identifier(TkSymbol, 1, 0, "localparam"),
+   Token.new_identifier(TkSymbol, 1, 11, "foo"),
+   Token.new_token(TkEquals, 1, 15),
+   Token.new_inumber(TkIntLit, 1, 17, 123, Base10, -1, "123"),
+   Token.new_token(TkSemicolon, 1, 20),
 ])
 
 # Print summary

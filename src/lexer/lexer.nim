@@ -38,8 +38,8 @@ type
       TkVectored,
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
-      TkComma, TkDot, TkSemicolon,
-      TkHash, TkLparen, TkRparen, TkEquals, # end special characters, begin dollars:
+      TkComma, TkDot, TkSemicolon, TkColon, TkAt, TkHash, TkLparen, TkRparen,
+      TkEquals, # end special characters, begin dollars:
       TkDollarFullSkew, TkDollarHold, TkDollarNochange, TkDollarPeriod,
       TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
       TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
@@ -116,7 +116,7 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      ",", ".", ";", "#", "(", ")", "=",
+      ",", ".", ";", ":", "@", "#", "(", ")", "=",
       "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
       "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
       "TkSymbol", "TkOperator", "TkStrLit",
@@ -166,8 +166,21 @@ template update_token_position(l: Lexer, tok: var Token) =
 
 
 proc get_symbol(l: var Lexer, tok: var Token) =
-   inc(l.bufpos)
+   tok.type = TkSymbol
+   var pos = l.bufpos
+   var h: Hash = 0
+   while true:
+      let c = l.buf[pos]
+      if c notin SymChars:
+         break
+      h = h !& ord(c)
+      inc(pos)
+   h = !$h
 
+   tok.identifier =
+      get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
+
+   l.bufpos = pos
 
 proc skip(l: var Lexer, pos: int): int =
    result = pos
@@ -532,6 +545,12 @@ proc get_token*(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
    of ';':
       tok.type = TkSemicolon
+      inc(l.bufpos)
+   of ':':
+      tok.type = TkColon
+      inc(l.bufpos)
+   of '@':
+      tok.type = TkAt
       inc(l.bufpos)
    of '#':
       tok.type = TkHash
