@@ -74,9 +74,9 @@ const
    DecimalChars*: set[char] = {'0'..'9'}
    ZChars*: set[char] = {'z', 'Z', '?'}
    XChars*: set[char] = {'x', 'X'}
-   BinaryChars*: set[char] = {'0', '1'} + ZChars + XChars
-   OctalChars*: set[char] = {'0'..'7'} + ZChars + XChars
-   HexChars*: set[char] = {'0'..'9', 'a'..'f', 'A'..'F'} + ZChars + XChars
+   BinaryChars*: set[char] = {'0', '1'}
+   OctalChars*: set[char] = {'0'..'7'}
+   HexChars*: set[char] = {'0'..'9', 'a'..'f', 'A'..'F'}
    SymChars*: set[char] = {'0'..'9', 'a'..'z', 'A'..'Z', '_'}
    SymStartChars*: set[char] = {'a'..'z', 'A'..'Z', '_'}
    OpChars*: set[char] = {'+', '-', '!', '~', '&', '|', '^', '*', '/', '%', '=',
@@ -372,7 +372,27 @@ proc handle_binary(l: var Lexer, tok: var Token) =
 
 
 proc handle_octal(l: var Lexer, tok: var Token) =
-   discard
+   # If this proc is called, we know that we only have to handle an octal value
+   # and not any size or base specifier.
+   tok.type = TkOctLit
+   while true:
+      let c = l.buf[l.bufpos]
+      case c
+      of OctalChars:
+         add(tok.literal, c)
+      of '_':
+         discard
+      of XChars + ZChars:
+         add(tok.literal, c)
+      else:
+         if len(tok.literal) == 0:
+            tok.type = TkInvalid
+            return
+         break
+
+      inc(l.bufpos)
+
+   tok.inumber = parse_oct_int(tok.literal)
 
 
 proc handle_hex(l: var Lexer, tok: var Token) =

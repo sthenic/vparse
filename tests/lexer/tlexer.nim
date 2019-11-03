@@ -208,12 +208,30 @@ run_test("Binary number: size", "4'b1100 8'B10000110", @[
    Token.new_inumber(TkBinLit, 1, 8, 134, Base2, 8, "10000110"),
 ])
 
-run_test("Binary number: underscore", "8'B1001_0110", @[
+run_test("Binary number: underscore", "8'B1001_0110_", @[
    Token.new_inumber(TkBinLit, 1, 0, 150, Base2, 8, "10010110"),
 ])
 
 run_test("Binary number: invalid", "8'B", @[
    Token.new_inumber(TkInvalid, 1, 0, 0, Base2, 8, "")
+])
+
+run_test("Octal number: simple", "'o072 'O0176", @[
+   Token.new_inumber(TkOctLit, 1, 0, 58, Base8, 0, "072"),
+   Token.new_inumber(TkOctLit, 1, 6, 126, Base8, 0, "0176"),
+])
+
+run_test("Octal number: size", "2'o77 6'O6721", @[
+   Token.new_inumber(TkOctLit, 1, 0, 63, Base8, 2, "77"),
+   Token.new_inumber(TkOctLit, 1, 6, 3537, Base8, 6, "6721"),
+])
+
+run_test("Octal number: underscore", "8'O54_71_02_31_", @[
+   Token.new_inumber(TkOctLit, 1, 0, 11767961, Base8, 8, "54710231"),
+])
+
+run_test("Octal number: invalid", "8'O", @[
+   Token.new_inumber(TkInvalid, 1, 0, 0, Base8, 8, "")
 ])
 
 
