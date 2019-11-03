@@ -270,9 +270,25 @@ proc handle_dollar(l: var Lexer, tok: var Token) =
    inc(l.bufpos)
 
 
-proc handle_literal(l: var Lexer, tok: var Token) =
+proc handle_string(l: var Lexer, tok: var Token) =
    tok.type = TkStrLit
    inc(l.bufpos)
+
+   # Grab everything from the buffer except newlines.
+   while true:
+      let c = l.buf[l.bufpos]
+      case c
+      of lexbase.Newlines + {lexbase.EndOfFile}:
+         tok.type = TkInvalid
+         set_len(tok.literal, 0)
+         break
+      of '"':
+         # String literal ends.
+         inc(l.bufpos)
+         break
+      else:
+         add(tok.literal, c)
+         inc(l.bufpos)
 
 
 proc get_base(l: var Lexer, tok: var Token) =
@@ -486,7 +502,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
    of '$':
       handle_dollar(l, tok)
    of '"':
-      handle_literal(l, tok)
+      handle_string(l, tok)
    of '\'', '0'..'9':
       handle_number(l, tok)
    else:

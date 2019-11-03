@@ -59,6 +59,11 @@ proc new_comment(t: typedesc[Token], line, col: int, comment: string): Token =
    result.literal = comment
 
 
+proc new_string_literal(t: typedesc[Token], line, col: int,
+                        literal: string): Token =
+   init(result, TkStrLit, line, col)
+   result.literal = literal
+
 proc new_fnumber(t: typedesc[Token], `type`: TokenType, line, col: int,
                  fnumber: float, literal: string): Token =
    init(result, type, line, col)
@@ -301,6 +306,21 @@ run_test("Hex number: X-digit", "2'h0X 2'hx1 2'h1_X", @[
    Token.new_inumber(TkAmbUIntLit, 1, 12, 0, Base16, 2, "1x"),
 ])
 
+run_test("String literal: pangram", """"The quick brown fox jumps over the lazy dog"""", @[
+   Token.new_string_literal(1, 0, "The quick brown fox jumps over the lazy dog"),
+])
+
+run_test("String literal: special characters", """",<.>/?;:'[{]}\|`~1!2@3#4$5%6^7&8*9(0)-_=+"""", @[
+   Token.new_string_literal(1, 0, """,<.>/?;:'[{]}\|`~1!2@3#4$5%6^7&8*9(0)-_=+"""),
+])
+
+run_test("String literal: newline (invalid)", "\"Ends abruptly\n", @[
+   Token.new_token(TkInvalid, 1, 0),
+])
+
+run_test("String literal: EOF (invalid)", "\"Ends abruptly", @[
+   Token.new_token(TkInvalid, 1, 0),
+])
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
