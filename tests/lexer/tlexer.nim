@@ -346,9 +346,8 @@ run_test("Special character: right parenthesis", ")", @[
    Token.new_token(TkRparen, 1, 0),
 ])
 
-# TODO: This might change
-run_test("Special character: backtick", "`", @[
-   Token.new_token(TkBacktick, 1, 0),
+run_test("Compiler directive: default_nettype", "`default_nettype", @[
+   Token.new_identifier(TkDirective, 1, 0, "default_nettype"),
 ])
 
 # Print summary

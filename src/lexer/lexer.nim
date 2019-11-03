@@ -39,8 +39,7 @@ type
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
       TkComma, TkDot, TkSemicolon,
-      TkHash, TkLparen, TkRparen, TkEquals,
-      TkBacktick, # end special characters, begin dollars:
+      TkHash, TkLparen, TkRparen, TkEquals, # end special characters, begin dollars:
       TkDollarFullSkew, TkDollarHold, TkDollarNochange, TkDollarPeriod,
       TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
       TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
@@ -48,7 +47,7 @@ type
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
       TkRealLit,
-      TkComment, TkEndOfFile
+      TkDirective, TkComment, TkEndOfFile
 
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
@@ -117,14 +116,14 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      ",", ".", ";", "#", "(", ")", "=", "`",
+      ",", ".", ";", "#", "(", ")", "=",
       "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
       "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
       "TkRealLit",
-      "TkComment", "[EOF]"
+      "TkDirective", "TkComment", "[EOF]"
    ]
 
 
@@ -234,11 +233,10 @@ proc handle_operator(l: var Lexer, tok: var Token) =
       inc(pos)
    h = !$h
 
-   update_token_position(l, tok)
    tok.identifier =
       get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
 
-   if tok.identifier.id < ord(TkComma) or tok.identifier.id > ord(TkBacktick):
+   if tok.identifier.id < ord(TkComma) or tok.identifier.id > ord(TkEquals):
       # Generic operator
       tok.type = TkOperator
    else:
@@ -268,6 +266,27 @@ proc handle_equals(l: var Lexer, tok: var Token) =
 proc handle_dollar(l: var Lexer, tok: var Token) =
    tok.type = TkDollarHold
    inc(l.bufpos)
+
+
+proc handle_compiler_directive(l: var Lexer, tok: var Token) =
+   tok.type = TkDirective
+   inc(l.bufpos)
+
+   # Grab characters in 'a'..'z', '_'.
+   var pos = l.bufpos
+   var h: Hash = 0
+   while true:
+      let c = l.buf[pos]
+      if c notin {'a'..'z', '_'}:
+         break
+      h = h !& ord(c)
+      inc(pos)
+   h = !$h
+
+   tok.identifier =
+      get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
+
+   l.bufpos = pos
 
 
 proc handle_string(l: var Lexer, tok: var Token) =
@@ -524,8 +543,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.type = TkRparen
       inc(l.bufpos)
    of '`':
-      tok.type = TkBacktick
-      inc(l.bufpos)
+      handle_compiler_directive(l, tok)
    else:
       if c in OpChars:
          handle_operator(l, tok)

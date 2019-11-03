@@ -65,7 +65,7 @@ proc get_identifier*(ic: IdentifierCache, identifier: cstring,
 
 proc get_identifier*(ic: IdentifierCache, identifier: string): PIdentifier =
    result = get_identifier(ic, cstring(identifier), len(identifier),
-                           hash_ignore_style(identifier))
+                           hash_ignore_case(identifier))
 
 
 proc get_identifier*(ic: IdentifierCache, identifier: string,
