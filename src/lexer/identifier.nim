@@ -23,6 +23,13 @@ proc `$`*(x: PIdentifier): string =
    else:
       add(result, "(" & $x.next.id & ")")
 
+# We have to define our own hashing of strings since the one offered for strings
+# in the stdlib does not yield the same result.
+proc local_hash(x: string): Hash =
+   for c in x:
+      result = result !& ord(c)
+   result = !$result
+
 
 proc get_identifier*(ic: IdentifierCache, identifier: cstring,
                      length: int, h: Hash): PIdentifier =
@@ -65,7 +72,7 @@ proc get_identifier*(ic: IdentifierCache, identifier: cstring,
 
 proc get_identifier*(ic: IdentifierCache, identifier: string): PIdentifier =
    result = get_identifier(ic, cstring(identifier), len(identifier),
-                           hash_ignore_case(identifier))
+                           local_hash(identifier))
 
 
 proc get_identifier*(ic: IdentifierCache, identifier: string,

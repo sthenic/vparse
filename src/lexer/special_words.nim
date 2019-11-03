@@ -36,8 +36,5 @@ const
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
       # Special characters
-      ",", ".", ";", ":", "@", "#", "(", ")", "=",
-      # Dollars
-      "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
-      "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width"
+      ",", ".", ";", ":", "@", "#", "(", ")", "="
    ]

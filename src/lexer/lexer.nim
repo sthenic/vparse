@@ -39,15 +39,12 @@ type
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
       TkComma, TkDot, TkSemicolon, TkColon, TkAt, TkHash, TkLparen, TkRparen,
-      TkEquals, # end special characters, begin dollars:
-      TkDollarFullSkew, TkDollarHold, TkDollarNochange, TkDollarPeriod,
-      TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
-      TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
+      TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
       TkRealLit,
-      TkDirective, TkComment, TkEndOfFile
+      TkDirective, TkDollar, TkComment, TkEndOfFile
 
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
@@ -78,7 +75,7 @@ const
    BinaryChars*: set[char] = {'0', '1'}
    OctalChars*: set[char] = {'0'..'7'}
    HexChars*: set[char] = {'0'..'9', 'a'..'f', 'A'..'F'}
-   SymChars*: set[char] = {'0'..'9', 'a'..'z', 'A'..'Z', '_'}
+   SymChars*: set[char] = {'0'..'9', 'a'..'z', 'A'..'Z', '_', '$'}
    SymStartChars*: set[char] = {'a'..'z', 'A'..'Z', '_'}
    OpChars*: set[char] = {'+', '-', '!', '~', '&', '|', '^', '*', '/', '%', '=',
                           '<', '>'}
@@ -117,13 +114,11 @@ const
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
       ",", ".", ";", ":", "@", "#", "(", ")", "=",
-      "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
-      "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
       "TkRealLit",
-      "TkDirective", "TkComment", "[EOF]"
+      "TkDirective", "TkDollar", "TkComment", "[EOF]"
    ]
 
 
@@ -164,23 +159,6 @@ template update_token_position(l: Lexer, tok: var Token) =
    tok.col = get_col_number(l, l.bufpos)
    tok.line = l.lineNumber
 
-
-proc get_symbol(l: var Lexer, tok: var Token) =
-   tok.type = TkSymbol
-   var pos = l.bufpos
-   var h: Hash = 0
-   while true:
-      let c = l.buf[pos]
-      if c notin SymChars:
-         break
-      h = h !& ord(c)
-      inc(pos)
-   h = !$h
-
-   tok.identifier =
-      get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
-
-   l.bufpos = pos
 
 proc skip(l: var Lexer, pos: int): int =
    result = pos
@@ -276,21 +254,13 @@ proc handle_equals(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
 
 
-proc handle_dollar(l: var Lexer, tok: var Token) =
-   tok.type = TkDollarHold
-   inc(l.bufpos)
-
-
-proc handle_compiler_directive(l: var Lexer, tok: var Token) =
-   tok.type = TkDirective
-   inc(l.bufpos)
-
+proc handle_identifier(l: var Lexer, tok: var Token, char_set: set[char]) =
    # Grab characters in 'a'..'z', '_'.
    var pos = l.bufpos
    var h: Hash = 0
    while true:
       let c = l.buf[pos]
-      if c notin {'a'..'z', '_'}:
+      if c notin char_set:
          break
       h = h !& ord(c)
       inc(pos)
@@ -526,13 +496,16 @@ proc get_token*(l: var Lexer, tok: var Token) =
       # TODO: Risk of stack overflow?
       get_token(l, tok)
    of SymStartChars:
-      get_symbol(l, tok)
+      tok.type = TkSymbol
+      handle_identifier(l, tok, SymChars)
    of '/':
       handle_forward_slash(l, tok)
    of '=':
       handle_equals(l, tok)
    of '$':
-      handle_dollar(l, tok)
+      tok.type = TkDollar
+      inc(l.bufpos)
+      handle_identifier(l, tok, SymChars)
    of '"':
       handle_string(l, tok)
    of '\'', '0'..'9':
@@ -562,7 +535,9 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.type = TkRparen
       inc(l.bufpos)
    of '`':
-      handle_compiler_directive(l, tok)
+      tok.type = TkDirective
+      inc(l.bufpos)
+      handle_identifier(l, tok, SymChars)
    else:
       if c in OpChars:
          handle_operator(l, tok)

@@ -358,8 +358,28 @@ run_test("Compiler directive: default_nettype", "`default_nettype", @[
    Token.new_identifier(TkDirective, 1, 0, "default_nettype"),
 ])
 
-run_test("Identifier", "foo", @[
+run_test("System task or function: simple", "$display", @[
+   Token.new_identifier(TkDollar, 1, 0, "display"),
+])
+
+run_test("System task or function: complex", "$$aVeryCoMpLeX_NaMe02$_", @[
+   Token.new_identifier(TkDollar, 1, 0, "$aVeryCoMpLeX_NaMe02$_"),
+])
+
+run_test("Identifier: simple lowercase", "foo", @[
    Token.new_identifier(TkSymbol, 1, 0, "foo"),
+])
+
+run_test("Identifier: simple mixed case", "Foo", @[
+   Token.new_identifier(TkSymbol, 1, 0, "Foo"),
+])
+
+run_test("Identifier: first character is underscore", "_bar", @[
+   Token.new_identifier(TkSymbol, 1, 0, "_bar"),
+])
+
+run_test("Identifier: complex", "_MyPArAmeter10$_2$", @[
+   Token.new_identifier(TkSymbol, 1, 0, "_MyPArAmeter10$_2$"),
 ])
 
 run_test("Assign statement", "localparam foo = 123;", @[
