@@ -10,6 +10,25 @@ var
    nof_failed = 0
    lex: Lexer
 
+
+template echo_response(title, stimuli: string) =
+   var response: seq[Token] = @[]
+   var tok: Token
+   init(tok)
+   open_lexer(lex, "test", new_string_stream(stimuli))
+   while true:
+      get_token(lex, tok)
+      if tok.type == TokenType.TkEndOfFile:
+         break
+      add(response, tok)
+   close_lexer(lex)
+
+   styledWriteLine(stdout, styleBright, fgYellow, "[!] ",
+                   fgWhite, "Response '",  title, "'")
+   for t in response:
+      echo t
+
+
 template run_test(title, stimuli: string; reference: seq[Token],
                   debug: bool = false) =
    var response: seq[Token] = @[]
