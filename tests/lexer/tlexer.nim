@@ -322,6 +322,10 @@ run_test("String literal: EOF (invalid)", "\"Ends abruptly", @[
    Token.new_token(TkInvalid, 1, 0),
 ])
 
+run_test("Special character: backslash", "\\", @[
+   Token.new_token(TkBackslash, 1, 0),
+])
+
 run_test("Special character: comma", ",", @[
    Token.new_token(TkComma, 1, 0),
 ])

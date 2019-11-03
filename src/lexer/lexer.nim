@@ -38,8 +38,8 @@ type
       TkVectored,
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
-      TkComma, TkDot, TkSemicolon, TkColon, TkAt, TkHash, TkLparen, TkRparen,
-      TkEquals, # end special characters
+      TkBackslash, TkComma, TkDot, TkSemicolon, TkColon, TkAt, TkHash,
+      TkLparen, TkRparen, TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
@@ -113,7 +113,7 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      ",", ".", ";", ":", "@", "#", "(", ")", "=",
+      "\\", ",", ".", ";", ":", "@", "#", "(", ")", "=",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
@@ -227,7 +227,7 @@ proc handle_operator(l: var Lexer, tok: var Token) =
    tok.identifier =
       get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
 
-   if tok.identifier.id < ord(TkComma) or tok.identifier.id > ord(TkEquals):
+   if tok.identifier.id < ord(TkBackslash) or tok.identifier.id > ord(TkEquals):
       # Generic operator
       tok.type = TkOperator
    else:
@@ -510,6 +510,9 @@ proc get_token*(l: var Lexer, tok: var Token) =
       handle_string(l, tok)
    of '\'', '0'..'9':
       handle_number(l, tok)
+   of '\\':
+      tok.type = TkBackslash
+      inc(l.bufpos)
    of ',':
       tok.type = TkComma
       inc(l.bufpos)
