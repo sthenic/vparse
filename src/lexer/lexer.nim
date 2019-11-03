@@ -40,7 +40,7 @@ type
       TkXnor, TkXor, # end keywords, begin special characters:
       TkComma, TkDot, TkSemicolon,
       TkHash, TkLparen, TkRparen, TkEquals,
-      TkTick, # end special characters, begin dollars:
+      TkBacktick, # end special characters, begin dollars:
       TkDollarFullSkew, TkDollarHold, TkDollarNochange, TkDollarPeriod,
       TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
       TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
@@ -238,7 +238,7 @@ proc handle_operator(l: var Lexer, tok: var Token) =
    tok.identifier =
       get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
 
-   if tok.identifier.id < ord(TkComma) or tok.identifier.id > ord(TkTick):
+   if tok.identifier.id < ord(TkComma) or tok.identifier.id > ord(TkBacktick):
       # Generic operator
       tok.type = TkOperator
    else:
@@ -505,6 +505,27 @@ proc get_token*(l: var Lexer, tok: var Token) =
       handle_string(l, tok)
    of '\'', '0'..'9':
       handle_number(l, tok)
+   of ',':
+      tok.type = TkComma
+      inc(l.bufpos)
+   of '.':
+      tok.type = TkDot
+      inc(l.bufpos)
+   of ';':
+      tok.type = TkSemicolon
+      inc(l.bufpos)
+   of '#':
+      tok.type = TkHash
+      inc(l.bufpos)
+   of '(':
+      tok.type = TkLparen
+      inc(l.bufpos)
+   of ')':
+      tok.type = TkRparen
+      inc(l.bufpos)
+   of '`':
+      tok.type = TkBacktick
+      inc(l.bufpos)
    else:
       if c in OpChars:
          handle_operator(l, tok)

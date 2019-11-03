@@ -322,6 +322,35 @@ run_test("String literal: EOF (invalid)", "\"Ends abruptly", @[
    Token.new_token(TkInvalid, 1, 0),
 ])
 
+run_test("Special character: comma", ",", @[
+   Token.new_token(TkComma, 1, 0),
+])
+
+run_test("Special character: dot", ".", @[
+   Token.new_token(TkDot, 1, 0),
+])
+
+run_test("Special character: semicolon", ";", @[
+   Token.new_token(TkSemicolon, 1, 0),
+])
+
+run_test("Special character: hash", "#", @[
+   Token.new_token(TkHash, 1, 0),
+])
+
+run_test("Special character: left parenthesis", "(", @[
+   Token.new_token(TkLparen, 1, 0),
+])
+
+run_test("Special character: right parenthesis", ")", @[
+   Token.new_token(TkRparen, 1, 0),
+])
+
+# TODO: This might change
+run_test("Special character: backtick", "`", @[
+   Token.new_token(TkBacktick, 1, 0),
+])
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
