@@ -373,7 +373,23 @@ run_test("Compiler directive: macro definition", "`define MyMacro(x) x * 2", @[
    Token.new_inumber(TkIntLit, 1, 23, 2, Base10, -1, "2")
 ])
 
-# TODO: Multiline macro definition
+run_test("Compiler directive: macro definition, multiple lines",
+"""`define MyMacro(x, y) \
+      x & 8'h7F + y""", @[
+   Token.new_identifier(TkDirective, 1, 0, "define"),
+   Token.new_identifier(TkSymbol, 1, 8, "MyMacro"),
+   Token.new_token(TkLparen, 1, 15),
+   Token.new_identifier(TkSymbol, 1, 16, "x"),
+   Token.new_token(TkComma, 1, 17),
+   Token.new_identifier(TkSymbol, 1, 19, "y"),
+   Token.new_token(TkRparen, 1, 20),
+   Token.new_token(TkBackslash, 1, 22),
+   Token.new_identifier(TkSymbol, 2, 6, "x"),
+   Token.new_identifier(TkOperator, 2, 8, "&"),
+   Token.new_inumber(TkUIntLit, 2, 10, 127, Base16, 8, "7F"),
+   Token.new_identifier(TkOperator, 2, 16, "+"),
+   Token.new_identifier(TkSymbol, 2, 18, "y"),
+])
 
 run_test("System task or function: simple", "$display", @[
    Token.new_identifier(TkDollar, 1, 0, "display"),
