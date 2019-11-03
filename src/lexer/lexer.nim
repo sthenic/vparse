@@ -45,8 +45,8 @@ type
       TkDollarRecovery, TkDollarRecrem, TkDollarRemoval, TkDollarSetup,
       TkDollarSetupHold, TkDollarSkew, TkDollarTimeSkew, TkDollarWidth, # end dollars
       TkSymbol, TkOperator, TkStrLit,
-      TkDecLit, TkOctLit, TkBinLit, TkHexLit,
-      TkAmbDecLit, TkAmbOctLit, TkAmbBinLit, TkAmbHexLit, # Ambiguous literals
+      TkIntLit, TkUIntLit,
+      TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
       TkRealLit,
       TkComment, TkEndOfFile
 
@@ -121,8 +121,8 @@ const
       "$fullskew", "$hold", "$nochange", "$period", "$recovery", "$recrem",
       "$removal", "$setup", "$setuphold", "$skew", "$timeskew", "$width",
       "TkSymbol", "TkOperator", "TkStrLit",
-      "TkDecLit", "TkOctLit", "TkBinLit", "TkHexLit",
-      "TkAmbDecLit", "TkAmbOctLit", "TkAmbBinLit", "TkAmbHexLit",
+      "TkIntLit", "TkUIntLit",
+      "TkAmbIntLit", "TkAmbUIntLit",
       "TkRealLit",
       "TkComment", "[EOF]"
    ]
@@ -164,13 +164,6 @@ template update_token_position(l: Lexer, tok: var Token) =
    # FIXME: This is wrong when pos is something other than l.bufpos.
    tok.col = get_col_number(l, l.bufpos)
    tok.line = l.lineNumber
-
-
-proc find_str(a: openarray[string], s: string): int =
-   for i in low(a) .. high(a):
-      if cmp(a[i], s) == 0:
-         return i
-   result = -1
 
 
 proc get_symbol(l: var Lexer, tok: var Token) =
@@ -285,8 +278,12 @@ proc handle_literal(l: var Lexer, tok: var Token) =
 proc get_base(l: var Lexer, tok: var Token) =
    if l.buf[l.bufpos] == '\'':
       if l.buf[l.bufpos + 1] in {'s', 'S'}:
+         # Signed designator included in the base format.
+         tok.type = TkIntLit
          inc(l.bufpos, 2)
       else:
+         # Base format w/o a signed designator, assume unsigned.
+         tok.type = TkUIntLit
          inc(l.bufpos, 1)
 
       case l.buf[l.bufpos]
@@ -304,8 +301,22 @@ proc get_base(l: var Lexer, tok: var Token) =
 
       inc(l.bufpos)
    else:
-      # If there's no base in the buffer, assume base 10.
+      # If there's no base format in the buffer, assume base 10 and signed
+      # until we have more information.
+      tok.type = TkIntLit
       tok.base = Base10
+
+
+proc set_ambiguous(tok: var Token) =
+   case tok.type
+   of TkIntLit:
+      tok.type = TkAmbIntLit
+   of TkUIntLit:
+      tok.type = TkAmbUIntLit
+   of {TkAmbIntLit, TkAmbUIntLit}:
+      discard
+   else:
+      tok.type = TkInvalid
 
 
 # Forward declaration
@@ -314,10 +325,9 @@ proc handle_number(l: var Lexer, tok: var Token)
 proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
    # We're reading a base 10 number, but this may be the size field of a number
    # with another base. We also have to handle X- and Z-digits separately.
-   tok.type = TkDecLit
    let c = l.buf[l.bufpos]
    if c in XChars + ZChars:
-      tok.type = TkAmbDecLit
+      set_ambiguous(tok)
       tok.literal = $to_lower_ascii(c)
       if l.buf[l.bufpos + 1] == '_':
          inc(l.bufpos, 2)
@@ -357,15 +367,14 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
 proc handle_binary(l: var Lexer, tok: var Token) =
    # If this proc is called, we know that we only have to handle a binary value
    # and not any size or base specifier.
-   tok.type = TkBinLit
    while true:
       let c = l.buf[l.bufpos]
       case c
       of BinaryChars:
          add(tok.literal, c)
       of XChars + ZChars:
+         set_ambiguous(tok)
          add(tok.literal, to_lower_ascii(c))
-         tok.type = TkAmbBinLit
       of '_':
          discard
       else:
@@ -376,14 +385,13 @@ proc handle_binary(l: var Lexer, tok: var Token) =
 
       inc(l.bufpos)
 
-   if tok.type == TkBinLit:
+   if tok.type in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_bin_int(tok.literal)
 
 
 proc handle_octal(l: var Lexer, tok: var Token) =
    # If this proc is called, we know that we only have to handle an octal value
    # and not any size or base specifier.
-   tok.type = TkOctLit
    while true:
       let c = l.buf[l.bufpos]
       case c
@@ -392,8 +400,8 @@ proc handle_octal(l: var Lexer, tok: var Token) =
       of '_':
          discard
       of XChars + ZChars:
+         set_ambiguous(tok)
          add(tok.literal, to_lower_ascii(c))
-         tok.type = TkAmbOctLit
       else:
          if len(tok.literal) == 0:
             tok.type = TkInvalid
@@ -402,14 +410,13 @@ proc handle_octal(l: var Lexer, tok: var Token) =
 
       inc(l.bufpos)
 
-   if tok.type == TkOctLit:
+   if tok.type in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_oct_int(tok.literal)
 
 
 proc handle_hex(l: var Lexer, tok: var Token) =
    # If this proc is called, we know that we only have to handle a hexadecimal
    # value and not any size or base specifier.
-   tok.type = TkHexLit
    while true:
       let c = l.buf[l.bufpos]
       case c
@@ -418,8 +425,8 @@ proc handle_hex(l: var Lexer, tok: var Token) =
       of '_':
          discard
       of XChars + ZChars:
+         set_ambiguous(tok)
          add(tok.literal, to_lower_ascii(c))
-         tok.type = TkAmbHexLit
       else:
          if len(tok.literal) == 0:
             tok.type = TkInvalid
@@ -428,7 +435,7 @@ proc handle_hex(l: var Lexer, tok: var Token) =
 
       inc(l.bufpos)
 
-   if tok.type == TkHexLit:
+   if tok.type in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_hex_int(tok.literal)
 
 
