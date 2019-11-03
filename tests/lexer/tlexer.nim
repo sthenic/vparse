@@ -190,8 +190,30 @@ run_test("Real number: negative exponent", "1e-3 5E-1", @[
    Token.new_fnumber(TkRealLit, 1, 5, 0.5, "5E-1")
 ])
 
+run_test("Real number: underscore", "2_33.9_6e-2_", @[
+   Token.new_fnumber(TkRealLit, 1, 0, 2.3396, "233.96e-2")
+])
+
 run_test("Real number: full", "221.45e-2", @[
    Token.new_fnumber(TkRealLit, 1, 0, 2.2145, "221.45e-2")
+])
+
+run_test("Binary number: simple", "'b1010 'B0110", @[
+   Token.new_inumber(TkBinLit, 1, 0, 10, Base2, 0, "1010"),
+   Token.new_inumber(TkBinLit, 1, 7, 6, Base2, 0, "0110"),
+])
+
+run_test("Binary number: size", "4'b1100 8'B10000110", @[
+   Token.new_inumber(TkBinLit, 1, 0, 12, Base2, 4, "1100"),
+   Token.new_inumber(TkBinLit, 1, 8, 134, Base2, 8, "10000110"),
+])
+
+run_test("Binary number: underscore", "8'B1001_0110", @[
+   Token.new_inumber(TkBinLit, 1, 0, 150, Base2, 8, "10010110"),
+])
+
+run_test("Binary number: invalid", "8'B", @[
+   Token.new_inumber(TkInvalid, 1, 0, 0, Base2, 8, "")
 ])
 
 

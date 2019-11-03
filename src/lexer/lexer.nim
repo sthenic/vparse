@@ -348,8 +348,27 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
    else:
       tok.inumber = parse_int(tok.literal)
 
+
 proc handle_binary(l: var Lexer, tok: var Token) =
-   discard
+   # If this proc is called, we know that we only have to handle a binary value
+   # and not any size or base specifier.
+   tok.type = TkBinLit
+   while true:
+      let c = l.buf[l.bufpos]
+      case c
+      of BinaryChars:
+         add(tok.literal, c)
+      of '_':
+         discard
+      else:
+         if len(tok.literal) == 0:
+            tok.type = TkInvalid
+            return
+         break
+
+      inc(l.bufpos)
+
+   tok.inumber = parse_bin_int(tok.literal)
 
 
 proc handle_octal(l: var Lexer, tok: var Token) =
