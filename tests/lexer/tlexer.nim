@@ -358,6 +358,19 @@ run_test("Compiler directive: default_nettype", "`default_nettype", @[
    Token.new_identifier(TkDirective, 1, 0, "default_nettype"),
 ])
 
+run_test("Compiler directive: macro definition", "`define MyMacro(x) x * 2", @[
+   Token.new_identifier(TkDirective, 1, 0, "define"),
+   Token.new_identifier(TkSymbol, 1, 8, "MyMacro"),
+   Token.new_token(TkLparen, 1, 15),
+   Token.new_identifier(TkSymbol, 1, 16, "x"),
+   Token.new_token(TkRparen, 1, 17),
+   Token.new_identifier(TkSymbol, 1, 19, "x"),
+   Token.new_identifier(TkOperator, 1, 21, "*"),
+   Token.new_inumber(TkIntLit, 1, 23, 2, Base10, -1, "2")
+])
+
+# TODO: Multiline macro definition
+
 run_test("System task or function: simple", "$display", @[
    Token.new_identifier(TkDollar, 1, 0, "display"),
 ])

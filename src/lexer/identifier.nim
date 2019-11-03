@@ -13,7 +13,7 @@ type
 
    IdentifierCache* = ref object
       buckets: array[0..4096 * 2 - 1, PIdentifier]
-      nof_identifiers: int
+      nof_identifiers*: int
 
 
 proc `$`*(x: PIdentifier): string =
@@ -31,6 +31,26 @@ proc local_hash(x: string): Hash =
    result = !$result
 
 
+# We have to define our own string comparison for the case where b is located
+# directly in the raw file buffer. This implementation is borrowed directly
+# from the Nim compiler's implementation of identifiers.
+proc cmp_exact(a, b: cstring, blen: int): int =
+   var i = 0
+   var j = 0
+   result = 1
+   while j < blen:
+      var aa = a[i]
+      var bb = b[j]
+      result = ord(aa) - ord(bb)
+      if (result != 0) or (aa == '\0'):
+         break
+      inc(i)
+      inc(j)
+   if result == 0:
+      if a[i] != '\0':
+         result = 1
+
+
 proc get_identifier*(ic: IdentifierCache, identifier: cstring,
                      length: int, h: Hash): PIdentifier =
    # Use the hash as our starting point to search the buckets, but keep within
@@ -41,7 +61,7 @@ proc get_identifier*(ic: IdentifierCache, identifier: cstring,
    var last: PIdentifier = nil
    # Handle hash collisions.
    while result != nil:
-      if result.s == identifier:
+      if cmp_exact(cstring(result.s), identifier, length) == 0:
          # We've found a perfect match in the table and we're ready to return
          # from this function. If we got here by searching a chain of hashed
          # identifiers we swap the position of the first element we encountered

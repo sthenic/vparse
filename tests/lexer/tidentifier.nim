@@ -64,11 +64,15 @@ run_test("New identifier", true):
 
 
 run_test("Identifier lookup", false):
-   passed = identifier == identifier_cache.get_identifier("foo")
+   nof_identifiers = identifier_cache.nof_identifiers
+   passed = identifier == identifier_cache.get_identifier("foo") and
+            nof_identifiers == identifier_cache.nof_identifiers
 
 
 run_test("Alternate case identifier", false):
-   passed = identifier != identifier_cache.get_identifier("Foo")
+   nof_identifiers = identifier_cache.nof_identifiers
+   passed = identifier != identifier_cache.get_identifier("Foo") and
+            nof_identifiers != identifier_cache.nof_identifiers
 
 
 run_test("Escaped identifier", false):
