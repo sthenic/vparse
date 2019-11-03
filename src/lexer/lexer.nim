@@ -380,6 +380,10 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
          break
       inc(l.bufpos)
 
+   if len(tok.literal) == 0:
+      tok.type = TkInvalid
+      return
+
    if tok.type == TkRealLit:
       tok.fnumber = parse_float(tok.literal)
    else:
@@ -400,12 +404,13 @@ proc handle_binary(l: var Lexer, tok: var Token) =
       of '_':
          discard
       else:
-         if len(tok.literal) == 0:
-            tok.type = TkInvalid
-            return
          break
 
       inc(l.bufpos)
+
+   if len(tok.literal) == 0:
+      tok.type = TkInvalid
+      return
 
    if tok.type in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_bin_int(tok.literal)
@@ -425,12 +430,13 @@ proc handle_octal(l: var Lexer, tok: var Token) =
          set_ambiguous(tok)
          add(tok.literal, to_lower_ascii(c))
       else:
-         if len(tok.literal) == 0:
-            tok.type = TkInvalid
-            return
          break
 
       inc(l.bufpos)
+
+   if len(tok.literal) == 0:
+      tok.type = TkInvalid
+      return
 
    if tok.type in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_oct_int(tok.literal)
@@ -450,12 +456,13 @@ proc handle_hex(l: var Lexer, tok: var Token) =
          set_ambiguous(tok)
          add(tok.literal, to_lower_ascii(c))
       else:
-         if len(tok.literal) == 0:
-            tok.type = TkInvalid
-            return
          break
 
       inc(l.bufpos)
+
+   if len(tok.literal) == 0:
+      tok.type = TkInvalid
+      return
 
    if tok.type in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_hex_int(tok.literal)
@@ -555,7 +562,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       if c in OpChars:
          handle_operator(l, tok)
       else:
-         echo "Invalid token: '", c, "'"
+         echo "Invalid token: '", c, "' (", int(c), ")"
          tok.type = TkInvalid
          inc(l.bufpos)
 

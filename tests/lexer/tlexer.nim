@@ -184,6 +184,11 @@ run_test("Decimal number: Z-digit", "8'dZ 7'dz 16'dZ_ 2'd?", @[
    Token.new_inumber(TkAmbUIntLit, 1, 17, 0, Base10, 2, "?")
 ])
 
+run_test("Decimal number: invalid", "'dAF", @[
+   Token.new_inumber(TkInvalid, 1, 0, 0, Base10, -1, ""),
+   Token.new_identifier(TkSymbol, 1, 2, "AF")
+])
+
 run_test("Real number: simple", "3.14159", @[
    Token.new_fnumber(TkRealLit, 1, 0, 3.14159, "3.14159")
 ])
@@ -279,8 +284,6 @@ run_test("Hex number: simple", "'hFF 'H64 'sH77 'ShAC 'h 837FF", @[
    Token.new_inumber(TkUIntLit, 1, 22, 538623, Base16, -1, "837FF"),
 ])
 
-# TODO: Test illegal hex number like 4af
-
 run_test("Hex number: size", "2'hC8 4'H2301", @[
    Token.new_inumber(TkUIntLit, 1, 0, 200, Base16, 2, "C8"),
    Token.new_inumber(TkUIntLit, 1, 6, 8961, Base16, 4, "2301"),
@@ -292,6 +295,13 @@ run_test("Hex number: underscore", "32'hFFFF_FFFF", @[
 
 run_test("Hex number: invalid", "8'H", @[
    Token.new_inumber(TkInvalid, 1, 0, 0, Base16, 8, "")
+])
+
+# This does not generate an invalid token. Instead it gets interpreted as a
+# signed decimal number and an identifier.
+run_test("Hex number: illegal", "4af", @[
+   Token.new_inumber(TkIntLit, 1, 0, 4, Base10, -1, "4"),
+   Token.new_identifier(TkSymbol, 1, 1, "af")
 ])
 
 run_test("Hex number: Z-digit", "2'h0Z 2'hz1 2'h??", @[
