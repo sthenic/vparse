@@ -149,20 +149,20 @@ run_test("Assigment operator", "=", @[
 ])
 
 run_test("Decimal number: signed", "1234567890 231", @[
-   Token.new_inumber(TkIntLit, 1, 0, 1234567890, Base10, 0, "1234567890"),
-   Token.new_inumber(TkIntLit, 1, 11, 231, Base10, 0, "231")
+   Token.new_inumber(TkIntLit, 1, 0, 1234567890, Base10, -1, "1234567890"),
+   Token.new_inumber(TkIntLit, 1, 11, 231, Base10, -1, "231")
 ])
 
 run_test("Decimal number: with base", "32'd2617 18'D32 'd77 'sd90 'Sd100", @[
    Token.new_inumber(TkUIntLit, 1, 0, 2617, Base10, 32, "2617"),
    Token.new_inumber(TkUIntLit, 1, 9, 32, Base10, 18, "32"),
-   Token.new_inumber(TkUIntLit, 1, 16, 77, Base10, 0, "77"),
-   Token.new_inumber(TkIntLit, 1, 21, 90, Base10, 0, "90"),
-   Token.new_inumber(TkIntLit, 1, 27, 100, Base10, 0, "100")
+   Token.new_inumber(TkUIntLit, 1, 16, 77, Base10, -1, "77"),
+   Token.new_inumber(TkIntLit, 1, 21, 90, Base10, -1, "90"),
+   Token.new_inumber(TkIntLit, 1, 27, 100, Base10, -1, "100")
 ])
 
 run_test("Decimal number: underscore", "2617_123_", @[
-   Token.new_inumber(TkIntLit, 1, 0, 2617123, Base10, 0, "2617123")
+   Token.new_inumber(TkIntLit, 1, 0, 2617123, Base10, -1, "2617123")
 ])
 
 run_test("Decimal number: X-digit", "8'dX 7'dx 16'dX_", @[
@@ -201,10 +201,10 @@ run_test("Real number: full", "221.45e-2", @[
 ])
 
 run_test("Binary number: simple", "'b1010 'B0110 'Sb10 'sB11", @[
-   Token.new_inumber(TkUIntLit, 1, 0, 10, Base2, 0, "1010"),
-   Token.new_inumber(TkUIntLit, 1, 7, 6, Base2, 0, "0110"),
-   Token.new_inumber(TkIntLit, 1, 14, 2, Base2, 0, "10"),
-   Token.new_inumber(TkIntLit, 1, 20, 3, Base2, 0, "11")
+   Token.new_inumber(TkUIntLit, 1, 0, 10, Base2, -1, "1010"),
+   Token.new_inumber(TkUIntLit, 1, 7, 6, Base2, -1, "0110"),
+   Token.new_inumber(TkIntLit, 1, 14, 2, Base2, -1, "10"),
+   Token.new_inumber(TkIntLit, 1, 20, 3, Base2, -1, "11")
 ])
 
 run_test("Binary number: size", "4'b1100 8'B10000110", @[
@@ -233,10 +233,10 @@ run_test("Binary number: X-digit", "2'b0X 2'bx1 2'b1_X", @[
 ])
 
 run_test("Octal number: simple", "'o072 'O0176 'so7 'SO4", @[
-   Token.new_inumber(TkUIntLit, 1, 0, 58, Base8, 0, "072"),
-   Token.new_inumber(TkUIntLit, 1, 6, 126, Base8, 0, "0176"),
-   Token.new_inumber(TkIntLit, 1, 13, 7, Base8, 0, "7"),
-   Token.new_inumber(TkIntLit, 1, 18, 4, Base8, 0, "4")
+   Token.new_inumber(TkUIntLit, 1, 0, 58, Base8, -1, "072"),
+   Token.new_inumber(TkUIntLit, 1, 6, 126, Base8, -1, "0176"),
+   Token.new_inumber(TkIntLit, 1, 13, 7, Base8, -1, "7"),
+   Token.new_inumber(TkIntLit, 1, 18, 4, Base8, -1, "4")
 ])
 
 run_test("Octal number: size", "2'o77 6'O6721", @[
@@ -265,10 +265,10 @@ run_test("Octal number: X-digit", "2'o0X 2'ox1 2'o1_X", @[
 ])
 
 run_test("Hex number: simple", "'hFF 'H64 'sH77 'ShAC", @[
-   Token.new_inumber(TkUIntLit, 1, 0, 255, Base16, 0, "FF"),
-   Token.new_inumber(TkUIntLit, 1, 5, 100, Base16, 0, "64"),
-   Token.new_inumber(TkIntLit, 1, 10, 119, Base16, 0, "77"),
-   Token.new_inumber(TkIntLit, 1, 16, 172, Base16, 0, "AC"),
+   Token.new_inumber(TkUIntLit, 1, 0, 255, Base16, -1, "FF"),
+   Token.new_inumber(TkUIntLit, 1, 5, 100, Base16, -1, "64"),
+   Token.new_inumber(TkIntLit, 1, 10, 119, Base16, -1, "77"),
+   Token.new_inumber(TkIntLit, 1, 16, 172, Base16, -1, "AC"),
 ])
 
 run_test("Hex number: size", "2'hC8 4'H2301", @[

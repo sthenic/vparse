@@ -140,7 +140,7 @@ proc init*(t: var Token) =
    t.inumber = 0
    t.fnumber = 0.0
    t.base = Base10
-   t.size = 0
+   t.size = -1
    t.line = 0
    t.col = 0
 
