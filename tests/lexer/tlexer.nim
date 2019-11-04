@@ -230,6 +230,19 @@ run_test("Real number: full", "221.45e-2", @[
    Token.new_fnumber(TkRealLit, 1, 0, 2.2145, "221.45e-2")
 ])
 
+run_test("Real number: invalid (point)", "3.", @[
+   Token.new_fnumber(TkInvalid, 1, 0, 0.0, "3.")
+])
+
+run_test("Real number: invalid (exponent)", "3e", @[
+   Token.new_fnumber(TkInvalid, 1, 0, 0.0, "3e")
+])
+
+run_test("Real number: invalid (malformed)", "3e++", @[
+   Token.new_fnumber(TkInvalid, 1, 0, 0.0, "3e+"),
+   Token.new_identifier(TkOperator, 1, 3, "+")
+])
+
 run_test("Binary number: simple", "'b1010 'B0110 'Sb10 'sB11", @[
    Token.new_inumber(TkUIntLit, 1, 0, 10, Base2, -1, "1010"),
    Token.new_inumber(TkUIntLit, 1, 7, 6, Base2, -1, "0110"),
@@ -456,41 +469,13 @@ run_test("Assign statement", "localparam foo = 123;", @[
    Token.new_token(TkSemicolon, 1, 20),
 ])
 
-
-# echo_response("Module definition",
-# """// declare regs and parameters
-#    reg [31:0] instruction, segment_area[255:0];
-#    reg [7:0] index;
-#    reg [5:0] modify_seg1,
-#       modify_seg2,
-#       modify_seg3;
-#    parameter
-#       segment1 = 0, inc_seg1 = 1,
-#       segment2 = 20, inc_seg2 = 2,
-#       segment3 = 64, inc_seg3 = 4,
-#       data = 128;
-#    // test the index variable
-#    if (index < segment2) begin
-#       instruction = segment_area [index + modify_seg1];
-#       index = index + inc_seg1;
-#    end
-#    else if (index < segment3) begin
-#       instruction = segment_area [index + modify_seg2];
-#       index = index + inc_seg2;
-#    end
-#    else if (index < data) begin
-#       instruction = segment_area [index + modify_seg3];
-#       index = index + inc_seg3;
-#    end
-#    else
-#       instruction = segment_area [index];
-# """)
-
-# echo_response("Module definition",
-# """reg [7:0] r, mask;
-#    mask = 8'bx0x0x0x0;
-# """)
-
+run_test("Compact expression w/ integers and reals", "3+4-4.3e-3", @[
+   Token.new_inumber(TkIntLit, 1, 0, 3, Base10, -1, "3"),
+   Token.new_identifier(TkOperator, 1, 1, "+"),
+   Token.new_inumber(TkIntLit, 1, 2, 4, Base10, -1, "4"),
+   Token.new_identifier(TkOperator, 1, 3, "-"),
+   Token.new_fnumber(TkRealLit, 1, 4, 0.0043, "4.3e-3")
+])
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

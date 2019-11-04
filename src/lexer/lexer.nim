@@ -344,6 +344,69 @@ proc set_ambiguous(tok: var Token) =
 # Forward declaration
 proc handle_number(l: var Lexer, tok: var Token)
 
+
+template eat_char(l: var Lexer, tok: var Token) =
+   add(tok.literal, l.buf[l.bufpos])
+   inc(l.bufpos)
+
+
+template eat_decimal_number(l: var Lexer, tok: var Token) =
+   while true:
+      let c = l.buf[l.bufpos]
+      case c
+      of DecimalChars:
+         add(tok.literal, c)
+      of '_':
+         discard
+      else:
+         break
+      inc(l.bufpos)
+
+
+proc handle_suspected_real(l: var Lexer, tok: var Token) =
+   # Assume invalid until we have more information.
+   tok.type = TkInvalid
+
+   # Expect either '.' or {'e', 'E'}, both of which have to be followed by an
+   # unsigned number.
+   if l.buf[l.bufpos] == '.':
+      eat_char(l, tok)
+
+      # The next character must be a digit.
+      if l.buf[l.bufpos] notin DecimalChars:
+         tok.type = TkInvalid
+         return
+
+      eat_decimal_number(l, tok)
+      tok.type = TkRealLit
+
+
+   if l.buf[l.bufpos] in {'e', 'E'}:
+      eat_char(l, tok)
+
+      # The next character is either a digit or a sign character.
+      let c = l.buf[l.bufpos]
+      case c
+      of DecimalChars:
+         eat_char(l, tok)
+      of {'+', '-'}:
+         eat_char(l, tok)
+
+         # The next character must be a digit.
+         if l.buf[l.bufpos] notin DecimalChars:
+            tok.type = TkInvalid
+            return
+      else:
+         tok.type = TkInvalid
+         return
+
+      eat_decimal_number(l, tok)
+      tok.type = TkRealLit
+
+   if tok.type == TkRealLit:
+      tok.fnumber = parse_float(tok.literal)
+
+
 proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
    # We're reading a base 10 number, but this may be the size field of a number
    # with another base. We also have to handle X- and Z-digits separately.
@@ -364,9 +427,9 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
          add(tok.literal, c)
       of '_':
          discard
-      of '.', 'e', 'E', '+', '-':
-         tok.type = TkRealLit
-         add(tok.literal, c)
+      of '.', 'e', 'E':
+         handle_suspected_real(l, tok)
+         return
       else:
          # First character that's not part of the number. Check if it's the
          # start of a base specifier, in which case what we've been grabbing
@@ -384,10 +447,7 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
       tok.type = TkInvalid
       return
 
-   if tok.type == TkRealLit:
-      tok.fnumber = parse_float(tok.literal)
-   else:
-      tok.inumber = parse_int(tok.literal)
+   tok.inumber = parse_int(tok.literal)
 
 
 proc handle_binary(l: var Lexer, tok: var Token) =
