@@ -38,8 +38,8 @@ type
       TkVectored,
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
-      TkBackslash, TkComma, TkDot, TkSemicolon, TkColon, TkAt, TkHash,
-      TkLparen, TkRparen, TkLbracket, TkRbracket, TkRbrace, TkLbrace,
+      TkBackslash, TkComma, TkDot, TkQuestionMark, TkSemicolon, TkColon, TkAt,
+      TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkRbrace, TkLbrace,
       TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
@@ -114,7 +114,7 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      "\\", ",", ".", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}", "=",
+      "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}", "=",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
@@ -523,6 +523,9 @@ proc get_token*(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
    of '.':
       tok.type = TkDot
+      inc(l.bufpos)
+   of '?':
+      tok.type = TkQuestionMark
       inc(l.bufpos)
    of ';':
       tok.type = TkSemicolon
