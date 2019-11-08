@@ -404,6 +404,30 @@ run_test("Special character: right parenthesis", ")", @[
    Token.new_token(TkRparen, 1, 0),
 ])
 
+run_test("Special character: left bracket", "[", @[
+   Token.new_token(TkLbracket, 1, 0),
+])
+
+run_test("Special character: right bracket", "]", @[
+   Token.new_token(TkRbracket, 1, 0),
+])
+
+run_test("Special character: left brace", "{", @[
+   Token.new_token(TkLbrace, 1, 0),
+])
+
+run_test("Special character: right brace", "}", @[
+   Token.new_token(TkRbrace, 1, 0),
+])
+
+run_test("Special character: left attribute (begin)", "(*", @[
+   Token.new_token(TkLparenStar, 1, 0),
+])
+
+run_test("Special character: right attribute (end)", "*)", @[
+   Token.new_token(TkRparenStar, 1, 0),
+])
+
 run_test("Compiler directive: default_nettype", "`default_nettype", @[
    Token.new_identifier(TkDirective, 1, 0, "default_nettype"),
 ])

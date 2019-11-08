@@ -40,6 +40,7 @@ type
       TkXnor, TkXor, # end keywords, begin special characters:
       TkBackslash, TkComma, TkDot, TkQuestionMark, TkSemicolon, TkColon, TkAt,
       TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkRbrace, TkLbrace,
+      TkLparenStar, TkRparenStar,
       TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
@@ -114,13 +115,18 @@ const
       "vectored",
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
-      "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}", "=",
+      "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}",
+      "(*", "*)", "=",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
       "TkRealLit",
       "TkDirective", "TkDollar", "TkComment", "[EOF]"
    ]
+
+
+proc `$`*(t: Token): string =
+   result = TokenTypeToStr[t.type]
 
 
 proc new_lexer_error(msg: string, args: varargs[string, `$`]): ref LexerError =
@@ -600,8 +606,18 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.type = TkHash
       inc(l.bufpos)
    of '(':
-      tok.type = TkLparen
-      inc(l.bufpos)
+      if l.buf[l.bufpos + 1] == '*':
+         tok.type = TkLparenStar
+         inc(l.bufpos, 2)
+      else:
+         tok.type = TkLparen
+         inc(l.bufpos, 1)
+   of '*':
+      if l.buf[l.bufpos + 1] == ')':
+         tok.type = TkRparenStar
+         inc(l.bufpos, 2)
+      else:
+         handle_operator(l, tok)
    of ')':
       tok.type = TkRparen
       inc(l.bufpos)
@@ -630,10 +646,17 @@ proc get_token*(l: var Lexer, tok: var Token) =
          inc(l.bufpos)
 
 
-proc open_lexer*(l: var Lexer, filename: string, s: Stream) =
+proc open_lexer*(l: var Lexer, cache: IdentifierCache, filename: string,
+                 s: Stream) =
    lexbase.open(l, s)
    l.filename = filename
-   l.cache = new_ident_cache()
+   l.cache = cache
+
+
+# This proc is needed for the test framework since we somehow cannot initialize
+# a cache from a template?
+proc open_lexer*(l: var Lexer, filename: string, s: Stream) =
+   open_lexer(l, new_ident_cache(), filename, s)
 
 
 proc close_lexer*(l: var Lexer) =
