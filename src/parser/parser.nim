@@ -125,21 +125,13 @@ proc parse_parameter_declaration(p: var Parser): PNode =
       return new_node(NtEmpty, p)
    get_token(p)
 
+   # Check for type and range specifiers.
    case p.tok.type
-   of TkInteger:
-      # FIXME: Communicate this somehow.
-      get_token(p)
-   of TkReal:
-      # FIXME: Communicate this somehow.
-      get_token(p)
-   of TkRealtime:
-      # FIXME: Communicate this somehow.
-      get_token(p)
-   of TkTime:
-      # FIXME: Communicate this somehow.
+   of TkInteger, TkReal, TkRealtime, TkTime:
+      add(result.sons, new_identifier_node(NtType, p))
       get_token(p)
    of TkSigned:
-      # FIXME: Communicate this somehow.
+      add(result.sons, new_identifier_node(NtType, p))
       get_token(p)
       if p.tok.type == TkLbracket:
          add(result.sons, parse_range(p))

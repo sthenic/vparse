@@ -26,7 +26,7 @@ run_test("test_0", """
    parameter signed [5:0]
       myparam = 2,
       param2 = 3;
-   parameter stuff = 2;
+   parameter [7:0] stuff = 2;
    parameter real MYREAL_ = 3.4;
 )"""
 , nil)

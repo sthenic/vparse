@@ -17,6 +17,7 @@ type
       NtAmbIntLit, # the node is an integer literal
       NtAmbUIntLit, # the node is an unsigned integer literal
       NtRealLit, # the node is a real value
+      NtType,
       # Modules A.1.3
       NtSourceText,
       NtModuleDecl,
@@ -62,8 +63,8 @@ type
 
 const
    IdentifierTypes: NodeTypes =
-      {NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
-       NtParameterIdentifier}
+      {NtIdentifier, NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
+       NtParameterIdentifier, NtType}
 
 type
    PNode* = ref TNode
