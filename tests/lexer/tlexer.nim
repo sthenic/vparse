@@ -45,8 +45,8 @@ template run_test(title, stimuli: string; reference: seq[Token],
    try:
       for i in 0..<response.len:
          if debug:
-            echo response[i]
-            echo reference[i]
+            echo pretty(response[i])
+            echo pretty(reference[i])
          do_assert(response[i] == reference[i], "'" & $response[i] & "'")
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
                       fgWhite, "Test '",  title, "'")

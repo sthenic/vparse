@@ -17,6 +17,9 @@ type
 
 
 proc `$`*(x: PIdentifier): string =
+   if x == nil:
+      return "nil"
+
    result = "(" & $x.id & ")" & " s: '" & x.s & "' hash: " & $x.h & " next: "
    if x.next == nil:
       add(result, "nil")

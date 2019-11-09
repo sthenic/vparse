@@ -2,6 +2,7 @@ import lexbase
 import streams
 import strutils
 import hashes
+import macros
 
 import ./identifier
 
@@ -126,7 +127,22 @@ const
 
 
 proc `$`*(t: Token): string =
-   result = TokenTypeToStr[t.type]
+   if t.type in {TkSymbol, TkOperator}:
+      result = t.identifier.s
+   else:
+      result = TokenTypeToStr[t.type]
+
+
+proc pretty*(t: Token): string =
+   result = format("($1:$2: ", t.line, t.col)
+   add(result, "type: " & $t.type)
+   add(result, ", identifier: " & $t.identifier)
+   add(result, ", literal: \"" & t.literal & "\"")
+   add(result, ", inumber: " & $t.inumber)
+   add(result, ", fnumber: " & $t.fnumber)
+   add(result, ", base: " & $t.base)
+   add(result, ", size: " & $t.size)
+   add(result, ")")
 
 
 proc new_lexer_error(msg: string, args: varargs[string, `$`]): ref LexerError =
