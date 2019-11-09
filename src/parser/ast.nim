@@ -27,8 +27,6 @@ type
       NtPortRef, # a port reference
       NtPortRefConcat, # a concatenation of port references with '{}'
       NtPortIdentifier, # a port identifier
-      NtConstantExpr, # a constant expression
-      NtRangeExpr, # a range expression
       # Parameter declarations A.2.1.1
       NtLocalparamDecl,
       NtParameterDecl,
@@ -46,17 +44,26 @@ type
       NtRealtimeDecl,
       NtRegDecl,
       NtTimeDecl,
+      # Declaration assignments A.2.4
+      NtParamAssignment,
+      # Declaration ranges A.2.5
+      NtRange,
       # Net and variable types A.2.2.1
+      # Expressions
+      NtConstantExpression,
       # Attributes A.9.1
       NtAttributeInst,
       NtAttributeSpec,
       NtAttributeName,
+      # Identifiers A.9.3
+      NtParameterIdentifier,
 
    NodeTypes* = set[NodeType]
 
 const
    IdentifierTypes: NodeTypes =
-      {NtAttributeName, NtModuleIdentifier, NtPortIdentifier}
+      {NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
+       NtParameterIdentifier}
 
 type
    PNode* = ref TNode
@@ -75,6 +82,8 @@ type
 
 
 proc pretty*(n: PNode, indent: int = 0): string =
+   if n == nil:
+      return
    result = spaces(indent) & $n.type &
             format("($1:$2)", n.info.line + 1, n.info.col + 1)
    case n.type

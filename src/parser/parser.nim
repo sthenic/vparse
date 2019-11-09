@@ -66,6 +66,120 @@ proc parse_attribute_instance(p: var Parser): PNode =
       get_token(p)
 
 
+proc parse_range(p: var Parser): PNode =
+   result = new_node(NtRange, p)
+
+   # FIXME: Actual implementation
+   get_token(p)
+   while true:
+      case p.tok.type
+      of TkRbracket:
+         get_token(p)
+         break
+      of TkEndOfFile:
+         break
+      else:
+         get_token(p)
+
+
+proc parse_constant_expression(p: var Parser): PNode =
+   result = new_node(NtConstantExpression, p)
+   get_token(p)
+
+
+proc parse_parameter_assignment(p: var Parser): PNode =
+   result = new_node(NtParamAssignment, p)
+
+   if p.tok.type != TkSymbol:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected an indentifier.")
+      return new_node(NtEmpty, p)
+
+   add(result.sons, new_identifier_node(NtParameterIdentifier, p))
+
+   get_token(p)
+   if p.tok.type != TkEquals:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected '='.")
+      return new_node(NtEmpty, p)
+
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+
+
+proc parse_list_of_parameter_assignments(p: var Parser): seq[PNode] =
+   while true:
+      add(result, parse_parameter_assignment(p))
+      case p.tok.type
+      of TkComma:
+         get_token(p)
+      else:
+         break
+
+
+proc parse_parameter_declaration(p: var Parser): PNode =
+   result = new_node(NtParameterDecl, p)
+
+   if p.tok.type != TkParameter:
+      error(p, UnexpectedToken, p.tok)
+      return new_node(NtEmpty, p)
+   get_token(p)
+
+   case p.tok.type
+   of TkInteger:
+      # FIXME: Communicate this somehow.
+      get_token(p)
+   of TkReal:
+      # FIXME: Communicate this somehow.
+      get_token(p)
+   of TkRealtime:
+      # FIXME: Communicate this somehow.
+      get_token(p)
+   of TkTime:
+      # FIXME: Communicate this somehow.
+      get_token(p)
+   of TkSigned:
+      # FIXME: Communicate this somehow.
+      get_token(p)
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+   of TkLbracket:
+      add(result.sons, parse_range(p))
+   of TkSymbol:
+      discard
+   else:
+      error(p, UnexpectedToken, p.tok)
+      return new_node(NtEmpty, p)
+
+   # Try parsing a list of parameter assignments.
+   add(result.sons, parse_list_of_parameter_assignments(p))
+
+
+proc parse_parameter_port_list*(p: var Parser): PNode =
+   result = new_node(NtModuleParameterPortList, p)
+
+   get_token(p)
+   if p.tok.type != TkLparen:
+      error(p, UnexpectedToken, p.tok)
+      return new_node(NtEmpty, p)
+
+   # Parse the contents.
+   get_token(p)
+   while true:
+      if p.tok.type == TkRparen:
+         get_token(p)
+         break
+
+      add(result.sons, parse_parameter_declaration(p))
+      case p.tok.type
+      of TkComma, TkSemicolon:
+         get_token(p)
+      else:
+         error(p, UnexpectedToken, p.tok)
+         result = new_node(NtEmpty, p)
+         break
+
+
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    result = new_node(NtModuleDecl, p)
    if len(attributes) > 0:
@@ -80,6 +194,9 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
       error(p, UnexpectedToken, p.tok)
 
    # FIXME: Parse the optional parameter port list.
+   get_token(p)
+   if p.tok.type == TkHash:
+      add(result.sons, parse_parameter_port_list(p))
 
    # FIXME: Parse the optional list or ports/port declarations. This will
    #        determine what to allow as the module contents.
@@ -139,5 +256,29 @@ proc parse_string*(s: string, cache: IdentifierCache,
    var ss = new_string_stream(s)
    open_parser(p, cache, filename, ss)
    result = parse_all(p)
+   close_parser(p)
+
+
+# Procedure used by the test framework to parse subsets of the grammar.
+proc parse_specific_grammar*(s: string, cache: IdentifierCache,
+                             `type`: NodeType, filename: string = ""): PNode =
+   var p: Parser
+   var ss = new_string_stream(s)
+   open_parser(p, cache, filename, ss)
+
+   var parse_proc: proc (p: var Parser): PNode
+   case `type`
+   of NtModuleParameterPortList:
+      parse_proc = parse_parameter_port_list
+   else:
+      parse_proc = nil
+
+   if parse_proc != nil:
+      # Expect only one top-level statement per call.
+      get_token(p)
+      result = parse_proc(p)
+   else:
+      log.error("Unsupported specific grammar '$1'.", $`type`)
+
    close_parser(p)
 
