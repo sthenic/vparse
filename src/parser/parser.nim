@@ -12,6 +12,10 @@ type
       lex: Lexer
       tok: Token
 
+const
+   UnexpectedToken = "Unexpected token '$1'"
+   UnsupportedToken = "Unsupported token '$1'"
+
 
 proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
                   string, s: Stream) =
@@ -47,6 +51,11 @@ proc new_node(`type`: NodeType, p: Parser): PNode =
    result = new_node(`type`, new_line_info(p))
 
 
+proc new_identifier_node(`type`: NodeType, p: Parser): PNode =
+   result = new_node(`type`, p)
+   result.identifier = p.tok.identifier
+
+
 proc parse_attribute_instance(p: var Parser): PNode =
    result = new_node(NtAttributeInst, p)
    # FIXME: Properly handle this, don't just eat past it.
@@ -62,12 +71,35 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    if len(attributes) > 0:
       add(result.sons, attributes)
 
+   # Expect an idenfitier as the first token after the module keyword.
+   get_token(p)
+   if p.tok.type == TkSymbol:
+      add(result.sons, new_identifier_node(NtModuleIdentifier, p))
+      discard
+   else:
+      error(p, UnexpectedToken, p.tok)
+
+   # FIXME: Parse the optional parameter port list.
+
+   # FIXME: Parse the optional list or ports/port declarations. This will
+   #        determine what to allow as the module contents.
+
+   # FIXME: Expect a semicolon.
+
+   # FIXME: Parse module items or non_port
+
+   # FIXME: Expect endmodule.
+
+
    # FIXME: Properly handle this, don't just eat past it.
    while p.tok.type notin {TkEndmodule, TkEndOfFile}:
       get_token(p)
 
    if p.tok.type == TkEndmodule:
       get_token(p)
+   elif p.tok.type == TkEndOfFile:
+      result = new_node(NtEmpty, p)
+      error(p, "Unexpected end of file when parsing module.")
 
 
 proc assume_source_text(p: var Parser): PNode =
@@ -81,11 +113,11 @@ proc assume_source_text(p: var Parser): PNode =
    of TkModule, TkMacromodule:
       result = parse_module_declaration(p, attributes)
    of TkPrimitive:
-      error(p, "Unsupported token '$1'.", p.tok)
+      error(p, UnsupportedToken, p.tok)
       result = new_node(NtEmpty, p)
       get_token(p)
    else:
-      error(p, "Unexpected token '$1'.", p.tok)
+      error(p, UnexpectedToken, p.tok)
       result = new_node(NtEmpty, p)
       get_token(p)
 

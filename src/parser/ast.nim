@@ -19,7 +19,8 @@ type
       NtRealLit, # the node is a real value
       # Modules A.1.3
       NtSourceText,
-      NtModuleDecl, #
+      NtModuleDecl,
+      NtModuleIdentifier,
       NtModuleParameterPortList, # A.1.4
       NtListOfPorts,
       NtPort, # a port
@@ -51,12 +52,19 @@ type
       NtAttributeSpec,
       NtAttributeName,
 
+   NodeTypes* = set[NodeType]
+
+const
+   IdentifierTypes: NodeTypes =
+      {NtAttributeName, NtModuleIdentifier, NtPortIdentifier}
+
+type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
    TNode = object of RootObj
       info: TLineInfo
       case `type`*: NodeType
-      of NtAttributeName, NtPortIdentifier:
+      of IdentifierTypes:
          identifier*: PIdentifier
       else:
          sons*: TNodeSeq
@@ -66,16 +74,26 @@ type
       col*: int16
 
 
-proc pretty*(x: PNode, indent: int = 0): string =
-   result = spaces(indent) & $x.type & "\n"
-   var sons_str = ""
-   for s in x.sons:
-      add(sons_str, pretty(s, indent + 2))
+proc pretty*(n: PNode, indent: int = 0): string =
+   result = spaces(indent) & $n.type &
+            format("($1:$2)", n.info.line + 1, n.info.col + 1)
+   case n.type
+   of IdentifierTypes:
+      add(result, ": " & $n.identifier.s & "\n")
+   else:
+      add(result, "\n")
+      var sons_str = ""
+      for s in n.sons:
+         add(sons_str, pretty(s, indent + 2))
 
-   add(result, sons_str)
+      add(result, sons_str)
 
 
 proc new_node*(`type`: NodeType, info: TLineInfo): PNode =
-   new(result)
-   result.type = `type`
-   result.info = info
+   result = PNode(`type`: type, info: info)
+
+
+proc new_identifier_node*(`type`: NodeType, identifier: PIdentifier,
+                          info: TLineInfo): PNode =
+   result = new_node(`type`, info)
+   result.identifier = identifier
