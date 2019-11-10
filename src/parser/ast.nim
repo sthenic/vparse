@@ -48,8 +48,11 @@ type
       NtConstantFunctionCall,
       # Expressions A.8.3
       NtConstantExpression, NtConstantMinTypMaxExpression,
+      NtConstantConditionalExpression,
       # Primaries A.8.4
       NtConstantPrimary,
+      # Operators A.8.6
+      NtUnaryOperator, NtBinaryOperator,
       # Attributes A.9.1
       NtAttributeInst, NtAttributeSpec, NtAttributeName,
       # Identifiers A.9.3
@@ -67,6 +70,7 @@ const
    IntegerTypes =
       {NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit}
 
+   OperatorTypes = {NtUnaryOperator, NtBinaryOperator}
 
 type
    PNode* = ref TNode
@@ -88,6 +92,8 @@ type
          identifier*: PIdentifier
       of NtError:
          msg*: string
+      of OperatorTypes:
+         op*: string
       else:
          sons*: TNodeSeq
 
@@ -109,6 +115,8 @@ proc pretty*(n: PNode, indent: int = 0): string =
                          n.inumber, n.iraw, n.base, n.size))
    of NtRealLit:
       add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
+   of OperatorTypes:
+      add(result, format(": $1\n", n.op))
    of NtError:
       add(result, format(": $1\n", n.msg))
    else:

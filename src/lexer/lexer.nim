@@ -83,6 +83,10 @@ const
    OpChars*: set[char] = {'+', '-', '!', '~', '&', '|', '^', '*', '/', '%', '=',
                           '<', '>'}
    SpaceChars*: set[char] = {' ', '\t'}
+   UnaryOperators* = ["+", "-", "!", "~", "&", "~&", "|", "~|", "^", "~^", "^~"]
+   BinaryOperators* = ["+", "-", "*", "/", "%", "==", "!=", "===", "!==", "&&",
+                       "||", "**", "<", "<=", ">", ">=", "&", "|", "^", "^~",
+                       "~^", ">>", "<<", ">>>", "<<<"]
 
    NumberTokens* = {TkIntLit, TkUIntLit, TkAmbIntLit, TkAmbUIntLit, TkRealLit}
 

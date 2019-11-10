@@ -68,6 +68,11 @@ proc new_fnumber_node(p: Parser, `type`: NodeType, fnumber: BiggestFloat,
    result.fraw = raw
 
 
+proc new_operator_node(p: Parser, `type`: NodeType, op: string): PNode =
+   result = new_node(p, `type`)
+   result.op = op
+
+
 proc new_error_node(p: Parser, msg: string, args: varargs[string, `$`]): PNode =
    result = new_node(p, NtError)
    result.msg = format(msg, args)
@@ -118,6 +123,7 @@ proc parse_range(p: var Parser): PNode =
 
 
 proc parse_constant_min_typ_max_expression(p: var Parser): PNode =
+   # FIXME: Parenthesis is sometimes used to indicate precedence. How to handle?
    result = new_node(p, NtConstantMinTypMaxExpression)
 
    get_token(p)
@@ -279,9 +285,50 @@ proc parse_constant_primary(p: var Parser): PNode =
       return new_error_node(p, "Unexpected token '$1'.", p.tok)
 
 
+proc is_constant_primary(p: Parser): bool =
+   return p.tok.type in {TkLbrace, TkLparen, TkSymbol} + NumberTokens
+
+
+proc parse_constant_conditional_expression(p: var Parser): PNode =
+   expect_token(p, TkQuestionMark)
+   get_token(p)
+
+   result = new_node(p, NtConstantConditionalExpression)
+
+   # Optional attribute instances.
+   while p.tok.type == TkLparenStar:
+      add(result.sons, parse_attribute_instance(p))
+
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, TkColon)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+
+
 proc parse_constant_expression(p: var Parser): PNode =
    result = new_node(p, NtConstantExpression)
-   add(result.sons, parse_constant_primary(p))
+   case p.tok.type
+   of TkOperator:
+      if p.tok.identifier.s notin UnaryOperators:
+         return unexpected_token(p)
+
+      add(result.sons, new_operator_node(p, NtUnaryOperator,
+                                         p.tok.identifier.s))
+      get_token(p)
+
+      # Optional attribute instances.
+      while p.tok.type == TkLparenStar:
+         add(result.sons, parse_attribute_instance(p))
+
+      # Expect constant primary.
+      add(result.sons, parse_constant_primary(p))
+   else:
+      add(result.sons, parse_constant_primary(p))
+
+      # FIXME:
+      # This whole thing need to take operator precedence into account, shifting
+      # around the nodes until the tree is rotated correctly. Parentheses may
+      # be used to direct operator precedence.
 
 
 proc parse_parameter_assignment(p: var Parser): PNode =
