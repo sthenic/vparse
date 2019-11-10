@@ -135,6 +135,19 @@ proc `$`*(t: Token): string =
       result = TokenTypeToStr[t.type]
 
 
+proc `$`*(kind: TokenType): string =
+   result = TokenTypeToStr[kind]
+
+
+proc `$`*(kinds: set[TokenType]): string =
+   var i = 0
+   for kind in kinds:
+      if i > 0:
+         add(result, ", ")
+      add(result, TokenTypeToStr[kind])
+      inc(i)
+
+
 proc pretty*(t: Token): string =
    result = format("($1:$2: ", t.line, t.col)
    add(result, "type: " & $t.type)

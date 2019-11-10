@@ -8,6 +8,7 @@ import ../lexer/identifier
 type
    NodeType* = enum
       NtInvalid, # An invalid node, indicates an error
+      NtError, # An error node
       # Atoms
       NtEmpty, # An empty node
       NtIdentifier, # The node is an identifier
@@ -85,6 +86,8 @@ type
          fraw*: string
       of IdentifierTypes:
          identifier*: PIdentifier
+      of NtError:
+         msg*: string
       else:
          sons*: TNodeSeq
 
@@ -106,6 +109,8 @@ proc pretty*(n: PNode, indent: int = 0): string =
                          n.inumber, n.iraw, n.base, n.size))
    of NtRealLit:
       add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
+   of NtError:
+      add(result, format(": $1\n", n.msg))
    else:
       add(result, "\n")
       var sons_str = ""
@@ -125,11 +130,23 @@ proc new_identifier_node*(`type`: NodeType, identifier: PIdentifier,
    result.identifier = identifier
 
 
-proc new_integer_lit_node*(`type`: NodeType, inumber: BiggestInt,
-                           raw: string, base: NumericalBase, size: int,
-                           info: TLineInfo): PNode =
+proc new_inumber_node*(`type`: NodeType, inumber: BiggestInt, raw: string,
+                       base: NumericalBase, size: int, info: TLineInfo): PNode =
    result = new_node(`type`, info)
    result.inumber = inumber
    result.iraw = raw
    result.base = base
    result.size = size
+
+
+proc new_fnumber_node*(`type`: NodeType, fnumber: BiggestFloat, raw: string,
+                       info: TLineInfo): PNode =
+   result = new_node(`type`, info)
+   result.fnumber = fnumber
+   result.fraw = raw
+
+
+proc new_error_node*(info: TLineInfo, msg: string,
+                     args: varargs[string, `$`]): PNode =
+   result = new_node(NtError, info)
+   result.msg = format(msg, args)
