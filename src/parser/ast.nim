@@ -1,6 +1,7 @@
 # Abstract syntax tree and symbol table
 import strutils
 
+import ../lexer/lexer
 import ../lexer/identifier
 
 
@@ -29,42 +30,42 @@ type
       NtPortRefConcat, # a concatenation of port references with '{}'
       NtPortIdentifier, # a port identifier
       # Parameter declarations A.2.1.1
-      NtLocalparamDecl,
-      NtParameterDecl,
-      NtSpecparamDecl,
+      NtLocalparamDecl, NtParameterDecl, NtSpecparamDecl,
       # Port declarations A.2.1.2
-      NtInoutDecl,
-      NtInputDecl,
-      NtOutputDecl,
+      NtInoutDecl, NtInputDecl, NtOutputDecl,
       # Type declarations A.2.1.3
-      NtEventDecl,
-      NtGenvarDecl,
-      NtIntegerDecl,
-      NtNetDecl,
-      NtRealDecl,
-      NtRealtimeDecl,
-      NtRegDecl,
-      NtTimeDecl,
+      NtEventDecl, NtGenvarDecl, NtIntegerDecl, NtNetDecl, NtRealDecl,
+      NtRealtimeDecl, NtRegDecl, NtTimeDecl,
       # Declaration assignments A.2.4
       NtParamAssignment,
       # Declaration ranges A.2.5
       NtRange,
       # Net and variable types A.2.2.1
-      # Expressions
-      NtConstantExpression,
+      # Concatenations A.8.1
+      NtConstantConcat, NtConstantMultipleConcat,
+      # Function calls A.8.2
+      NtConstantFunctionCall,
+      # Expressions A.8.3
+      NtConstantExpression, NtConstantMinTypMaxExpression,
+      # Primaries A.8.4
+      NtConstantPrimary,
       # Attributes A.9.1
-      NtAttributeInst,
-      NtAttributeSpec,
-      NtAttributeName,
+      NtAttributeInst, NtAttributeSpec, NtAttributeName,
       # Identifiers A.9.3
-      NtParameterIdentifier,
+      NtParameterIdentifier, NtSpecparamIdentifier, NtFunctionIdentifier,
+      NtGenvarIdentifier,
 
    NodeTypes* = set[NodeType]
 
+
 const
-   IdentifierTypes: NodeTypes =
+   IdentifierTypes =
       {NtIdentifier, NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
-       NtParameterIdentifier, NtType}
+       NtParameterIdentifier, NtSpecparamIdentifier, NtType,
+       NtFunctionIdentifier, NtGenvarIdentifier}
+   IntegerTypes =
+      {NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit}
+
 
 type
    PNode* = ref TNode
@@ -72,6 +73,16 @@ type
    TNode = object of RootObj
       info: TLineInfo
       case `type`*: NodeType
+      of NtStrLit:
+         s*: string
+      of NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit:
+         inumber*: BiggestInt
+         iraw*: string
+         base*: NumericalBase
+         size*: int
+      of NtRealLit:
+         fnumber*: BiggestFloat
+         fraw*: string
       of IdentifierTypes:
          identifier*: PIdentifier
       else:
@@ -90,6 +101,11 @@ proc pretty*(n: PNode, indent: int = 0): string =
    case n.type
    of IdentifierTypes:
       add(result, ": " & $n.identifier.s & "\n")
+   of IntegerTypes:
+      add(result, format(": $1 (raw: '$2', base: $3, size: $4)\n",
+                         n.inumber, n.iraw, n.base, n.size))
+   of NtRealLit:
+      add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
    else:
       add(result, "\n")
       var sons_str = ""
@@ -107,3 +123,13 @@ proc new_identifier_node*(`type`: NodeType, identifier: PIdentifier,
                           info: TLineInfo): PNode =
    result = new_node(`type`, info)
    result.identifier = identifier
+
+
+proc new_integer_lit_node*(`type`: NodeType, inumber: BiggestInt,
+                           raw: string, base: NumericalBase, size: int,
+                           info: TLineInfo): PNode =
+   result = new_node(`type`, info)
+   result.inumber = inumber
+   result.iraw = raw
+   result.base = base
+   result.size = size

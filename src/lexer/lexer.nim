@@ -84,6 +84,8 @@ const
                           '<', '>'}
    SpaceChars*: set[char] = {' ', '\t'}
 
+   NumberTokens* = {TkIntLit, TkUIntLit, TkAmbIntLit, TkAmbUIntLit, TkRealLit}
+
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",
       "always", "and", "assign", "automatic",

@@ -56,6 +56,27 @@ proc new_identifier_node(`type`: NodeType, p: Parser): PNode =
    result.identifier = p.tok.identifier
 
 
+proc new_inumber_node*(`type`: NodeType, inumber: BiggestInt,
+                       raw: string, base: NumericalBase, size: int,
+                       p: Parser): PNode =
+   result = new_node(`type`, p)
+   result.inumber = inumber
+   result.iraw = raw
+   result.base = base
+   result.size = size
+
+
+proc new_fnumber_node*(`type`: NodeType, fnumber: BiggestFloat,
+                       raw: string, p: Parser): PNode =
+   result = new_node(`type`, p)
+   result.fnumber = fnumber
+   result.fraw = raw
+
+
+# Forward declarations
+proc parse_constant_expression(p: var Parser): PNode
+
+
 proc parse_attribute_instance(p: var Parser): PNode =
    result = new_node(NtAttributeInst, p)
    # FIXME: Properly handle this, don't just eat past it.
@@ -82,9 +103,201 @@ proc parse_range(p: var Parser): PNode =
          get_token(p)
 
 
+proc parse_constant_min_typ_max_expression(p: var Parser): PNode =
+   result = new_node(NtConstantMinTypMaxExpression, p)
+
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+
+   # If there's no ':' following the first constant expression, we stop.
+   if p.tok.type == TkColon:
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      if p.tok.type != TkColon:
+         error(p, UnexpectedToken, p.tok)
+         log.error("Expected ':'.")
+         return new_node(NtEmpty, p)
+
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+
+   # Expect a closing parenthesis
+   if p.tok.type != TkRparen:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected ')'.")
+      return new_node(NtInvalid, p)
+   get_token(p)
+
+
+# TODO: Remove if unused
+proc parse_constant_function_call(p: var Parser): PNode =
+   result = new_node(NtConstantFunctionCall, p)
+
+   if p.tok.type != TkSymbol:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected an indentifier.")
+      return new_node(NtEmpty, p)
+
+   add(result.sons, new_identifier_node(NtFunctionIdentifier, p))
+
+   # FIXME: Make this into a function returning seq[PNode]
+   while p.tok.type == TkLparenStar:
+      add(result.sons, parse_attribute_instance(p))
+
+   if p.tok.type != TkLparen:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected '('.")
+      return new_node(NtEmpty, p)
+
+   # FIXME: Make this into a function (shared w/ parse_constant_concatenation)
+   get_token(p)
+   while true:
+      add(result.sons, parse_constant_expression(p))
+      case p.tok.type
+      of TkComma:
+         get_token(p)
+      of TkRparen:
+         get_token(p)
+         break
+      else:
+         break
+
+
+proc parse_constant_concatenation(p: var Parser): PNode =
+   result = new_node(NtConstantConcat, p)
+   get_token(p)
+   while true:
+      add(result.sons, parse_constant_expression(p))
+      case p.tok.type
+      of TkComma:
+         get_token(p)
+      of TkRbrace:
+         get_token(p)
+         break
+      else:
+         break
+
+
+proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
+   get_token(p)
+   let first = parse_constant_expression(p)
+
+   # If the next token is '{',
+   # Instead if
+   case p.tok.type
+   of TkLbrace:
+      # We're parsing a constant multiple concatenation.
+      result = new_node(NtConstantMultipleConcat, p)
+      add(result.sons, first)
+      add(result.sons, parse_constant_concatenation(p))
+      # Expect a closing brace.
+      if p.tok.type != TkRbrace:
+         error(p, UnexpectedToken, p.tok)
+         log.error("Expected '}'.")
+         return new_node(NtEmpty, p)
+      get_token(p)
+   of TkComma:
+      # We're parsing a constant concatenation where the entry we parsed earlier
+      # is the first of several. Parse the rest and add these to the sons on
+      # this level.
+      result = new_node(NtConstantConcat, p)
+      add(result.sons, first)
+      add(result.sons, parse_constant_concatenation(p).sons)
+   of TkRbrace:
+      # A constant concatenation that only contains the entry we parsed earlier.
+      result = new_node(NtConstantConcat, p)
+      add(result.sons, first)
+   else:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected an indentifier.")
+      return new_node(NtEmpty, p)
+
+
+proc parse_number(p: var Parser): PNode =
+   # FIXME: Improve structure.
+   let t = p.tok
+   case t.type
+   of TkIntLit:
+      result = new_inumber_node(NtIntLit, t.inumber, t.literal, t.base, t.size, p)
+   of TkUIntLit:
+      result = new_inumber_node(NtUIntLit, t.inumber, t.literal, t.base, t.size, p)
+   of TkAmbIntLit:
+      result = new_inumber_node(NtAmbIntLit, t.inumber, t.literal, t.base, t.size, p)
+   of TkAmbUIntLit:
+      result = new_inumber_node(NtAmbUIntLit, t.inumber, t.literal, t.base, t.size, p)
+   of TkRealLit:
+      result = new_fnumber_node(NtRealLit, t.fnumber, t.literal, p)
+   else:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected a number.")
+      return new_node(NtEmpty, p)
+
+   get_token(p)
+
+
+proc parse_constant_primary_identifier(p: var Parser): PNode =
+   if p.tok.type != TkSymbol:
+      error(p, UnexpectedToken, p.tok)
+      log.error("Expected an indentifier.")
+      return new_node(NtEmpty, p)
+
+   let identifier = new_identifier_node(NtIdentifier, p)
+
+   get_token(p)
+   case p.tok.type
+   of TkLparenStar, TkLparen:
+      # Parsing a constant function call.
+      result = new_node(NtConstantFunctionCall, p)
+      add(result.sons, identifier)
+
+      # FIXME: Make this into a function returning seq[PNode]
+      while p.tok.type == TkLparenStar:
+         add(result.sons, parse_attribute_instance(p))
+
+      if p.tok.type != TkLparen:
+         error(p, UnexpectedToken, p.tok)
+         log.error("Expected '('.")
+         return new_node(NtEmpty, p)
+
+      # FIXME: Make this into a function (shared w/ parse_constant_concatenation)
+      get_token(p)
+      while true:
+         add(result.sons, parse_constant_expression(p))
+         case p.tok.type
+         of TkComma:
+            get_token(p)
+         of TkRparen:
+            get_token(p)
+            break
+         else:
+            break
+   else:
+      # We've parsed a simple identifier.
+      result = identifier
+
+
+proc parse_constant_primary(p: var Parser): PNode =
+   result = new_node(NtConstantPrimary, p)
+
+   case p.tok.type
+   of TkLbrace:
+      add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
+   of TkLparen:
+      add(result.sons, parse_constant_min_typ_max_expression(p))
+   of TkSymbol:
+      # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
+      #        genvar, param or specparam.
+      add(result.sons, parse_constant_primary_identifier(p))
+   of NumberTokens:
+      add(result.sons, parse_number(p))
+   else:
+      error(p, UnexpectedToken, p.tok)
+      return new_node(NtEmpty, p)
+
+
 proc parse_constant_expression(p: var Parser): PNode =
    result = new_node(NtConstantExpression, p)
-   get_token(p)
+   add(result.sons, parse_constant_primary(p))
 
 
 proc parse_parameter_assignment(p: var Parser): PNode =
