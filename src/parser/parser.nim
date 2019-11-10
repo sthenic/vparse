@@ -84,7 +84,7 @@ template expect_token(p: Parser, kind: TokenType): untyped =
 
 
 template unexpected_token(p: Parser): PNode =
-   new_error_node(p, "Unexpected token '$1'.", p.tok)
+   new_error_node(p, "Unexpected token $1.", p.tok)
 
 
 # Forward declarations
@@ -297,17 +297,8 @@ proc parse_parameter_assignment(p: var Parser): PNode =
    add(result.sons, parse_constant_expression(p))
 
 
-proc parse_list_of_parameter_assignments(p: var Parser): seq[PNode] =
-   while true:
-      add(result, parse_parameter_assignment(p))
-      case p.tok.type
-      of TkComma:
-         get_token(p)
-      else:
-         break
-
-
-proc parse_parameter_declaration(p: var Parser): PNode =
+proc parse_parameter_declaration(p: var Parser,
+                                 ambiguous_comma: bool = false): PNode =
    result = new_node(p, NtParameterDecl)
 
    expect_token(p, TkParameter)
@@ -330,8 +321,20 @@ proc parse_parameter_declaration(p: var Parser): PNode =
    else:
       return new_error_node(p, "Unexpected token '$1'.", p.tok)
 
-   # Try parsing a list of parameter assignments.
-   add(result.sons, parse_list_of_parameter_assignments(p))
+   # Parse a list of parameter assignments, there should be at least one.
+   add(result.sons, parse_parameter_assignment(p))
+   while true:
+      if p.tok.type == TkComma:
+         if ambiguous_comma:
+            get_token(p)
+            if p.tok.type != TkSymbol:
+               break
+         else:
+            get_token(p)
+      else:
+         break
+
+      add(result.sons, parse_parameter_assignment(p))
 
 
 proc parse_parameter_port_list*(p: var Parser): PNode =
@@ -339,23 +342,27 @@ proc parse_parameter_port_list*(p: var Parser): PNode =
 
    get_token(p)
    expect_token(p, TkLparen)
-
-   # Parse the contents.
    get_token(p)
-   while true:
-      if p.tok.type == TkRparen:
-         get_token(p)
-         break
 
-      add(result.sons, parse_parameter_declaration(p))
+   # Parse the contents, at least one parameter declaration is expected.
+   add(result.sons, parse_parameter_declaration(p, true))
+
+   while true:
+      # Parsing a parameter declaration will have to eat any comma ','
+      # separating two declarations since the character is ambiguous in this
+      # context. Either it signals another parameter w/ the same type or an
+      # entirely new declaration.
       case p.tok.type
-      of TkComma, TkSemicolon:
-         get_token(p)
-      else:
-         # FIXME: Should this be an error? We potentially overwrite the entire
-         # seq of sons, some of which could be okay.
-         # result = new_error_node(p, UnexpectedToken, p.tok)
+      of TkRparen:
          break
+      of TkParameter:
+         discard
+      else:
+         return
+      add(result.sons, parse_parameter_declaration(p, true))
+
+   expect_token(p, TkRparen)
+   get_token(p)
 
 
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =

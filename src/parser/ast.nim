@@ -100,7 +100,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
    if n == nil:
       return
    result = spaces(indent) & $n.type &
-            format("($1:$2)", n.info.line + 1, n.info.col + 1)
+            format("($1:$2)", n.info.line, n.info.col + 1)
    case n.type
    of IdentifierTypes:
       add(result, ": " & $n.identifier.s & "\n")
