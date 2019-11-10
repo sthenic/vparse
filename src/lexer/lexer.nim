@@ -132,11 +132,11 @@ proc `$`*(t: Token): string =
    if t.type in {TkSymbol, TkOperator}:
       result = t.identifier.s
    else:
-      result = TokenTypeToStr[t.type]
+      result = "'" & TokenTypeToStr[t.type] & "'"
 
 
 proc `$`*(kind: TokenType): string =
-   result = TokenTypeToStr[kind]
+   result = "'" & TokenTypeToStr[kind] & "'"
 
 
 proc `$`*(kinds: set[TokenType]): string =
@@ -144,7 +144,7 @@ proc `$`*(kinds: set[TokenType]): string =
    for kind in kinds:
       if i > 0:
          add(result, ", ")
-      add(result, TokenTypeToStr[kind])
+      add(result, "'" & TokenTypeToStr[kind] & "'")
       inc(i)
 
 

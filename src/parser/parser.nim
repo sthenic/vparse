@@ -75,12 +75,12 @@ proc new_error_node(p: Parser, msg: string, args: varargs[string, `$`]): PNode =
 
 template expect_token(p: Parser, kinds: set[TokenType]): untyped =
    if p.tok.type notin kinds:
-      return new_error_node(p, "Expected tokens: '$1', got '$2'.", kinds, p.tok)
+      return new_error_node(p, "Expected tokens: $1, got $2.", kinds, p.tok)
 
 
 template expect_token(p: Parser, kind: TokenType): untyped =
    if p.tok.type != kind:
-      return new_error_node(p, "Expected token: '$1', got '$2'.", kind, p.tok)
+      return new_error_node(p, "Expected token: $1, got $2.", kind, p.tok)
 
 
 template unexpected_token(p: Parser): PNode =
