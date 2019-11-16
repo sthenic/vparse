@@ -203,6 +203,16 @@ run_test("Decimal number: Z-digit", "8'dZ 7'dz 16'dZ_ 2'd?", @[
    Token.new_inumber(TkAmbUIntLit, 1, 17, 0, Base10, 2, "?")
 ])
 
+run_test("Decimal number: negative (unary)", "-13", @[
+   Token.new_identifier(TkOperator, 1, 0, "-"),
+   Token.new_inumber(TkIntLit, 1, 1, 13, Base10, -1, "13")
+])
+
+run_test("Decimal number: positive (unary)", "+2", @[
+   Token.new_identifier(TkOperator, 1, 0, "+"),
+   Token.new_inumber(TkIntLit, 1, 1, 2, Base10, -1, "2")
+])
+
 run_test("Decimal number: invalid", "'dAF", @[
    Token.new_inumber(TkInvalid, 1, 0, 0, Base10, -1, ""),
    Token.new_identifier(TkSymbol, 1, 2, "AF")
