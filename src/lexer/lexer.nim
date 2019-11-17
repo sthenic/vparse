@@ -196,6 +196,41 @@ proc handle_crlf(l: var Lexer, pos: int): int =
       result = pos
 
 
+proc get_binary_precedence*(tok: Token): int =
+   ## Return the precedence of binary operators.
+   case tok.type
+   of TkOperator:
+      let str = tok.identifier.s
+      if str == "**":
+         return 11
+      elif str in ["*", "/", "%"]:
+         return 10
+      elif str in ["+", "-"]:
+         return 9
+      elif str in ["<<", ">>", "<<<", ">>>"]:
+         return 8
+      elif str in ["==", "!=", "===", "!=="]:
+         return 7
+      elif str == "&":
+         return 6
+      elif str in ["^", "^~", "~^"]:
+         return 5
+      elif str == "|":
+         return 4
+      elif str == "&&":
+         return 3
+      elif str == "||":
+         return 2
+      else:
+         # FIXME: Assert or exception?
+         return -10
+   of TkQuestionMark:
+      return 1
+   else:
+      # FIXME: Assert or exception?
+      return -10
+
+
 template update_token_position(l: Lexer, tok: var Token) =
    # FIXME: This is wrong when pos is something other than l.bufpos.
    tok.col = get_col_number(l, l.bufpos)

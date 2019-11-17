@@ -19,7 +19,12 @@ type
       NtAmbIntLit, # the node is an integer literal
       NtAmbUIntLit, # the node is an unsigned integer literal
       NtRealLit, # the node is a real value
+      NtQuestionMark,
+      NtColon,
       NtType,
+      NtPrefix,
+      NtInfix,
+      NtParenthesis,
       # Modules A.1.3
       NtSourceText,
       NtModuleDecl,
@@ -76,7 +81,7 @@ type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
    TNode = object of RootObj
-      info: TLineInfo
+      info*: TLineInfo
       case `type`*: NodeType
       of NtStrLit:
          s*: string

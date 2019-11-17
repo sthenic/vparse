@@ -267,18 +267,41 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
       result = identifier
 
 
+proc parse_parenthesis(p: var Parser): PNode =
+   result = new_node(p, NtParenthesis)
+   get_token(p)
+
+   if p.tok.type != TkRparen:
+      # Expect an expression
+      add(result.sons, parse_constant_expression(p))
+
+   expect_token(p, TkRparen)
+   get_token(p)
+
+
 proc parse_constant_primary(p: var Parser): PNode =
    result = new_node(p, NtConstantPrimary)
 
    case p.tok.type
-   of TkLbrace:
-      add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
-   of TkLparen:
-      add(result.sons, parse_constant_min_typ_max_expression(p))
+   of TkOperator:
+      # Prefix node
+      let n = new_node(p, NtPrefix)
+      add(n.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      add(n.sons, parse_constant_primary(p))
+      add(result.sons, n)
+      return
    of TkSymbol:
       # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
       #        genvar, param or specparam.
       add(result.sons, parse_constant_primary_identifier(p))
+   of TkLbrace:
+      add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
+   of TkLparen:
+      # Handle parenthesis, the token is required when constructing a
+      # min-typ-max expression and optional when indicating expression
+      # precedence.
+      add(result.sons, parse_parenthesis(p))
    of NumberTokens:
       add(result.sons, parse_number(p))
    else:
@@ -289,11 +312,12 @@ proc is_constant_primary(p: Parser): bool =
    return p.tok.type in {TkLbrace, TkLparen, TkSymbol} + NumberTokens
 
 
-proc parse_constant_conditional_expression(p: var Parser): PNode =
+proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =
    expect_token(p, TkQuestionMark)
    get_token(p)
 
    result = new_node(p, NtConstantConditionalExpression)
+   add(result.sons, head)
 
    # Optional attribute instances.
    while p.tok.type == TkLparenStar:
@@ -305,30 +329,42 @@ proc parse_constant_conditional_expression(p: var Parser): PNode =
    add(result.sons, parse_constant_expression(p))
 
 
+proc is_right_associative(tok: Token): bool =
+   result = tok.type in {TkQuestionMark, TkColon}
+
+
+proc parse_constant_expression_aux(p: var Parser, limit: int): PNode
+
+
+proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
+   result = head
+   var precedence = get_binary_precedence(p.tok)
+   while precedence >= limit: # FIXME: Potentially stop if unary?
+      expect_token(p, {TkOperator, TkQuestionMark})
+      let left_associative = 1 - ord(is_right_associative(p.tok))
+      if p.tok.type == TkQuestionMark:
+         result = parse_constant_conditional_expression(p, result)
+      else:
+         let infix = new_node(p, NtInfix)
+         let op = new_identifier_node(p, NtIdentifier)
+         get_token(p)
+         # Return the right hand side of the expression, parsing anything
+         let rhs = parse_constant_expression_aux(p, precedence + left_associative)
+         add(infix.sons, op)
+         add(infix.sons, result)
+         add(infix.sons, rhs)
+         result = infix
+      precedence = get_binary_precedence(p.tok)
+
+
+proc parse_constant_expression_aux(p: var Parser, limit: int): PNode =
+   result = parse_constant_primary(p)
+   # FIXME: Better name?
+   result = parse_operator(p, result, limit)
+
+
 proc parse_constant_expression(p: var Parser): PNode =
-   result = new_node(p, NtConstantExpression)
-   case p.tok.type
-   of TkOperator:
-      if p.tok.identifier.s notin UnaryOperators:
-         return unexpected_token(p)
-
-      add(result.sons, new_operator_node(p, NtUnaryOperator,
-                                         p.tok.identifier.s))
-      get_token(p)
-
-      # Optional attribute instances.
-      while p.tok.type == TkLparenStar:
-         add(result.sons, parse_attribute_instance(p))
-
-      # Expect constant primary.
-      add(result.sons, parse_constant_primary(p))
-   else:
-      add(result.sons, parse_constant_primary(p))
-
-      # FIXME:
-      # This whole thing need to take operator precedence into account, shifting
-      # around the nodes until the tree is rotated correctly. Parentheses may
-      # be used to direct operator precedence.
+   result = parse_constant_expression_aux(p, -1)
 
 
 proc parse_parameter_assignment(p: var Parser): PNode =
@@ -497,6 +533,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
    case `type`
    of NtModuleParameterPortList:
       parse_proc = parse_parameter_port_list
+   of NtConstantExpression:
+      parse_proc = parse_constant_expression
    else:
       parse_proc = nil
 
