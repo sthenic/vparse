@@ -256,7 +256,7 @@ proc parse_constant_primary(p: var Parser): PNode =
       #        genvar, param or specparam.
       result = parse_constant_primary_identifier(p)
    of TkLbrace:
-      add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
+      result = parse_constant_multiple_or_regular_concatenation(p)
    of TkLparen:
       # Handle parenthesis, the token is required when constructing a
       # min-typ-max expression and optional when indicating expression
