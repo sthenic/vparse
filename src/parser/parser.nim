@@ -11,6 +11,7 @@ type
    Parser* = object
       lex: Lexer
       tok: Token
+      last_tok: Token
 
 const
    UnexpectedToken = "Unexpected token '$1'"
@@ -28,6 +29,7 @@ proc close_parser*(p: var Parser) =
 
 
 proc get_token*(p: var Parser) =
+   p.last_tok = p.tok
    get_token(p.lex, p.tok)
 
 
@@ -399,9 +401,14 @@ proc parse_parameter_port_list*(p: var Parser): PNode =
       of TkRparen:
          break
       of TkParameter:
-         discard
+         # If we discover the parameter keyword, we check the last token to make
+         # sure that it was a comma. Otherwise, this is illegal syntax.
+         if p.last_tok.type != TkComma:
+            return new_error_node(p, "Expected token: $1, got $2.",
+                                  TkComma, p.tok)
       else:
-         return
+         return new_error_node(p, "Expected tokens: $1, got $2.",
+                               {TkRparen, TkParameter}, p.tok)
       add(result.sons, parse_parameter_declaration(p, true))
 
    expect_token(p, TkRparen)

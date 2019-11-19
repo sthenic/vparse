@@ -134,7 +134,7 @@ const
 
 proc `$`*(t: Token): string =
    if t.type in {TkSymbol, TkOperator}:
-      result = t.identifier.s
+      result = "'" & t.identifier.s & "'"
    else:
       result = "'" & TokenTypeToStr[t.type] & "'"
 

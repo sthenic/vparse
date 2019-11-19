@@ -27,14 +27,10 @@ run_test("test_0", """
       myparam = 2,
       param2 = {3,2,1},
       multi = (2:1:2),
-      binpar = {MY_MAN{2'b01}},
+      binpar = {MY_MAN{3'b01X}},
    parameter [7:0] stuff = AMAZING,
    parameter real N_sa$ICE = 3.4e-1,
    parameter signed A_func = myfunc(4, 5, SOMETHING),
-   parameter infantry = (32'd2)
+   parameter infantry = (32'd2),
+   parameter MYPAR = ((THING == 9) ? AWESOME : STUFF) - 9
 )""", nil)
-
-
-run_test("test_2", """
-#(
-   parameter signed [5:0] NOICE""", nil)
