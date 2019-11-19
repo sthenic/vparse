@@ -257,6 +257,8 @@ proc parse_constant_primary(p: var Parser): PNode =
       result = new_node(p, NtPrefix)
       add(result.sons, new_identifier_node(p, NtIdentifier))
       get_token(p)
+      while p.tok.type == TkLparenStar:
+         add(result.sons, parse_attribute_instance(p))
       add(result.sons, parse_constant_primary(p))
    of TkSymbol:
       # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
@@ -315,10 +317,15 @@ proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
          let infix = new_node(p, NtInfix)
          let op = new_identifier_node(p, NtIdentifier)
          get_token(p)
+         var rhs_attributes: seq[PNode] = @[]
+         while p.tok.type == TkLparenStar:
+            add(rhs_attributes, parse_attribute_instance(p))
          # Return the right hand side of the expression, parsing anything
          let rhs = parse_constant_expression_aux(p, precedence + left_associative)
          add(infix.sons, op)
          add(infix.sons, result)
+         if len(rhs_attributes) > 0:
+            add(infix.sons, rhs_attributes)
          add(infix.sons, rhs)
          result = infix
       precedence = get_binary_precedence(p.tok)
