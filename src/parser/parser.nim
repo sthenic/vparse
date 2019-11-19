@@ -21,6 +21,7 @@ const
 proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
                   string, s: Stream) =
    init(p.tok)
+   init(p.last_tok)
    open_lexer(p.lex, cache, filename, s)
 
 
