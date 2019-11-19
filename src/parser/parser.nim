@@ -122,27 +122,6 @@ proc parse_range(p: var Parser): PNode =
          get_token(p)
 
 
-proc parse_constant_min_typ_max_expression(p: var Parser): PNode =
-   # FIXME: Parenthesis is sometimes used to indicate precedence. How to handle?
-   result = new_node(p, NtConstantMinTypMaxExpression)
-
-   get_token(p)
-   add(result.sons, parse_constant_expression(p))
-
-   # If there's no ':' following the first constant expression, we stop.
-   if p.tok.type == TkColon:
-      get_token(p)
-      add(result.sons, parse_constant_expression(p))
-      expect_token(p, TkColon)
-
-      get_token(p)
-      add(result.sons, parse_constant_expression(p))
-
-   # Expect a closing parenthesis.
-   expect_token(p, TkRparen)
-   get_token(p)
-
-
 # TODO: Remove if unused
 proc parse_constant_function_call(p: var Parser): PNode =
    result = new_node(p, NtConstantFunctionCall)
@@ -272,8 +251,20 @@ proc parse_parenthesis(p: var Parser): PNode =
    get_token(p)
 
    if p.tok.type != TkRparen:
-      # Expect an expression
-      add(result.sons, parse_constant_expression(p))
+      # Expect an expression. This may be the first of a triplet constituting a
+      # min:typ:max expression. We'll know if we encounter a colon.
+      let n = parse_constant_expression(p)
+      if p.tok.type == TkColon:
+         let mtm = new_node(p, NtConstantMinTypMaxExpression)
+         add(mtm.sons, n)
+         get_token(p)
+         add(mtm.sons, parse_constant_expression(p))
+         expect_token(p, TkColon)
+         get_token(p)
+         add(mtm.sons, parse_constant_expression(p))
+         add(result.sons, mtm)
+      else:
+         add(result.sons, n)
 
    expect_token(p, TkRparen)
    get_token(p)
