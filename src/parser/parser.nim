@@ -280,32 +280,28 @@ proc parse_parenthesis(p: var Parser): PNode =
 
 
 proc parse_constant_primary(p: var Parser): PNode =
-   result = new_node(p, NtConstantPrimary)
-
    case p.tok.type
    of TkOperator:
       # Prefix node
-      let n = new_node(p, NtPrefix)
-      add(n.sons, new_identifier_node(p, NtIdentifier))
+      result = new_node(p, NtPrefix)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
       get_token(p)
-      add(n.sons, parse_constant_primary(p))
-      add(result.sons, n)
-      return
+      add(result.sons, parse_constant_primary(p))
    of TkSymbol:
       # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
       #        genvar, param or specparam.
-      add(result.sons, parse_constant_primary_identifier(p))
+      result = parse_constant_primary_identifier(p)
    of TkLbrace:
       add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
    of TkLparen:
       # Handle parenthesis, the token is required when constructing a
       # min-typ-max expression and optional when indicating expression
       # precedence.
-      add(result.sons, parse_parenthesis(p))
+      result = parse_parenthesis(p)
    of NumberTokens:
-      add(result.sons, parse_number(p))
+      result = parse_number(p)
    else:
-      return new_error_node(p, "Unexpected token '$1'.", p.tok)
+      result = new_error_node(p, "Unexpected token '$1'.", p.tok)
 
 
 proc is_constant_primary(p: Parser): bool =
