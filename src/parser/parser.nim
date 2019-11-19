@@ -122,33 +122,6 @@ proc parse_range(p: var Parser): PNode =
          get_token(p)
 
 
-# TODO: Remove if unused
-proc parse_constant_function_call(p: var Parser): PNode =
-   result = new_node(p, NtConstantFunctionCall)
-
-   expect_token(p, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtFunctionIdentifier))
-
-   # FIXME: Make this into a function returning seq[PNode]
-   while p.tok.type == TkLparenStar:
-      add(result.sons, parse_attribute_instance(p))
-
-   expect_token(p, TkLparen)
-
-   # FIXME: Make this into a function (shared w/ parse_constant_concatenation)
-   get_token(p)
-   while true:
-      add(result.sons, parse_constant_expression(p))
-      case p.tok.type
-      of TkComma:
-         get_token(p)
-      of TkRparen:
-         get_token(p)
-         break
-      else:
-         break
-
-
 proc parse_constant_concatenation(p: var Parser): PNode =
    result = new_node(p, NtConstantConcat)
    get_token(p)
