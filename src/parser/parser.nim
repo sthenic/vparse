@@ -14,8 +14,8 @@ type
       last_tok: Token
 
 const
-   UnexpectedToken = "Unexpected token '$1'"
-   UnsupportedToken = "Unsupported token '$1'"
+   UnexpectedToken = "Unexpected token $1"
+   UnsupportedToken = "Unsupported token $1"
 
 
 proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
@@ -33,16 +33,20 @@ proc get_token*(p: var Parser) =
    get_token(p.lex, p.tok)
 
 
-proc new_line_info(p: Parser): TLineInfo =
-   if p.tok.line < int(high(uint16)):
-      result.line = uint16(p.tok.line)
+proc new_line_info(tok: Token): TLineInfo =
+   if tok.line < int(high(uint16)):
+      result.line = uint16(tok.line)
    else:
       result.line = high(uint16)
 
-   if p.tok.col < int(high(int16)):
-      result.col = int16(p.tok.col)
+   if tok.col < int(high(int16)):
+      result.col = int16(tok.col)
    else:
       result.col = -1
+
+
+proc new_line_info(p: Parser): TLineInfo =
+   result = new_line_info(p.tok)
 
 
 proc new_node(p: Parser, `type`: NodeType): PNode =
@@ -267,7 +271,7 @@ proc parse_constant_primary(p: var Parser): PNode =
    of NumberTokens:
       result = parse_number(p)
    else:
-      result = new_error_node(p, "Unexpected token '$1'.", p.tok)
+      result = new_error_node(p, "Unexpected token $1.", p.tok)
 
 
 proc is_constant_primary(p: Parser): bool =
@@ -364,7 +368,7 @@ proc parse_parameter_declaration(p: var Parser,
    of TkSymbol:
       discard
    else:
-      return new_error_node(p, "Unexpected token '$1'.", p.tok)
+      return new_error_node(p, "Unexpected token $1.", p.tok)
 
    # Parse a list of parameter assignments, there should be at least one.
    add(result.sons, parse_parameter_assignment(p))
@@ -397,22 +401,17 @@ proc parse_parameter_port_list*(p: var Parser): PNode =
       # separating two declarations since the character is ambiguous in this
       # context. Either it signals another parameter w/ the same type or an
       # entirely new declaration.
-      case p.tok.type
-      of TkRparen:
-         break
-      of TkParameter:
-         # If we discover the parameter keyword, we check the last token to make
-         # sure that it was a comma. Otherwise, this is illegal syntax.
-         if p.last_tok.type != TkComma:
-            return new_error_node(p, "Expected token: $1, got $2.",
-                                  TkComma, p.tok)
+      if p.last_tok.type == TkComma:
+         # If the last token was a comma, the current cannot be anything other
+         # than the keyword 'parameter'.
+         expect_token(p, TkParameter)
+         add(result.sons, parse_parameter_declaration(p, true))
       else:
-         return new_error_node(p, "Expected tokens: $1, got $2.",
-                               {TkRparen, TkParameter}, p.tok)
-      add(result.sons, parse_parameter_declaration(p, true))
-
-   expect_token(p, TkRparen)
-   get_token(p)
+         # If the last token was not a comma, the current cannot be anything
+         # other than the closing parenthesis.
+         expect_token(p, TkRparen)
+         get_token(p)
+         break
 
 
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
