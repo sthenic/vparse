@@ -29,7 +29,7 @@ proc close_parser*(p: var Parser) =
    close_lexer(p.lex)
 
 
-proc get_token*(p: var Parser) =
+proc get_token(p: var Parser) =
    p.last_tok = p.tok
    get_token(p.lex, p.tok)
    # FIXME: Properly handle comments. If we want to be able to recreate the
@@ -400,9 +400,10 @@ proc parse_parameter_declaration(p: var Parser,
       add(result.sons, parse_parameter_assignment(p))
 
 
-proc parse_parameter_port_list*(p: var Parser): PNode =
+proc parse_parameter_port_list(p: var Parser): PNode =
    result = new_node(p, NtModuleParameterPortList)
 
+   expect_token(p, TkHash)
    get_token(p)
    expect_token(p, TkLparen)
    get_token(p)
@@ -426,6 +427,106 @@ proc parse_parameter_port_list*(p: var Parser): PNode =
          expect_token(p, TkRparen)
          get_token(p)
          break
+
+
+proc parse_inout_or_input_port_declaration(p: var Parser,
+                                           ambiguous_comma: bool = false): PNode =
+   # Inout or input ports have a common syntax.
+   result = new_node(p, NtPortDecl) # FIXME: This is not the correct node.
+
+   expect_token(p, {TkInout, TkInput})
+   add(result.sons, new_identifier_node(p, NtDirection))
+   get_token(p)
+
+   # Optional net type (Verilog keywords).
+   if p.tok.type in NetTypeTokens:
+      add(result.sons, new_identifier_node(p, NtNetType))
+      get_token(p)
+
+   # Optional 'signed' specifier.
+   if p.tok.type == TkSigned:
+      add(result.sons, new_identifier_node(p, NtType))
+      get_token(p)
+
+   # Optional range.
+   if p.tok.type == TkLbracket:
+      add(result.sons, parse_range(p))
+
+   # Parse a list of port identifiers, the syntax requires at least one item.
+   expect_token(p, TkSymbol)
+   add(result.sons, new_identifier_node(p, NtPortIdentifier))
+   get_token(p)
+   while true:
+      if p.tok.type == TkComma:
+         if ambiguous_comma:
+            get_token(p)
+            if p.tok.type != TkSymbol:
+               break
+         else:
+            get_token(p)
+      else:
+         break
+
+      expect_token(p, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtPortIdentifier))
+      get_token(p)
+
+
+proc parse_output_port_declaration(p: var Parser): PNode =
+   # FIXME: Implement
+   discard
+
+
+proc parse_port_declaration(p: var Parser,
+                            ambiguous_comma: bool = false): PNode =
+   result = new_node(p, NtPortDecl)
+
+   while p.tok.type == TkLparenStar:
+      add(result.sons, parse_attribute_instance(p))
+
+   case p.tok.type
+   of TkInout, TkInput:
+      add(result.sons, parse_inout_or_input_port_declaration(p, ambiguous_comma).sons)
+   of TkOutput:
+      # FIXME: Implement
+      discard
+   else:
+      return new_error_node(p, UnexpectedToken, p.tok)
+
+
+proc parse_list_of_port_declarations(p: var Parser): PNode =
+   # The enclosing parenthesis will be removed by the calling procedure.
+   result = new_node(p, NtListOfPortDeclarations)
+
+   add(result.sons, parse_port_declaration(p, true))
+   while true:
+      if p.last_tok.type == TkComma:
+         add(result.sons, parse_port_declaration(p, true))
+      else:
+         break
+
+
+proc parse_list_of_ports(p: var Parser): PNode =
+   # The enclosing parenthesis will be removed by the calling procedure.
+   result = new_node(p, NtListOfPorts)
+
+
+proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
+   expect_token(p, TkLparen)
+   get_token(p)
+
+   if p.tok.type == TkRparen:
+      # The node should be an empty list of port declarations.
+      result = new_node(p, NtListOfPortDeclarations)
+   elif p.tok.type in {TkInout, TkInput, TkOutput}:
+      # Assume a list of port declarations.
+      result = parse_list_of_port_declarations(p)
+   else:
+      # Assume a list of ports.
+      result = parse_list_of_ports(p)
+
+   expect_token(p, TkRparen)
+   get_token(p)
 
 
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
@@ -511,6 +612,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
 
    var parse_proc: proc (p: var Parser): PNode
    case `type`
+   of NtListOfPorts, NtListOfPortDeclarations:
+      parse_proc = parse_list_of_ports_or_port_declarations
    of NtModuleParameterPortList:
       parse_proc = parse_parameter_port_list
    of NtConstantExpression:

@@ -19,26 +19,23 @@ type
       NtAmbIntLit, # the node is an integer literal
       NtAmbUIntLit, # the node is an unsigned integer literal
       NtRealLit, # the node is a real value
-      NtQuestionMark,
-      NtColon,
       NtType,
       NtPrefix,
       NtInfix,
       NtParenthesis,
+      NtDirection,
       # Modules A.1.3
       NtSourceText,
       NtModuleDecl,
       NtModuleIdentifier,
-      NtModuleParameterPortList, # A.1.4
-      NtListOfPorts,
-      NtPort, # a port
-      NtPortRef, # a port reference
-      NtPortRefConcat, # a concatenation of port references with '{}'
-      NtPortIdentifier, # a port identifier
+      # Module parameters and ports A.1.4
+      NtModuleParameterPortList, NtListOfPorts, NtListOfPortDeclarations,
+      NtPort, NtPortExpression, NtPortReference, NtPortConcat,
+      NtPortIdentifier, NtPortDecl,
       # Parameter declarations A.2.1.1
       NtLocalparamDecl, NtParameterDecl, NtSpecparamDecl,
       # Port declarations A.2.1.2
-      NtInoutDecl, NtInputDecl, NtOutputDecl,
+      NtInoutDecl, NtInputDecl, NtOutputDecl, # FIXME: Remove if unused
       # Type declarations A.2.1.3
       NtEventDecl, NtGenvarDecl, NtIntegerDecl, NtNetDecl, NtRealDecl,
       NtRealtimeDecl, NtRegDecl, NtTimeDecl,
@@ -47,6 +44,7 @@ type
       # Declaration ranges A.2.5
       NtRange,
       # Net and variable types A.2.2.1
+      NtNetType,
       # Concatenations A.8.1
       NtConstantConcat, NtConstantMultipleConcat,
       # Function calls A.8.2
@@ -71,7 +69,7 @@ const
    IdentifierTypes =
       {NtIdentifier, NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
        NtParameterIdentifier, NtSpecparamIdentifier, NtType,
-       NtFunctionIdentifier, NtGenvarIdentifier}
+       NtFunctionIdentifier, NtGenvarIdentifier, NtDirection, NtNetType}
    IntegerTypes =
       {NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit}
 

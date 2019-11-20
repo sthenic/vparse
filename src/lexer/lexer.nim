@@ -89,6 +89,8 @@ const
                        "~^", ">>", "<<", ">>>", "<<<"]
 
    NumberTokens* = {TkIntLit, TkUIntLit, TkAmbIntLit, TkAmbUIntLit, TkRealLit}
+   NetTypeTokens* = {TkSupply0, TkSupply1, TkTri, TkTriand, TkTrior, TkTri0,
+                     TkTri1, TkWire, TkWand, TkWor}
 
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",
