@@ -222,12 +222,12 @@ proc get_binary_precedence*(tok: Token): int =
       elif str == "||":
          return 2
       else:
-         # FIXME: Assert or exception?
+         # FIXME: Assert or exception? No - this is how we handle unary operators.
          return -10
    of TkQuestionMark:
       return 1
    else:
-      # FIXME: Assert or exception?
+      # FIXME: Assert or exception? No - this is how we break on an unrecognized character.
       return -10
 
 
@@ -245,6 +245,7 @@ proc skip(l: var Lexer, pos: int): int =
 
 
 proc handle_comment(l: var Lexer, tok: var Token) =
+   # FIXME: Use different tokens for block comments and single line comments.
    # A comment begins w/ two characters: '//' or '/*'. We skip over the first
    # slash and use the other character to determine how we treat the buffer from
    # that point on.

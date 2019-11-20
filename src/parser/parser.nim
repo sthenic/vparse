@@ -32,6 +32,13 @@ proc close_parser*(p: var Parser) =
 proc get_token*(p: var Parser) =
    p.last_tok = p.tok
    get_token(p.lex, p.tok)
+   # FIXME: Properly handle comments. If we want to be able to recreate the
+   #        source file, the comments also need to be nodes in the AST.
+   #        If it's too complicated to insert the nodes into the AST, maybe we
+   #        can keep the comments in a separate list and then mix them into the
+   #        tree at the end?
+   while p.tok.type == TkComment:
+      get_token(p.lex, p.tok)
 
 
 proc new_line_info(tok: Token): TLineInfo =
@@ -308,7 +315,7 @@ proc parse_constant_expression_aux(p: var Parser, limit: int): PNode
 proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
    result = head
    var precedence = get_binary_precedence(p.tok)
-   while precedence >= limit: # FIXME: Potentially stop if unary?
+   while precedence >= limit:
       expect_token(p, {TkOperator, TkQuestionMark})
       let left_associative = 1 - ord(is_right_associative(p.tok))
       if p.tok.type == TkQuestionMark:
@@ -320,7 +327,10 @@ proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
          var rhs_attributes: seq[PNode] = @[]
          while p.tok.type == TkLparenStar:
             add(rhs_attributes, parse_attribute_instance(p))
-         # Return the right hand side of the expression, parsing anything
+         # Return the right hand side of the expression, parsing any expressions
+         # with a precedence greater than the current expression, if left
+         # associative, and any expressions with precedence greater than or
+         # equal to the current expression if right associative.
          let rhs = parse_constant_expression_aux(p, precedence + left_associative)
          add(infix.sons, op)
          add(infix.sons, result)
