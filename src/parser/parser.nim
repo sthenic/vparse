@@ -121,19 +121,15 @@ proc parse_attribute_instance(p: var Parser): PNode =
 
 
 proc parse_range(p: var Parser): PNode =
-   result = new_node(p, NtRange)
-
-   # FIXME: Actual implementation
+   expect_token(p, TkLbracket)
    get_token(p)
-   while true:
-      case p.tok.type
-      of TkRbracket:
-         get_token(p)
-         break
-      of TkEndOfFile:
-         break
-      else:
-         get_token(p)
+   result = new_node(p, NtRange)
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, TkColon)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, TkRbracket)
+   get_token(p)
 
 
 proc parse_constant_concatenation(p: var Parser): PNode =
