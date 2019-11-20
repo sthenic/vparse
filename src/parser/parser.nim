@@ -430,9 +430,12 @@ proc parse_parameter_port_list(p: var Parser): PNode =
 
 
 proc parse_inout_or_input_port_declaration(p: var Parser,
+                                           attributes: seq[PNode],
                                            ambiguous_comma: bool = false): PNode =
    # Inout or input ports have a common syntax.
-   result = new_node(p, NtPortDecl) # FIXME: This is not the correct node.
+   result = new_node(p, NtPortDecl)
+   if len(attributes) > 0:
+      add(result.sons, attributes)
 
    expect_token(p, {TkInout, TkInput})
    add(result.sons, new_identifier_node(p, NtDirection))
@@ -479,17 +482,17 @@ proc parse_output_port_declaration(p: var Parser): PNode =
 
 proc parse_port_declaration(p: var Parser,
                             ambiguous_comma: bool = false): PNode =
-   result = new_node(p, NtPortDecl)
-
+   var attributes: seq[PNode] = @[]
    while p.tok.type == TkLparenStar:
-      add(result.sons, parse_attribute_instance(p))
+      add(attributes, parse_attribute_instance(p))
 
    case p.tok.type
    of TkInout, TkInput:
-      add(result.sons, parse_inout_or_input_port_declaration(p, ambiguous_comma).sons)
+      result = parse_inout_or_input_port_declaration(p, attributes,
+                                                     ambiguous_comma)
    of TkOutput:
       # FIXME: Implement
-      discard
+      result = new_node(p, NtPortDecl)
    else:
       return new_error_node(p, UnexpectedToken, p.tok)
 
@@ -568,7 +571,7 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
 proc assume_source_text(p: var Parser): PNode =
    # Parse source text (A.1.3)
    # Check for attribute instances.
-   var attributes: seq[PNode]
+   var attributes: seq[PNode] = @[]
    while p.tok.type == TkLparenStar:
       add(attributes, parse_attribute_instance(p))
 
