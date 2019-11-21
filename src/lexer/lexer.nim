@@ -40,7 +40,7 @@ type
       TkWait, TkWand, TkWeak0, TkWeak1, TkWhile, TkWire, TkWor,
       TkXnor, TkXor, # end keywords, begin special characters:
       TkBackslash, TkComma, TkDot, TkQuestionMark, TkSemicolon, TkColon, TkAt,
-      TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkRbrace, TkLbrace,
+      TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkLbrace, TkRbrace,
       TkLparenStar, TkRparenStar,
       TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
