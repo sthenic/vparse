@@ -11,7 +11,7 @@ type
    Parser* = object
       lex: Lexer
       tok: Token
-      last_tok: Token
+      next_tok: Token
 
 const
    UnexpectedToken = "Unexpected token $1"
@@ -21,8 +21,9 @@ const
 proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
                   string, s: Stream) =
    init(p.tok)
-   init(p.last_tok)
+   init(p.next_tok)
    open_lexer(p.lex, cache, filename, s)
+   get_token(p.lex, p.next_tok)
 
 
 proc close_parser*(p: var Parser) =
@@ -30,15 +31,16 @@ proc close_parser*(p: var Parser) =
 
 
 proc get_token(p: var Parser) =
-   p.last_tok = p.tok
-   get_token(p.lex, p.tok)
    # FIXME: Properly handle comments. If we want to be able to recreate the
    #        source file, the comments also need to be nodes in the AST.
    #        If it's too complicated to insert the nodes into the AST, maybe we
    #        can keep the comments in a separate list and then mix them into the
    #        tree at the end?
-   while p.tok.type == TkComment:
-      get_token(p.lex, p.tok)
+   p.tok = p.next_tok
+   if p.next_tok.type != TkEndOfFile:
+      get_token(p.lex, p.next_tok)
+      while p.next_tok.type == TkComment:
+         get_token(p.lex, p.next_tok)
 
 
 proc new_line_info(tok: Token): TLineInfo =
@@ -116,6 +118,10 @@ template expect_token(p: Parser, result: seq[PNode], kind: TokenType): untyped =
 
 template unexpected_token(p: Parser): PNode =
    new_error_node(p, "Unexpected token $1.", p.tok)
+
+
+proc look_ahead(p: Parser, curr, next: TokenType): bool =
+   result = p.tok.type == curr and p.next_tok.type == next
 
 
 # Forward declarations
@@ -399,16 +405,9 @@ proc parse_parameter_declaration(p: var Parser,
    # Parse a list of parameter assignments, there should be at least one.
    add(result.sons, parse_parameter_assignment(p))
    while true:
-      if p.tok.type == TkComma:
-         if ambc:
-            get_token(p)
-            if p.tok.type != TkSymbol:
-               break
-         else:
-            get_token(p)
-      else:
+      if not look_ahead(p, TkComma, TkSymbol):
          break
-
+      get_token(p)
       add(result.sons, parse_parameter_assignment(p))
 
 
@@ -424,18 +423,14 @@ proc parse_parameter_port_list(p: var Parser): PNode =
    add(result.sons, parse_parameter_declaration(p, true))
 
    while true:
-      # Parsing a parameter declaration will have to eat any comma ','
-      # separating two declarations since the character is ambiguous in this
-      # context. Either it signals another parameter w/ the same type or an
-      # entirely new declaration.
-      if p.last_tok.type == TkComma:
-         # If the last token was a comma, the current cannot be anything other
-         # than the keyword 'parameter'.
+      if p.tok.type == TkComma:
+         # If the token is a comma, the current cannot be anything other than
+         # the keyword 'parameter'.
+         get_token(p)
          expect_token(p, TkParameter)
          add(result.sons, parse_parameter_declaration(p, true))
       else:
-         # If the last token was not a comma, the current cannot be anything
-         # other than the closing parenthesis.
+         # If token is not a comma, we expect a closing parenthesis.
          expect_token(p, TkRparen)
          get_token(p)
          break
@@ -472,17 +467,9 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
    add(result.sons, new_identifier_node(p, NtPortIdentifier))
    get_token(p)
    while true:
-      if p.tok.type == TkComma:
-         if ambc:
-            get_token(p)
-            if p.tok.type != TkSymbol:
-               break
-         else:
-            get_token(p)
-      else:
+      if not look_ahead(p, TkComma, TkSymbol):
          break
-
-      expect_token(p, TkSymbol)
+      get_token(p)
       add(result.sons, new_identifier_node(p, NtPortIdentifier))
       get_token(p)
 
@@ -502,15 +489,9 @@ proc parse_list_of_variable_port_identifiers(
    add(result, first)
 
    while true:
-      if p.tok.type == TkComma:
-         if ambc:
-            get_token(p)
-            if p.tok.type != TkSymbol:
-               break
-         else:
-            get_token(p)
-      else:
+      if not look_ahead(p, TkComma, TkSymbol):
          break
+      get_token(p)
 
       let n = new_node(p, NtVariablePort)
       expect_token(p, result, TkSymbol)
@@ -530,15 +511,9 @@ proc parse_list_of_port_identifiers(p: var Parser,
    get_token(p)
 
    while true:
-      if p.tok.type == TkComma:
-         if ambc:
-            get_token(p)
-            if p.tok.type != TkSymbol:
-               break
-         else:
-            get_token(p)
-      else:
+      if not look_ahead(p, TkComma, TkSymbol):
          break
+      get_token(p)
 
       expect_token(p, result, TkSymbol)
       add(result, new_identifier_node(p, NtPortIdentifier))
@@ -614,7 +589,8 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
    expect_token(p, {TkInout, TkInput, TkOutput})
    add(result.sons, parse_port_declaration(p, true))
    while true:
-      if p.last_tok.type == TkComma:
+      if p.tok.type == TkComma:
+         get_token(p)
          expect_token(p, {TkInout, TkInput, TkOutput})
          add(result.sons, parse_port_declaration(p, true))
       else:
