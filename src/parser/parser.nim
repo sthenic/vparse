@@ -102,6 +102,18 @@ template expect_token(p: Parser, kind: TokenType): untyped =
       return new_error_node(p, "Expected token: $1, got $2.", kind, p.tok)
 
 
+template expect_token(p: Parser, result: seq[PNode], kinds: set[TokenType]): untyped =
+   if p.tok.type notin kinds:
+      add(result, new_error_node(p, "Expected tokens: $1, got $2.", kinds, p.tok))
+      return
+
+
+template expect_token(p: Parser, result: seq[PNode], kind: TokenType): untyped =
+   if p.tok.type != kind:
+      add(result, new_error_node(p, "Expected token: $1, got $2.", kind, p.tok))
+      return
+
+
 template unexpected_token(p: Parser): PNode =
    new_error_node(p, "Unexpected token $1.", p.tok)
 
@@ -361,7 +373,7 @@ proc parse_parameter_assignment(p: var Parser): PNode =
 
 
 proc parse_parameter_declaration(p: var Parser,
-                                 ambiguous_comma: bool = false): PNode =
+                                 ambc: bool = false): PNode =
    result = new_node(p, NtParameterDecl)
 
    expect_token(p, TkParameter)
@@ -388,7 +400,7 @@ proc parse_parameter_declaration(p: var Parser,
    add(result.sons, parse_parameter_assignment(p))
    while true:
       if p.tok.type == TkComma:
-         if ambiguous_comma:
+         if ambc:
             get_token(p)
             if p.tok.type != TkSymbol:
                break
@@ -431,7 +443,7 @@ proc parse_parameter_port_list(p: var Parser): PNode =
 
 proc parse_inout_or_input_port_declaration(p: var Parser,
                                            attributes: seq[PNode],
-                                           ambiguous_comma: bool = false): PNode =
+                                           ambc: bool = false): PNode =
    # Inout or input ports have a common syntax.
    result = new_node(p, NtPortDecl)
    if len(attributes) > 0:
@@ -461,7 +473,7 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
    get_token(p)
    while true:
       if p.tok.type == TkComma:
-         if ambiguous_comma:
+         if ambc:
             get_token(p)
             if p.tok.type != TkSymbol:
                break
@@ -475,24 +487,122 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
       get_token(p)
 
 
-proc parse_output_port_declaration(p: var Parser): PNode =
-   # FIXME: Implement
-   discard
+proc parse_list_of_variable_port_identifiers(
+   p: var Parser, ambc: bool = false
+): seq[PNode] =
+   let first = new_node(p, NtVariablePort)
+
+   expect_token(p, result, TkSymbol)
+   add(first.sons, new_identifier_node(p, NtPortIdentifier))
+   get_token(p)
+
+   if p.tok.type == TkEquals:
+      get_token(p)
+      add(first.sons, parse_constant_expression(p))
+   add(result, first)
+
+   while true:
+      if p.tok.type == TkComma:
+         if ambc:
+            get_token(p)
+            if p.tok.type != TkSymbol:
+               break
+         else:
+            get_token(p)
+      else:
+         break
+
+      let n = new_node(p, NtVariablePort)
+      expect_token(p, result, TkSymbol)
+      add(n.sons, new_identifier_node(p, NtPortIdentifier))
+      get_token(p)
+
+      if p.tok.type == TkEquals:
+         get_token(p)
+         add(n.sons, parse_constant_expression(p))
+      add(result, n)
+
+
+proc parse_list_of_port_identifiers(p: var Parser,
+                                    ambc: bool = false): seq[PNode] =
+   expect_token(p, result, TkSymbol)
+   add(result, new_identifier_node(p, NtPortIdentifier))
+   get_token(p)
+
+   while true:
+      if p.tok.type == TkComma:
+         if ambc:
+            get_token(p)
+            if p.tok.type != TkSymbol:
+               break
+         else:
+            get_token(p)
+      else:
+         break
+
+      expect_token(p, result, TkSymbol)
+      add(result, new_identifier_node(p, NtPortIdentifier))
+      get_token(p)
+
+
+proc parse_output_port_declaration(p: var Parser,
+                                   attributes: seq[PNode],
+                                   ambc: bool = false): PNode =
+   # Inout or input ports have a common syntax.
+   result = new_node(p, NtPortDecl)
+   if len(attributes) > 0:
+      add(result.sons, attributes)
+
+   expect_token(p, TkOutput)
+   add(result.sons, new_identifier_node(p, NtDirection))
+   get_token(p)
+
+   case p.tok.type
+   of TkReg:
+      add(result.sons, new_identifier_node(p, NtNetType))
+      get_token(p)
+
+      if p.tok.type == TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+
+      add(result.sons, parse_list_of_variable_port_identifiers(p, ambc))
+
+   of TkInteger, TkTime:
+      add(result.sons, new_identifier_node(p, NtNetType))
+      get_token(p)
+
+      add(result.sons, parse_list_of_variable_port_identifiers(p, ambc))
+
+   else:
+      if p.tok.type in NetTypeTokens:
+         add(result.sons, new_identifier_node(p, NtNetType))
+         get_token(p)
+
+      if p.tok.type == TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+
+      add(result.sons, parse_list_of_port_identifiers(p, ambc))
 
 
 proc parse_port_declaration(p: var Parser,
-                            ambiguous_comma: bool = false): PNode =
+                            ambc: bool = false): PNode =
    var attributes: seq[PNode] = @[]
    while p.tok.type == TkLparenStar:
       add(attributes, parse_attribute_instance(p))
 
    case p.tok.type
    of TkInout, TkInput:
-      result = parse_inout_or_input_port_declaration(p, attributes,
-                                                     ambiguous_comma)
+      result = parse_inout_or_input_port_declaration(p, attributes, ambc)
    of TkOutput:
-      # FIXME: Implement
-      result = new_node(p, NtPortDecl)
+      result = parse_output_port_declaration(p, attributes, ambc)
    else:
       return new_error_node(p, UnexpectedToken, p.tok)
 
@@ -501,9 +611,11 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPortDeclarations)
 
+   expect_token(p, {TkInout, TkInput, TkOutput})
    add(result.sons, parse_port_declaration(p, true))
    while true:
       if p.last_tok.type == TkComma:
+         expect_token(p, {TkInout, TkInput, TkOutput})
          add(result.sons, parse_port_declaration(p, true))
       else:
          break

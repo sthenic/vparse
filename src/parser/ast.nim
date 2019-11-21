@@ -31,7 +31,7 @@ type
       # Module parameters and ports A.1.4
       NtModuleParameterPortList, NtListOfPorts, NtListOfPortDeclarations,
       NtPort, NtPortExpression, NtPortReference, NtPortConcat,
-      NtPortIdentifier, NtPortDecl,
+      NtPortIdentifier, NtPortDecl, NtVariablePort,
       # Parameter declarations A.2.1.1
       NtLocalparamDecl, NtParameterDecl, NtSpecparamDecl,
       # Port declarations A.2.1.2

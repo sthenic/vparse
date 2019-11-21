@@ -25,5 +25,8 @@ run_test("test_0", """
 (
    input wire clk_i,
               another_i,
-   input wire signed [ADDR-1:0] addr_i
+   input wire signed [ADDR-1:0] addr_i,
+   output integer MYTIME = 89 + ABD,
+   output reg signed [56:0] nice, anda, soas = 7,
+   output wire signed [33:0] hello, orz
 )""", nil)
