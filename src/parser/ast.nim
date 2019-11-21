@@ -30,7 +30,7 @@ type
       NtModuleIdentifier,
       # Module parameters and ports A.1.4
       NtModuleParameterPortList, NtListOfPorts, NtListOfPortDeclarations,
-      NtPort, NtPortExpression, NtPortReference, NtPortConcat,
+      NtPort, NtPortExpression, NtPortReference, NtPortReferenceConcat,
       NtPortIdentifier, NtPortDecl, NtVariablePort,
       # Parameter declarations A.2.1.1
       NtLocalparamDecl, NtParameterDecl, NtSpecparamDecl,
@@ -51,7 +51,7 @@ type
       NtConstantFunctionCall,
       # Expressions A.8.3
       NtConstantExpression, NtConstantMinTypMaxExpression,
-      NtConstantConditionalExpression,
+      NtConstantConditionalExpression, NtConstantRangeExpression,
       # Primaries A.8.4
       NtConstantPrimary,
       # Operators A.8.6

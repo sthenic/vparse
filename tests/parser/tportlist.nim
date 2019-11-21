@@ -30,3 +30,13 @@ run_test("test_0", """
    output reg signed [56:0] nice, anda, soas = 7,
    output wire signed [33:0] hello, orz
 )""", nil)
+
+
+run_test("test_ports", """
+(
+   .clk_i(),
+   .clk_o({nice, BAC}),
+   hello[45:2],
+   ,
+   {something, other, than},
+)""", nil)

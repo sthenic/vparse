@@ -596,16 +596,105 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
       else:
          break
 
+proc parse_constant_range_expression(p: var Parser): PNode =
+   # FIXME: Implement
+   result = new_node(p, NtConstantRangeExpression)
+   get_token(p)
+
+   while true:
+      case p.tok.type
+      of TkRbracket:
+         get_token(p)
+         break
+      of TkEndOfFile:
+         break
+      else:
+         get_token(p)
+
+
+proc parse_port_reference(p: var Parser): PNode =
+   expect_token(p, TkSymbol)
+   result = new_node(p, NtPortReference)
+
+   add(result.sons, new_identifier_node(p, NtPortIdentifier))
+   get_token(p)
+
+   if p.tok.type == TkLbracket:
+      add(result.sons, parse_constant_range_expression(p))
+
+
+proc parse_port_reference_concat(p: var Parser): PNode =
+   expect_token(p, TkLbrace)
+   result = new_node(p, NtPortReferenceConcat)
+   get_token(p)
+
+   while true:
+      add(result.sons, parse_port_reference(p))
+      case p.tok.type
+      of TkComma:
+         get_token(p)
+      of TkRbrace:
+         get_token(p)
+         break
+      else:
+         break
+
+
+proc parse_port_expression(p: var Parser): PNode =
+   expect_token(p, {TkSymbol, TkLbrace})
+   if p.tok.type == TkSymbol:
+      result = parse_port_reference(p)
+   elif p.tok.type == TkLbrace:
+      result = parse_port_reference_concat(p)
+
+
+proc parse_port(p: var Parser): PNode =
+   result = new_node(p, NtPort)
+
+   case p.tok.type
+   of TkDot:
+      get_token(p)
+      expect_token(p, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtPortIdentifier))
+      get_token(p)
+
+      expect_token(p, TkLparen)
+      get_token(p)
+
+      if p.tok.type != TkRparen:
+         add(result.sons, parse_port_expression(p))
+      expect_token(p, TkRparen)
+      get_token(p)
+
+   of TkSymbol, TkLbrace:
+      add(result.sons, parse_port_expression(p))
+
+   else:
+      # An empty port is also valid.
+      discard
+
 
 proc parse_list_of_ports(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPorts)
+
+   add(result.sons, parse_port(p))
+   while true:
+      case p.tok.type
+      of TkComma:
+         get_token(p)
+      else:
+         break # FIXME: Error?
+
+      add(result.sons, parse_port(p))
 
 
 proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
    expect_token(p, TkLparen)
    get_token(p)
 
+   # TODO: The enclosing parenthesis could be removed in the respective
+   #       functions w/ the new look ahead support.
    if p.tok.type == TkRparen:
       # The node should be an empty list of port declarations.
       result = new_node(p, NtListOfPortDeclarations)
