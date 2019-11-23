@@ -224,12 +224,12 @@ proc get_binary_precedence*(tok: Token): int =
       elif str == "||":
          return 2
       else:
-         # FIXME: Assert or exception? No - this is how we handle unary operators.
+         # This is how the expression parsing handles unary operators.
          return -10
    of TkQuestionMark:
       return 1
    else:
-      # FIXME: Assert or exception? No - this is how we break on an unrecognized character.
+      # This is how the expression parsing breaks on an unrecognized character.
       return -10
 
 
