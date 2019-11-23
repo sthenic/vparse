@@ -167,6 +167,42 @@ proc `==`*(x, y: PNode): bool =
             break
 
 
+proc detailed_compare*(x, y: PNode) =
+   ## Compare the two nodes ``x`` and ``y``, highlighting the differences in
+   ## the AST.
+   const indent = 2
+   if is_nil(x):
+      echo "LHS node is nil"
+      return
+
+   if is_nil(y):
+      echo "RHS node is nil"
+      return
+
+   if x.info != y.info:
+      echo "Line info differs:\n", pretty(x, indent), pretty(y, indent)
+      return
+
+   if x.type != y.type:
+      echo "Type differs:\n", pretty(x, indent), pretty(y, indent)
+      return
+
+   case x.type
+   of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError:
+      if x != y:
+         echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
+         return
+   else:
+      if len(x.sons) != len(y.sons):
+         let str = format("Length of subtree differs, LHS($1), RHS($2):\n",
+                          len(x.sons), len(y.sons))
+         echo str, pretty(x, indent), pretty(y, indent)
+         return
+
+      for i in 0..<len(x.sons):
+         detailed_compare(x.sons[i], y.sons[i])
+
+
 proc new_node*(`type`: NodeType, info: TLineInfo): PNode =
    result = PNode(`type`: type, info: info)
 
