@@ -96,6 +96,7 @@ type
       of NtError:
          msg*: string
       of OperatorTypes:
+         # FIXME: Unused right now
          op*: string
       else:
          sons*: TNodeSeq
@@ -119,6 +120,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
    of NtRealLit:
       add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
    of OperatorTypes:
+      # FIXME: Unused right now
       add(result, format(": $1\n", n.op))
    of NtError:
       add(result, format(": $1\n", n.msg))
@@ -129,6 +131,40 @@ proc pretty*(n: PNode, indent: int = 0): string =
          add(sons_str, pretty(s, indent + 2))
 
       add(result, sons_str)
+
+
+proc `==`*(x, y: PNode): bool =
+   if is_nil(x) or is_nil(y):
+      return false
+
+   if x.info != y.info:
+      return false
+
+   if x.type != y.type:
+      return false
+
+   case x.type
+   of IdentifierTypes:
+      result = x.identifier.s == y.identifier.s
+   of IntegerTypes:
+      result = x.inumber == y.inumber and x.iraw == y.iraw and
+               x.base == y.base and x.size == y.size
+   of NtRealLit:
+      result = x.fnumber == y.fnumber
+   of OperatorTypes:
+      # FIXME: Unused right now
+      result = x.op == y.op
+   of NtError:
+      return true
+   else:
+      if len(x.sons) != len(y.sons):
+         return false
+
+      result = true
+      for i in 0..<len(x.sons):
+         if x.sons[i] != y.sons[i]:
+            result = false
+            break
 
 
 proc new_node*(`type`: NodeType, info: TLineInfo): PNode =
