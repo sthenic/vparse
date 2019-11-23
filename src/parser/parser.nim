@@ -16,7 +16,7 @@ type
 const
    UnexpectedToken = "Unexpected token $1."
    ExpectedToken = "Expected token $1, got $2."
-   ExpectedTokens = "Expected tokens $1, got $2."
+   ExpectedTokens = "Expected one of the tokens $1, got $2."
 
 
 proc get_token(p: var Parser) =
@@ -157,14 +157,14 @@ proc parse_attribute_instance(p: var Parser): PNode =
 
 
 proc parse_range(p: var Parser): PNode =
-   expect_token(p, TkLbracket)
-   get_token(p)
    result = new_node(p, NtRange)
-   add(result.sons, parse_constant_expression(p))
-   expect_token(p, TkColon)
+   expect_token(p, result, TkLbracket)
    get_token(p)
    add(result.sons, parse_constant_expression(p))
-   expect_token(p, TkRbracket)
+   expect_token(p, result, TkColon)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkRbracket)
    get_token(p)
 
 
@@ -193,8 +193,7 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
       result = new_node(p, NtConstantMultipleConcat)
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p))
-      # Expect a closing brace.
-      expect_token(p, TkRbrace)
+      expect_token(p, result, TkRbrace)
       get_token(p)
    of TkComma:
       # We're parsing a constant concatenation where the entry we parsed earlier
@@ -246,7 +245,7 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
       while p.tok.type == TkLparenStar:
          add(result.sons, parse_attribute_instance(p))
 
-      expect_token(p, TkLparen)
+      expect_token(p, result, TkLparen)
 
       # FIXME: Make this into a function (shared w/ parse_constant_concatenation)
       get_token(p)
@@ -272,20 +271,20 @@ proc parse_parenthesis(p: var Parser): PNode =
    if p.tok.type != TkRparen:
       # Expect an expression. This may be the first of a triplet constituting a
       # min:typ:max expression. We'll know if we encounter a colon.
-      let n = parse_constant_expression(p)
+      let first = parse_constant_expression(p)
       if p.tok.type == TkColon:
          let mtm = new_node(p, NtConstantMinTypMaxExpression)
-         add(mtm.sons, n)
+         add(mtm.sons, first)
          get_token(p)
          add(mtm.sons, parse_constant_expression(p))
-         expect_token(p, TkColon)
+         expect_token(p, result, TkColon)
          get_token(p)
          add(mtm.sons, parse_constant_expression(p))
          add(result.sons, mtm)
       else:
-         add(result.sons, n)
+         add(result.sons, first)
 
-   expect_token(p, TkRparen)
+   expect_token(p, result, TkRparen)
    get_token(p)
 
 
@@ -313,7 +312,7 @@ proc parse_constant_primary(p: var Parser): PNode =
    of NumberTokens:
       result = parse_number(p)
    else:
-      result = new_error_node(p, "Unexpected token $1.", p.tok)
+      result = unexpected_token(p)
 
 
 proc is_constant_primary(p: Parser): bool =
@@ -321,10 +320,9 @@ proc is_constant_primary(p: Parser): bool =
 
 
 proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =
-   expect_token(p, TkQuestionMark)
-   get_token(p)
-
    result = new_node(p, NtConstantConditionalExpression)
+   expect_token(p, result, TkQuestionMark)
+   get_token(p)
    add(result.sons, head)
 
    # Optional attribute instances.
@@ -332,7 +330,7 @@ proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =
       add(result.sons, parse_attribute_instance(p))
 
    add(result.sons, parse_constant_expression(p))
-   expect_token(p, TkColon)
+   expect_token(p, result, TkColon)
    get_token(p)
    add(result.sons, parse_constant_expression(p))
 
@@ -348,7 +346,7 @@ proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
    result = head
    var precedence = get_binary_precedence(p.tok)
    while precedence >= limit:
-      expect_token(p, {TkOperator, TkQuestionMark})
+      expect_token(p, result, {TkOperator, TkQuestionMark})
       let left_associative = 1 - ord(is_right_associative(p.tok))
       if p.tok.type == TkQuestionMark:
          result = parse_constant_conditional_expression(p, result)
@@ -375,7 +373,6 @@ proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
 
 proc parse_constant_expression_aux(p: var Parser, limit: int): PNode =
    result = parse_constant_primary(p)
-   # FIXME: Better name?
    result = parse_operator(p, result, limit)
 
 
@@ -386,21 +383,20 @@ proc parse_constant_expression(p: var Parser): PNode =
 proc parse_parameter_assignment(p: var Parser): PNode =
    result = new_node(p, NtParamAssignment)
 
-   expect_token(p, TkSymbol)
+   expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtParameterIdentifier))
-
    get_token(p)
-   expect_token(p, TkEquals)
 
+   expect_token(p, result, TkEquals)
    get_token(p)
+
    add(result.sons, parse_constant_expression(p))
 
 
 proc parse_parameter_declaration(p: var Parser,
                                  ambc: bool = false): PNode =
    result = new_node(p, NtParameterDecl)
-
-   expect_token(p, TkParameter)
+   expect_token(p, result, TkParameter)
    get_token(p)
 
    # Check for type and range specifiers.
@@ -431,10 +427,9 @@ proc parse_parameter_declaration(p: var Parser,
 
 proc parse_parameter_port_list(p: var Parser): PNode =
    result = new_node(p, NtModuleParameterPortList)
-
-   expect_token(p, TkHash)
+   expect_token(p, result, TkHash)
    get_token(p)
-   expect_token(p, TkLparen)
+   expect_token(p, result, TkLparen)
    get_token(p)
 
    # Parse the contents, at least one parameter declaration is expected.
@@ -445,11 +440,11 @@ proc parse_parameter_port_list(p: var Parser): PNode =
          # If the token is a comma, the current cannot be anything other than
          # the keyword 'parameter'.
          get_token(p)
-         expect_token(p, TkParameter)
+         expect_token(p, result, TkParameter)
          add(result.sons, parse_parameter_declaration(p, true))
       else:
          # If token is not a comma, we expect a closing parenthesis.
-         expect_token(p, TkRparen)
+         expect_token(p, result, TkRparen)
          get_token(p)
          break
 
@@ -462,7 +457,7 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
    if len(attributes) > 0:
       add(result.sons, attributes)
 
-   expect_token(p, {TkInout, TkInput})
+   expect_token(p, result, {TkInout, TkInput})
    add(result.sons, new_identifier_node(p, NtDirection))
    get_token(p)
 
@@ -481,7 +476,7 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
       add(result.sons, parse_range(p))
 
    # Parse a list of port identifiers, the syntax requires at least one item.
-   expect_token(p, TkSymbol)
+   expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtPortIdentifier))
    get_token(p)
    while true:
@@ -546,7 +541,7 @@ proc parse_output_port_declaration(p: var Parser,
    if len(attributes) > 0:
       add(result.sons, attributes)
 
-   expect_token(p, TkOutput)
+   expect_token(p, result, TkOutput)
    add(result.sons, new_identifier_node(p, NtDirection))
    get_token(p)
 
@@ -604,12 +599,12 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPortDeclarations)
 
-   expect_token(p, {TkInout, TkInput, TkOutput})
+   expect_token(p, result, {TkInout, TkInput, TkOutput})
    add(result.sons, parse_port_declaration(p, true))
    while true:
       if p.tok.type == TkComma:
          get_token(p)
-         expect_token(p, {TkInout, TkInput, TkOutput})
+         expect_token(p, result, {TkInout, TkInput, TkOutput})
          add(result.sons, parse_port_declaration(p, true))
       else:
          break
@@ -642,9 +637,8 @@ proc parse_constant_range_expression(p: var Parser): PNode =
 
 
 proc parse_port_reference(p: var Parser): PNode =
-   expect_token(p, TkSymbol)
    result = new_node(p, NtPortReference)
-
+   expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtPortIdentifier))
    get_token(p)
 
@@ -683,16 +677,16 @@ proc parse_port(p: var Parser): PNode =
    case p.tok.type
    of TkDot:
       get_token(p)
-      expect_token(p, TkSymbol)
+      expect_token(p, result, TkSymbol)
       add(result.sons, new_identifier_node(p, NtPortIdentifier))
       get_token(p)
 
-      expect_token(p, TkLparen)
+      expect_token(p, result, TkLparen)
       get_token(p)
 
       if p.tok.type != TkRparen:
          add(result.sons, parse_port_expression(p))
-      expect_token(p, TkRparen)
+      expect_token(p, result, TkRparen)
       get_token(p)
 
    of TkSymbol, TkLbrace:
@@ -707,6 +701,7 @@ proc parse_list_of_ports(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPorts)
 
+   # FIXME: Restructure
    add(result.sons, parse_port(p))
    while true:
       case p.tok.type
@@ -745,7 +740,7 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
 
    # Expect an idenfitier as the first token after the module keyword.
    get_token(p)
-   expect_token(p, TkSymbol)
+   expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtModuleIdentifier))
 
    # FIXME: Parse the optional parameter port list.
