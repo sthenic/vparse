@@ -203,18 +203,28 @@ proc detailed_compare*(x, y: PNode) =
          detailed_compare(x.sons[i], y.sons[i])
 
 
+proc new_line_info*(line: uint16, col: int16): TLineInfo =
+   result.line = line
+   result.col = col
+
+
 proc new_node*(`type`: NodeType, info: TLineInfo): PNode =
    result = PNode(`type`: type, info: info)
 
 
-proc new_identifier_node*(`type`: NodeType, identifier: PIdentifier,
-                          info: TLineInfo): PNode =
+proc new_node*(`type`: NodeType, info: TLineInfo, sons: seq[PNode]): PNode =
+   result = new_node(`type`, info)
+   result.sons = sons
+
+
+proc new_identifier_node*(`type`: NodeType, info: TLineInfo,
+                          identifier: PIdentifier): PNode =
    result = new_node(`type`, info)
    result.identifier = identifier
 
 
-proc new_inumber_node*(`type`: NodeType, inumber: BiggestInt, raw: string,
-                       base: NumericalBase, size: int, info: TLineInfo): PNode =
+proc new_inumber_node*(`type`: NodeType, info: TLineInfo, inumber: BiggestInt,
+                       raw: string, base: NumericalBase, size: int): PNode =
    result = new_node(`type`, info)
    result.inumber = inumber
    result.iraw = raw
@@ -222,8 +232,8 @@ proc new_inumber_node*(`type`: NodeType, inumber: BiggestInt, raw: string,
    result.size = size
 
 
-proc new_fnumber_node*(`type`: NodeType, fnumber: BiggestFloat, raw: string,
-                       info: TLineInfo): PNode =
+proc new_fnumber_node*(`type`: NodeType, fnumber: BiggestFloat, info: TLineInfo,
+                       raw: string): PNode =
    result = new_node(`type`, info)
    result.fnumber = fnumber
    result.fraw = raw
