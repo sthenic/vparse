@@ -14,8 +14,9 @@ type
       next_tok: Token
 
 const
-   UnexpectedToken = "Unexpected token $1"
-   UnsupportedToken = "Unsupported token $1"
+   UnexpectedToken = "Unexpected token $1."
+   ExpectedToken = "Expected token $1, got $2."
+   ExpectedTokens = "Expected tokens $1, got $2."
 
 
 proc get_token(p: var Parser) =
@@ -96,28 +97,45 @@ proc new_error_node(p: Parser, msg: string, args: varargs[string, `$`]): PNode =
 
 template expect_token(p: Parser, kinds: set[TokenType]): untyped =
    if p.tok.type notin kinds:
-      return new_error_node(p, "Expected tokens: $1, got $2.", kinds, p.tok)
+      return new_error_node(p, ExpectedTokens, kinds, p.tok)
 
 
 template expect_token(p: Parser, kind: TokenType): untyped =
    if p.tok.type != kind:
-      return new_error_node(p, "Expected token: $1, got $2.", kind, p.tok)
+      return new_error_node(p, ExpectedToken, kind, p.tok)
+
+
+template expect_token(p: Parser, result: PNode, kinds: set[TokenType]): untyped =
+   if p.tok.type notin kinds:
+      add(result.sons, new_error_node(p, ExpectedTokens, kinds, p.tok))
+      return
+
+
+template expect_token(p: Parser, result: PNode, kind: TokenType): untyped =
+   if p.tok.type != kind:
+      add(result.sons, new_error_node(p, ExpectedToken, kind, p.tok))
+      return
 
 
 template expect_token(p: Parser, result: seq[PNode], kinds: set[TokenType]): untyped =
    if p.tok.type notin kinds:
-      add(result, new_error_node(p, "Expected tokens: $1, got $2.", kinds, p.tok))
+      add(result, new_error_node(p, ExpectedTokens, kinds, p.tok))
       return
 
 
 template expect_token(p: Parser, result: seq[PNode], kind: TokenType): untyped =
    if p.tok.type != kind:
-      add(result, new_error_node(p, "Expected token: $1, got $2.", kind, p.tok))
+      add(result, new_error_node(p, ExpectedToken, kind, p.tok))
       return
 
 
 template unexpected_token(p: Parser): PNode =
-   new_error_node(p, "Unexpected token $1.", p.tok)
+   new_error_node(p, UnexpectedToken, p.tok)
+
+
+template unexpected_token(p: Parser, result: PNode): untyped =
+   add(result.sons, new_error_node(p, UnexpectedToken, p.tok))
+   return
 
 
 proc look_ahead(p: Parser, curr, next: TokenType): bool =
@@ -596,20 +614,31 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
       else:
          break
 
+
 proc parse_constant_range_expression(p: var Parser): PNode =
-   # FIXME: Implement
    result = new_node(p, NtConstantRangeExpression)
    get_token(p)
 
-   while true:
-      case p.tok.type
-      of TkRbracket:
-         get_token(p)
-         break
-      of TkEndOfFile:
-         break
-      else:
-         get_token(p)
+   let first = parse_constant_expression(p)
+   case p.tok.type
+   of TkColon:
+      get_token(p)
+      add(result.sons, first)
+      add(result.sons, parse_constant_expression(p))
+   of TkPlusColon, TkMinusColon:
+      let infix = new_node(p, NtInfix)
+      add(infix.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      add(infix.sons, first)
+      add(infix.sons, parse_constant_expression(p))
+      add(result.sons, infix)
+   of TkRbracket:
+      add(result.sons, first)
+   else:
+      unexpected_token(p, result)
+
+   expect_token(p, result, TkRbracket)
+   get_token(p)
 
 
 proc parse_port_reference(p: var Parser): PNode =
@@ -705,7 +734,7 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
       # Assume a list of ports.
       result = parse_list_of_ports(p)
 
-   expect_token(p, TkRparen)
+   expect_token(p, result, TkRparen)
    get_token(p)
 
 
