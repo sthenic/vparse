@@ -18,18 +18,6 @@ const
    UnsupportedToken = "Unsupported token $1"
 
 
-proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
-                  string, s: Stream) =
-   init(p.tok)
-   init(p.next_tok)
-   open_lexer(p.lex, cache, filename, s)
-   get_token(p.lex, p.next_tok)
-
-
-proc close_parser*(p: var Parser) =
-   close_lexer(p.lex)
-
-
 proc get_token(p: var Parser) =
    # FIXME: Properly handle comments. If we want to be able to recreate the
    #        source file, the comments also need to be nodes in the AST.
@@ -41,6 +29,18 @@ proc get_token(p: var Parser) =
       get_token(p.lex, p.next_tok)
       while p.next_tok.type == TkComment:
          get_token(p.lex, p.next_tok)
+
+
+proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
+                  string, s: Stream) =
+   init(p.tok)
+   init(p.next_tok)
+   open_lexer(p.lex, cache, filename, s)
+   get_token(p)
+
+
+proc close_parser*(p: var Parser) =
+   close_lexer(p.lex)
 
 
 proc new_line_info(tok: Token): TLineInfo =
