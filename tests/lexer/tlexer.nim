@@ -172,6 +172,11 @@ run_test("Assigment operator", "=", @[
    Token.new_token(TkEquals, 1, 0)
 ])
 
+run_test("Range width operator", "+: -:", @[
+   Token.new_identifier(TkPlusColon, 1, 0, "+:"),
+   Token.new_identifier(TkMinusColon, 1, 3, "-:")
+], true)
+
 run_test("Decimal number: signed", "1234567890 231", @[
    Token.new_inumber(TkIntLit, 1, 0, 1234567890, Base10, -1, "1234567890"),
    Token.new_inumber(TkIntLit, 1, 11, 231, Base10, -1, "231")

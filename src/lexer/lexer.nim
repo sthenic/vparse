@@ -41,7 +41,7 @@ type
       TkXnor, TkXor, # end keywords, begin special characters:
       TkBackslash, TkComma, TkDot, TkQuestionMark, TkSemicolon, TkColon, TkAt,
       TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkLbrace, TkRbrace,
-      TkLparenStar, TkRparenStar,
+      TkLparenStar, TkRparenStar, TkPlusColon, TkMinusColon,
       TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
@@ -81,7 +81,7 @@ const
    SymChars*: set[char] = {'0'..'9', 'a'..'z', 'A'..'Z', '_', '$'}
    SymStartChars*: set[char] = {'a'..'z', 'A'..'Z', '_'}
    OpChars*: set[char] = {'+', '-', '!', '~', '&', '|', '^', '*', '/', '%', '=',
-                          '<', '>'}
+                          '<', '>', ':'}
    SpaceChars*: set[char] = {' ', '\t'}
    UnaryOperators* = ["+", "-", "!", "~", "&", "~&", "|", "~|", "^", "~^", "^~"]
    BinaryOperators* = ["+", "-", "*", "/", "%", "==", "!=", "===", "!==", "&&",
@@ -125,7 +125,7 @@ const
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
       "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}",
-      "(*", "*)", "=",
+      "(*", "*)", "+:", "-:", "=",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",
