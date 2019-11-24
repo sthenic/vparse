@@ -51,6 +51,7 @@ type
       NtConstantConcat, NtConstantMultipleConcat,
       # Function calls A.8.2
       NtConstantFunctionCall,
+      NtConstantSystemFunctionCall,
       # Expressions A.8.3
       NtConstantExpression, NtConstantMinTypMaxExpression,
       NtConstantConditionalExpression, NtConstantRangeExpression,
@@ -97,7 +98,7 @@ type
       of IdentifierTypes:
          identifier*: PIdentifier
       of NtError:
-         msg*: string
+         msg*: string # TODO: Combine w/ NtStrLit?
       of OperatorTypes:
          # FIXME: Unused right now
          op*: string
@@ -127,6 +128,8 @@ proc pretty*(n: PNode, indent: int = 0): string =
       add(result, format(": $1\n", n.op))
    of NtError:
       add(result, format(": $1\n", n.msg))
+   of NtStrLit:
+      add(result, format(": $1\n", n.s))
    else:
       add(result, "\n")
       var sons_str = ""
@@ -157,6 +160,8 @@ proc `==`*(x, y: PNode): bool =
    of OperatorTypes:
       # FIXME: Unused right now
       result = x.op == y.op
+   of NtStrLit:
+      result = x.s == y.s
    of NtError:
       return true
    else:
@@ -240,6 +245,11 @@ proc new_fnumber_node*(`type`: NodeType, info: TLineInfo, fnumber: BiggestFloat,
    result = new_node(`type`, info)
    result.fnumber = fnumber
    result.fraw = raw
+
+
+proc new_str_lit_node*(info: TLineInfo, s: string): PNode =
+   result = new_node(NtStrLit, info)
+   result.s = s
 
 
 proc new_error_node*(info: TLineInfo, msg: string,

@@ -85,9 +85,9 @@ proc new_fnumber_node(p: Parser, `type`: NodeType, fnumber: BiggestFloat,
    result.fraw = raw
 
 
-proc new_operator_node(p: Parser, `type`: NodeType, op: string): PNode =
-   result = new_node(p, `type`)
-   result.op = op
+proc new_str_lit_node(p: Parser): PNode =
+   result = new_node(p, NtStrLit)
+   result.s = p.tok.literal
 
 
 proc new_error_node(p: Parser, msg: string, args: varargs[string, `$`]): PNode =
@@ -300,6 +300,7 @@ proc parse_parenthesis(p: var Parser): PNode =
       let first = parse_constant_expression(p)
       if p.tok.type == TkColon:
          let mtm = new_node(p, NtConstantMinTypMaxExpression)
+         mtm.info = first.info
          add(mtm.sons, first)
          get_token(p)
          add(mtm.sons, parse_constant_expression(p))
@@ -331,6 +332,21 @@ proc parse_constant_primary(p: var Parser): PNode =
       result = parse_constant_primary_identifier(p)
    of TkLbrace:
       result = parse_constant_multiple_or_regular_concatenation(p)
+   of TkDollar:
+      result = new_node(p, NtConstantSystemFunctionCall)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      expect_token(p, result, TkLparen)
+      get_token(p)
+      while true:
+         add(result.sons, parse_constant_expression(p))
+         case p.tok.type
+         of TkComma:
+            get_token(p)
+         else:
+            break
+      expect_token(p, result, TkRparen)
+      get_token(p)
    of TkLparen:
       # Handle parenthesis, the token is required when constructing a
       # min-typ-max expression and optional when indicating expression
@@ -338,6 +354,8 @@ proc parse_constant_primary(p: var Parser): PNode =
       result = parse_parenthesis(p)
    of NumberTokens:
       result = parse_number(p)
+   of TkStrLit:
+      result = new_str_lit_node(p)
    else:
       result = unexpected_token(p)
 

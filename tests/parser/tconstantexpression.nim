@@ -151,9 +151,26 @@ run_test("Constant primary: function call", "myfun (* attr = val *) (2, 3, MYCON
       cprim(new_identifier_node(NtIdentifier, li(1, 31), "MYCONST"))
    ]))
 
-# FIXME: System function call "$clog"
-# FIXME: Mintypmax expression
-# FIXME: String
+run_test("Constant primary: system function call", "$clog2(2, 3, MYCONST)"):
+   cprim(new_node(NtConstantSystemFunctionCall, li(1, 1), @[
+      new_identifier_node(NtIdentifier, li(1, 1), "clog2"),
+      cprim(new_inumber_node(NtIntLit, li(1, 8), 2, "2", Base10, -1)),
+      cprim(new_inumber_node(NtIntLit, li(1, 11), 3, "3", Base10, -1)),
+      cprim(new_identifier_node(NtIdentifier, li(1, 14), "MYCONST"))
+   ]))
+
+run_test("Constant primary: mintypmax", "(2'b00:8'd32:MYMAX)"):
+   new_node(NtParenthesis, li(1, 1), @[
+      cprim(new_node(NtConstantMinTypMaxExpression, li(1, 2), @[
+         cprim(new_inumber_node(NtUIntLit, li(1, 2), 0, "00", Base2, 2)),
+         cprim(new_inumber_node(NtUIntLit, li(1, 8), 32, "32", Base10, 8)),
+         cprim(new_identifier_node(NtIdentifier, li(1, 14), "MYMAX"))
+      ]))
+   ])
+
+run_test("Constant primary: string", """"This is a string""""):
+   cprim(new_str_lit_node(li(1, 1), "This is a string"))
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
