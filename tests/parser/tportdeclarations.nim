@@ -296,9 +296,7 @@ run_test("Output reg ports", """(
       new_node(NtPortDecl, li(2, 4), @[
          new_identifier_node(NtDirection, li(2, 4), "output"),
          new_identifier_node(NtNetType, li(2, 11), "reg"),
-         new_node(NtVariablePort, li(2, 15), @[
-            new_identifier_node(NtPortIdentifier, li(2, 15), "data_o"),
-         ]),
+         new_identifier_node(NtPortIdentifier, li(2, 15), "data_o"),
          new_node(NtVariablePort, li(3, 15), @[
             new_identifier_node(NtPortIdentifier, li(3, 15), "port_o"),
             new_inumber_node(NtUIntLit, li(3, 24), 234, "EA", Base16, 8)
@@ -319,9 +317,7 @@ run_test("Full output reg port", """(
             new_inumber_node(NtIntLit, li(2, 23), 7, "7", Base10, -1),
             new_inumber_node(NtIntLit, li(2, 25), 0, "0", Base10, -1)
          ]),
-         new_node(NtVariablePort, li(2, 28), @[
-            new_identifier_node(NtPortIdentifier, li(2, 28), "data_o"),
-         ]),
+         new_identifier_node(NtPortIdentifier, li(2, 28), "data_o"),
       ])
    ])
 

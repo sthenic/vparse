@@ -233,7 +233,7 @@ proc new_inumber_node*(`type`: NodeType, info: TLineInfo, inumber: BiggestInt,
    result.size = size
 
 
-proc new_fnumber_node*(`type`: NodeType, fnumber: BiggestFloat, info: TLineInfo,
+proc new_fnumber_node*(`type`: NodeType, info: TLineInfo, fnumber: BiggestFloat,
                        raw: string): PNode =
    result = new_node(`type`, info)
    result.fnumber = fnumber

@@ -502,31 +502,26 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
 
 
 proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
-   let first = new_node(p, NtVariablePort)
-
-   expect_token(p, result, TkSymbol)
-   add(first.sons, new_identifier_node(p, NtPortIdentifier))
-   get_token(p)
-
-   if p.tok.type == TkEquals:
-      get_token(p)
-      add(first.sons, parse_constant_expression(p))
-   add(result, first)
-
+   # Expect at least one port identifier. Unless we see an equals sign, the
+   # AST node is a regular identifier.
    while true:
-      if not look_ahead(p, TkComma, TkSymbol):
-         break
-      get_token(p)
-
-      let n = new_node(p, NtVariablePort)
       expect_token(p, result, TkSymbol)
-      add(n.sons, new_identifier_node(p, NtPortIdentifier))
+      let identifier = new_identifier_node(p, NtPortIdentifier)
       get_token(p)
 
       if p.tok.type == TkEquals:
          get_token(p)
+         let n = new_node(p, NtVariablePort)
+         n.info = identifier.info
+         add(n.sons, identifier)
          add(n.sons, parse_constant_expression(p))
-      add(result, n)
+         add(result, n)
+      else:
+         add(result, identifier)
+
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
+      get_token(p)
 
 
 proc parse_list_of_port_identifiers(p: var Parser): seq[PNode] =
