@@ -456,12 +456,11 @@ proc parse_parameter_declaration(p: var Parser): PNode =
       unexpected_token(p, result)
 
    # Parse a list of parameter assignments, there should be at least one.
-   add(result.sons, parse_parameter_assignment(p))
    while true:
+      add(result.sons, parse_parameter_assignment(p))
       if not look_ahead(p, TkComma, TkSymbol):
          break
       get_token(p)
-      add(result.sons, parse_parameter_assignment(p))
 
 
 proc parse_parameter_port_list(p: var Parser): PNode =
@@ -514,14 +513,12 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
       add(result.sons, parse_range(p))
 
    # Parse a list of port identifiers, the syntax requires at least one item.
-   expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtPortIdentifier))
-   get_token(p)
    while true:
+      expect_token(p, result, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtPortIdentifier))
+      get_token(p)
       if not look_ahead(p, TkComma, TkSymbol):
          break
-      get_token(p)
-      add(result.sons, new_identifier_node(p, NtPortIdentifier))
       get_token(p)
 
 
@@ -549,17 +546,13 @@ proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
 
 
 proc parse_list_of_port_identifiers(p: var Parser): seq[PNode] =
-   expect_token(p, result, TkSymbol)
-   add(result, new_identifier_node(p, NtPortIdentifier))
-   get_token(p)
-
    while true:
-      if not look_ahead(p, TkComma, TkSymbol):
-         break
-      get_token(p)
-
       expect_token(p, result, TkSymbol)
       add(result, new_identifier_node(p, NtPortIdentifier))
+      get_token(p)
+
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
       get_token(p)
 
 
@@ -729,15 +722,13 @@ proc parse_list_of_ports(p: var Parser): PNode =
    result = new_node(p, NtListOfPorts)
 
    # FIXME: Restructure
-   add(result.sons, parse_port(p))
    while true:
+      add(result.sons, parse_port(p))
       case p.tok.type
       of TkComma:
          get_token(p)
       else:
          break # FIXME: Error?
-
-      add(result.sons, parse_port(p))
 
 
 proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
