@@ -128,6 +128,35 @@ run_test("Multilple ports, missing comma", """(
    ])
 
 
+run_test("Multilple ports, same type", """(
+   input clk_i,
+         another_port_i,
+         the_last_port_i,
+   inout data_io,
+         another_port_io,
+   output data_o,
+          another_port_o
+)"""):
+   new_node(NtListOfPortDeclarations, li(2, 4), @[
+      new_node(NtPortDecl, li(2, 4), @[
+         new_identifier_node(NtDirection, li(2, 4), "input"),
+         new_identifier_node(NtPortIdentifier, li(2, 10), "clk_i"),
+         new_identifier_node(NtPortIdentifier, li(3, 10), "another_port_i"),
+         new_identifier_node(NtPortIdentifier, li(4, 10), "the_last_port_i"),
+      ]),
+      new_node(NtPortDecl, li(5, 4), @[
+         new_identifier_node(NtDirection, li(5, 4), "inout"),
+         new_identifier_node(NtPortIdentifier, li(5, 10), "data_io"),
+         new_identifier_node(NtPortIdentifier, li(6, 10), "another_port_io"),
+      ]),
+      new_node(NtPortDecl, li(7, 4), @[
+         new_identifier_node(NtDirection, li(7, 4), "output"),
+         new_identifier_node(NtPortIdentifier, li(7, 11), "data_o"),
+         new_identifier_node(NtPortIdentifier, li(8, 11), "another_port_o"),
+      ])
+   ])
+
+
 for direction in [TkInput, TkInout, TkOutput]:
    for net_type in NetTypeTokens:
       run_test(format("$1 port, net type $2", direction, net_type), format("""(
@@ -188,6 +217,137 @@ run_test("Signed ports", """(
       ])
    ])
 
+
+run_test("Ranged ports", """(
+   input [ADDR-1:0] ranged_input,
+   inout [7:0] ranged_inout,
+   output [0:0] ranged_output,
+   input wire [ADDR-1:0] ranged_input_wire,
+   inout wire [7:0] ranged_inout_wire,
+   output wire [0:0] ranged_output_wire
+)"""):
+   new_node(NtListOfPortDeclarations, li(2, 4), @[
+      new_node(NtPortDecl, li(2, 4), @[
+         new_identifier_node(NtDirection, li(2, 4), "input"),
+         new_node(NtRange, li(2, 10), @[
+            new_node(NtInfix, li(2, 15), @[
+               new_identifier_node(NtIdentifier, li(2, 15), "-"),
+               new_identifier_node(NtIdentifier, li(2, 11), "ADDR"),
+               new_inumber_node(NtIntLit, li(2, 16), 1, "1", Base10, -1)
+            ]),
+            new_inumber_node(NtIntLit, li(2, 18), 0, "0", Base10, -1)
+         ]),
+         new_identifier_node(NtPortIdentifier, li(2, 21), "ranged_input"),
+      ]),
+      new_node(NtPortDecl, li(3, 4), @[
+         new_identifier_node(NtDirection, li(3, 4), "inout"),
+         new_node(NtRange, li(3, 10), @[
+            new_inumber_node(NtIntLit, li(3, 11), 7, "7", Base10, -1),
+            new_inumber_node(NtIntLit, li(3, 13), 0, "0", Base10, -1)
+         ]),
+         new_identifier_node(NtPortIdentifier, li(3, 16), "ranged_inout"),
+      ]),
+      new_node(NtPortDecl, li(4, 4), @[
+         new_identifier_node(NtDirection, li(4, 4), "output"),
+         new_node(NtRange, li(4, 11), @[
+            new_inumber_node(NtIntLit, li(4, 12), 0, "0", Base10, -1),
+            new_inumber_node(NtIntLit, li(4, 14), 0, "0", Base10, -1)
+         ]),
+         new_identifier_node(NtPortIdentifier, li(4, 17), "ranged_output"),
+      ]),
+      new_node(NtPortDecl, li(5, 4), @[
+         new_identifier_node(NtDirection, li(5, 4), "input"),
+         new_identifier_node(NtNetType, li(5, 10), "wire"),
+         new_node(NtRange, li(5, 15), @[
+            new_node(NtInfix, li(5, 20), @[
+               new_identifier_node(NtIdentifier, li(5, 20), "-"),
+               new_identifier_node(NtIdentifier, li(5, 16), "ADDR"),
+               new_inumber_node(NtIntLit, li(5, 21), 1, "1", Base10, -1)
+            ]),
+            new_inumber_node(NtIntLit, li(5, 23), 0, "0", Base10, -1)
+         ]),
+         new_identifier_node(NtPortIdentifier, li(5, 26), "ranged_input_wire"),
+      ]),
+      new_node(NtPortDecl, li(6, 4), @[
+         new_identifier_node(NtDirection, li(6, 4), "inout"),
+         new_identifier_node(NtNetType, li(6, 10), "wire"),
+         new_node(NtRange, li(6, 15), @[
+            new_inumber_node(NtIntLit, li(6, 16), 7, "7", Base10, -1),
+            new_inumber_node(NtIntLit, li(6, 18), 0, "0", Base10, -1)
+         ]),
+         new_identifier_node(NtPortIdentifier, li(6, 21), "ranged_inout_wire"),
+      ]),
+      new_node(NtPortDecl, li(7, 4), @[
+         new_identifier_node(NtDirection, li(7, 4), "output"),
+         new_identifier_node(NtNetType, li(7, 11), "wire"),
+         new_node(NtRange, li(7, 16), @[
+            new_inumber_node(NtIntLit, li(7, 17), 0, "0", Base10, -1),
+            new_inumber_node(NtIntLit, li(7, 19), 0, "0", Base10, -1)
+         ]),
+         new_identifier_node(NtPortIdentifier, li(7, 22), "ranged_output_wire"),
+      ])
+   ])
+
+run_test("Output reg ports", """(
+   output reg data_o,
+              port_o = 8'hEA
+)"""):
+   new_node(NtListOfPortDeclarations, li(2, 4), @[
+      new_node(NtPortDecl, li(2, 4), @[
+         new_identifier_node(NtDirection, li(2, 4), "output"),
+         new_identifier_node(NtNetType, li(2, 11), "reg"),
+         new_node(NtVariablePort, li(2, 15), @[
+            new_identifier_node(NtPortIdentifier, li(2, 15), "data_o"),
+         ]),
+         new_node(NtVariablePort, li(3, 15), @[
+            new_identifier_node(NtPortIdentifier, li(3, 15), "port_o"),
+            new_inumber_node(NtUIntLit, li(3, 24), 234, "EA", Base16, 8)
+         ])
+      ])
+   ])
+
+
+run_test("Full output reg port", """(
+   output reg signed [7:0] data_o
+)"""):
+   new_node(NtListOfPortDeclarations, li(2, 4), @[
+      new_node(NtPortDecl, li(2, 4), @[
+         new_identifier_node(NtDirection, li(2, 4), "output"),
+         new_identifier_node(NtNetType, li(2, 11), "reg"),
+         new_identifier_node(NtType, li(2, 15), "signed"),
+         new_node(NtRange, li(2, 22), @[
+            new_inumber_node(NtIntLit, li(2, 23), 7, "7", Base10, -1),
+            new_inumber_node(NtIntLit, li(2, 25), 0, "0", Base10, -1)
+         ]),
+         new_node(NtVariablePort, li(2, 28), @[
+            new_identifier_node(NtPortIdentifier, li(2, 28), "data_o"),
+         ]),
+      ])
+   ])
+
+
+run_test("Variable output port", """(
+   output integer int_o = 64,
+   output time time_o = 3.4
+)"""):
+   new_node(NtListOfPortDeclarations, li(2, 4), @[
+      new_node(NtPortDecl, li(2, 4), @[
+         new_identifier_node(NtDirection, li(2, 4), "output"),
+         new_identifier_node(NtNetType, li(2, 11), "integer"),
+         new_node(NtVariablePort, li(2, 19), @[
+            new_identifier_node(NtPortIdentifier, li(2, 19), "int_o"),
+            new_inumber_node(NtIntLit, li(2, 27), 64, "64", Base10, -1),
+         ]),
+      ]),
+      new_node(NtPortDecl, li(3, 4), @[
+         new_identifier_node(NtDirection, li(3, 4), "output"),
+         new_identifier_node(NtNetType, li(3, 11), "time"),
+         new_node(NtVariablePort, li(3, 16), @[
+            new_identifier_node(NtPortIdentifier, li(3, 16), "time_o"),
+            new_fnumber_node(NtRealLit, li(3, 25), 3.4, "3.4"),
+         ]),
+      ])
+   ])
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
