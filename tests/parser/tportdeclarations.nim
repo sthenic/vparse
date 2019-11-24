@@ -70,6 +70,26 @@ run_test("Single port (output)", """(
    ])
 
 
+run_test("Single port (attribute instances)", """(
+   (* mark_debug = true, my_attr *) (* attr = val *) output data_o
+)"""):
+   new_node(NtListOfPortDeclarations, li(2, 4), @[
+      new_node(NtPortDecl, li(2, 54), @[
+         new_node(NtAttributeInst, li(2, 4), @[
+            new_identifier_node(NtAttributeName, li(2, 7), "mark_debug"),
+            new_identifier_node(NtIdentifier, li(2, 20), "true"),
+            new_identifier_node(NtAttributeName, li(2, 26), "my_attr"),
+         ]),
+         new_node(NtAttributeInst, li(2,37), @[
+            new_identifier_node(NtAttributeName, li(2, 40), "attr"),
+            new_identifier_node(NtIdentifier, li(2, 47), "val"),
+         ]),
+         new_identifier_node(NtDirection, li(2, 54), "output"),
+         new_identifier_node(NtPortIdentifier, li(2, 61), "data_o"),
+      ])
+   ])
+
+
 run_test("Empty list", "()"):
    new_node(NtListOfPortDeclarations, li(1, 2))
 
@@ -107,7 +127,6 @@ run_test("Multilple ports, missing comma", """(
       new_error_node(li(3, 4), "")
    ])
 
-# FIXME: Tests w/ attribute instances when that's implemented.
 
 for direction in [TkInput, TkInout, TkOutput]:
    for net_type in NetTypeTokens:

@@ -69,7 +69,8 @@ const
    IdentifierTypes =
       {NtIdentifier, NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
        NtParameterIdentifier, NtSpecparamIdentifier, NtType,
-       NtFunctionIdentifier, NtGenvarIdentifier, NtDirection, NtNetType}
+       NtFunctionIdentifier, NtGenvarIdentifier, NtDirection, NtNetType,
+       NtAttributeName}
    IntegerTypes =
       {NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit}
 

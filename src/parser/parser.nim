@@ -148,12 +148,30 @@ proc parse_constant_expression(p: var Parser): PNode
 
 proc parse_attribute_instance(p: var Parser): PNode =
    result = new_node(p, NtAttributeInst)
-   # FIXME: Properly handle this, don't just eat past it.
-   while p.tok.type notin {TkRparenStar, TkEndOfFile}:
-      get_token(p)
+   get_token(p)
 
-   if p.tok.type == TkRparenStar:
+   while true:
+      expect_token(p, result, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtAttributeName))
       get_token(p)
+      if p.tok.type == TkEquals:
+         get_token(p)
+         add(result.sons, parse_constant_expression(p))
+
+      expect_token(p, result, {TkComma, TkRparenStar})
+      case p.tok.type
+      of TkComma:
+         get_token(p)
+      of TkRparenStar:
+         get_token(p)
+         break
+      else:
+         break
+
+
+proc parse_attribute_instances(p: var Parser): seq[PNode] =
+   while p.tok.type == TkLparenStar:
+      add(result, parse_attribute_instance(p))
 
 
 proc parse_range(p: var Parser): PNode =
@@ -241,9 +259,8 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
       result = new_node(p, NtConstantFunctionCall)
       add(result.sons, identifier)
 
-      # FIXME: Make this into a function returning seq[PNode]
-      while p.tok.type == TkLparenStar:
-         add(result.sons, parse_attribute_instance(p))
+      if p.tok.type == TkLparenStar:
+         add(result.sons, parse_attribute_instances(p))
 
       expect_token(p, result, TkLparen)
 
@@ -295,8 +312,8 @@ proc parse_constant_primary(p: var Parser): PNode =
       result = new_node(p, NtPrefix)
       add(result.sons, new_identifier_node(p, NtIdentifier))
       get_token(p)
-      while p.tok.type == TkLparenStar:
-         add(result.sons, parse_attribute_instance(p))
+      if p.tok.type == TkLparenStar:
+         add(result.sons, parse_attribute_instances(p))
       add(result.sons, parse_constant_primary(p))
    of TkSymbol:
       # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
@@ -325,9 +342,8 @@ proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =
    get_token(p)
    add(result.sons, head)
 
-   # Optional attribute instances.
-   while p.tok.type == TkLparenStar:
-      add(result.sons, parse_attribute_instance(p))
+   if p.tok.type == TkLparenStar:
+      add(result.sons, parse_attribute_instances(p))
 
    add(result.sons, parse_constant_expression(p))
    expect_token(p, result, TkColon)
@@ -355,8 +371,8 @@ proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
          let op = new_identifier_node(p, NtIdentifier)
          get_token(p)
          var rhs_attributes: seq[PNode] = @[]
-         while p.tok.type == TkLparenStar:
-            add(rhs_attributes, parse_attribute_instance(p))
+         if p.tok.type == TkLparenStar:
+            add(rhs_attributes, parse_attribute_instances(p))
          # Return the right hand side of the expression, parsing any expressions
          # with a precedence greater than the current expression, if left
          # associative, and any expressions with precedence greater than or
@@ -575,8 +591,8 @@ proc parse_output_port_declaration(p: var Parser, attributes: seq[PNode]): PNode
 
 proc parse_port_declaration(p: var Parser): PNode =
    var attributes: seq[PNode] = @[]
-   while p.tok.type == TkLparenStar:
-      add(attributes, parse_attribute_instance(p))
+   if p.tok.type == TkLparenStar:
+      add(attributes, parse_attribute_instances(p))
 
    case p.tok.type
    of TkInout, TkInput:
@@ -591,7 +607,7 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPortDeclarations)
 
-   expect_token(p, result, {TkInout, TkInput, TkOutput})
+   expect_token(p, result, {TkInout, TkInput, TkOutput, TkLparenStar})
    add(result.sons, parse_port_declaration(p))
    while true:
       if p.tok.type == TkComma:
@@ -714,7 +730,7 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
    if p.tok.type == TkRparen:
       # The node should be an empty list of port declarations.
       result = new_node(p, NtListOfPortDeclarations)
-   elif p.tok.type in {TkInout, TkInput, TkOutput}:
+   elif p.tok.type in {TkInout, TkInput, TkOutput, TkLparenStar}:
       # Assume a list of port declarations.
       result = parse_list_of_port_declarations(p)
    else:
@@ -765,8 +781,8 @@ proc assume_source_text(p: var Parser): PNode =
    # Parse source text (A.1.3)
    # Check for attribute instances.
    var attributes: seq[PNode] = @[]
-   while p.tok.type == TkLparenStar:
-      add(attributes, parse_attribute_instance(p))
+   if p.tok.type == TkLparenStar:
+      add(attributes, parse_attribute_instances(p))
 
    case p.tok.type
    of TkModule, TkMacromodule:
