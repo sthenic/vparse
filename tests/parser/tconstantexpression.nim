@@ -35,7 +35,7 @@ proc li(line: uint16, col: int16): TLineInfo =
 
 # Wrapper for a constant primary expression
 template cprim(n: PNode): PNode =
-   new_node(NtConstantPrimary, n.info, @[n])
+   n
 
 
 template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
@@ -112,17 +112,15 @@ run_test("Constant primary: identifier", "FOO"):
    cprim(new_identifier_node(NtIdentifier, li(1, 1), "FOO"))
 
 run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
-   new_node(NtConstantPrimary, li(1, 1), @[
-      new_node(NtRangedIdentifier, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "bar"),
-         new_node(NtConstantRangeExpression, li(1, 4), @[
-            new_node(NtInfix, li(1, 10), @[
-               new_identifier_node(NtIdentifier, li(1, 10), "-"),
-               cprim(new_identifier_node(NtIdentifier, li(1, 5), "WIDTH")),
-               cprim(new_inumber_node(NtIntLit, li(1, 11), 1, "1", Base10, -1))
-            ]),
-            cprim(new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1))
-         ])
+   new_node(NtRangedIdentifier, li(1, 1), @[
+      new_identifier_node(NtIdentifier, li(1, 1), "bar"),
+      new_node(NtConstantRangeExpression, li(1, 4), @[
+         new_node(NtInfix, li(1, 10), @[
+            new_identifier_node(NtIdentifier, li(1, 10), "-"),
+            cprim(new_identifier_node(NtIdentifier, li(1, 5), "WIDTH")),
+            cprim(new_inumber_node(NtIntLit, li(1, 11), 1, "1", Base10, -1))
+         ]),
+         cprim(new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1))
       ])
    ])
 

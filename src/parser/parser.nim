@@ -315,36 +315,31 @@ proc parse_parenthesis(p: var Parser): PNode =
 
 
 proc parse_constant_primary(p: var Parser): PNode =
-   # FIXME: Actually remove this, the extra layer needed by ranged
-   #        param/specparam expressions use a custom NtRangedIdentifier node.
-   result = new_node(p, NtConstantPrimary)
-
    case p.tok.type
    of TkOperator:
       # Prefix node
-      let n = new_node(p, NtPrefix)
-      add(n.sons, new_identifier_node(p, NtIdentifier))
+      result = new_node(p, NtPrefix)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
       get_token(p)
       if p.tok.type == TkLparenStar:
-         add(n.sons, parse_attribute_instances(p))
-      add(n.sons, parse_constant_primary(p))
-      add(result.sons, n)
+         add(result.sons, parse_attribute_instances(p))
+      add(result.sons, parse_constant_primary(p))
    of TkSymbol:
       # We have no way of knowing if this is a _valid_ (constant) symbol:
       # genvar, param or specparam. Maybe that's ok and actually something for
       # the next layer.
-      add(result.sons, parse_constant_primary_identifier(p))
+      result = parse_constant_primary_identifier(p)
    of TkLbrace:
-      add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
+      result = parse_constant_multiple_or_regular_concatenation(p)
    of TkLparen:
       # Handle parenthesis, the token is required when constructing a
       # min-typ-max expression and optional when indicating expression
       # precedence.
       result = parse_parenthesis(p)
    of NumberTokens:
-      add(result.sons, parse_number(p))
+      result = parse_number(p)
    else:
-      unexpected_token(p, result)
+      result = unexpected_token(p)
 
 
 proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =

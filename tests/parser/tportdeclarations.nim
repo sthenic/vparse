@@ -34,7 +34,7 @@ proc li(line: uint16, col: int16): TLineInfo =
 
 # Wrapper for a constant primary expression
 template cprim(n: PNode): PNode =
-   new_node(NtConstantPrimary, n.info, @[n])
+   n
 
 template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
