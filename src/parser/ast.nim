@@ -196,7 +196,7 @@ proc detailed_compare*(x, y: PNode) =
       return
 
    case x.type
-   of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError:
+   of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError, NtStrLit:
       if x != y:
          echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
          return
