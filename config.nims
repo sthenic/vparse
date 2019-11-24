@@ -22,6 +22,8 @@ task lexertests, "Run the lexer test suite":
 
 task parsertests, "Run the parser test suite":
    withDir("tests/parser"):
+      exec("nim c -r tconstantexpression")
+      exec("nim c -r tportlist")
       exec("nim c -r tportdeclarations")
    setCommand "nop"
 

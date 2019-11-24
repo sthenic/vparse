@@ -32,6 +32,9 @@ template run_test(title, stimuli: string, reference: PNode) =
 proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
+# Wrapper for a constant primary expression
+template cprim(n: PNode): PNode =
+   new_node(NtConstantPrimary, n.info, @[n])
 
 template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
@@ -77,12 +80,12 @@ run_test("Single port (attribute instances)", """(
       new_node(NtPortDecl, li(2, 54), @[
          new_node(NtAttributeInst, li(2, 4), @[
             new_identifier_node(NtAttributeName, li(2, 7), "mark_debug"),
-            new_identifier_node(NtIdentifier, li(2, 20), "true"),
+            cprim(new_identifier_node(NtIdentifier, li(2, 20), "true")),
             new_identifier_node(NtAttributeName, li(2, 26), "my_attr"),
          ]),
          new_node(NtAttributeInst, li(2,37), @[
             new_identifier_node(NtAttributeName, li(2, 40), "attr"),
-            new_identifier_node(NtIdentifier, li(2, 47), "val"),
+            cprim(new_identifier_node(NtIdentifier, li(2, 47), "val")),
          ]),
          new_identifier_node(NtDirection, li(2, 54), "output"),
          new_identifier_node(NtPortIdentifier, li(2, 61), "data_o"),
@@ -232,26 +235,26 @@ run_test("Ranged ports", """(
          new_node(NtRange, li(2, 10), @[
             new_node(NtInfix, li(2, 15), @[
                new_identifier_node(NtIdentifier, li(2, 15), "-"),
-               new_identifier_node(NtIdentifier, li(2, 11), "ADDR"),
-               new_inumber_node(NtIntLit, li(2, 16), 1, "1", Base10, -1)
+               cprim(new_identifier_node(NtIdentifier, li(2, 11), "ADDR")),
+               cprim(new_inumber_node(NtIntLit, li(2, 16), 1, "1", Base10, -1))
             ]),
-            new_inumber_node(NtIntLit, li(2, 18), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(2, 18), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(2, 21), "ranged_input"),
       ]),
       new_node(NtPortDecl, li(3, 4), @[
          new_identifier_node(NtDirection, li(3, 4), "inout"),
          new_node(NtRange, li(3, 10), @[
-            new_inumber_node(NtIntLit, li(3, 11), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(3, 13), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(3, 11), 7, "7", Base10, -1)),
+            cprim(new_inumber_node(NtIntLit, li(3, 13), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(3, 16), "ranged_inout"),
       ]),
       new_node(NtPortDecl, li(4, 4), @[
          new_identifier_node(NtDirection, li(4, 4), "output"),
          new_node(NtRange, li(4, 11), @[
-            new_inumber_node(NtIntLit, li(4, 12), 0, "0", Base10, -1),
-            new_inumber_node(NtIntLit, li(4, 14), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(4, 12), 0, "0", Base10, -1)),
+            cprim(new_inumber_node(NtIntLit, li(4, 14), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(4, 17), "ranged_output"),
       ]),
@@ -261,10 +264,10 @@ run_test("Ranged ports", """(
          new_node(NtRange, li(5, 15), @[
             new_node(NtInfix, li(5, 20), @[
                new_identifier_node(NtIdentifier, li(5, 20), "-"),
-               new_identifier_node(NtIdentifier, li(5, 16), "ADDR"),
-               new_inumber_node(NtIntLit, li(5, 21), 1, "1", Base10, -1)
+               cprim(new_identifier_node(NtIdentifier, li(5, 16), "ADDR")),
+               cprim(new_inumber_node(NtIntLit, li(5, 21), 1, "1", Base10, -1))
             ]),
-            new_inumber_node(NtIntLit, li(5, 23), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(5, 23), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(5, 26), "ranged_input_wire"),
       ]),
@@ -272,8 +275,8 @@ run_test("Ranged ports", """(
          new_identifier_node(NtDirection, li(6, 4), "inout"),
          new_identifier_node(NtNetType, li(6, 10), "wire"),
          new_node(NtRange, li(6, 15), @[
-            new_inumber_node(NtIntLit, li(6, 16), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(6, 18), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(6, 16), 7, "7", Base10, -1)),
+            cprim(new_inumber_node(NtIntLit, li(6, 18), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(6, 21), "ranged_inout_wire"),
       ]),
@@ -281,8 +284,8 @@ run_test("Ranged ports", """(
          new_identifier_node(NtDirection, li(7, 4), "output"),
          new_identifier_node(NtNetType, li(7, 11), "wire"),
          new_node(NtRange, li(7, 16), @[
-            new_inumber_node(NtIntLit, li(7, 17), 0, "0", Base10, -1),
-            new_inumber_node(NtIntLit, li(7, 19), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(7, 17), 0, "0", Base10, -1)),
+            cprim(new_inumber_node(NtIntLit, li(7, 19), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(7, 22), "ranged_output_wire"),
       ])
@@ -299,7 +302,7 @@ run_test("Output reg ports", """(
          new_identifier_node(NtPortIdentifier, li(2, 15), "data_o"),
          new_node(NtVariablePort, li(3, 15), @[
             new_identifier_node(NtPortIdentifier, li(3, 15), "port_o"),
-            new_inumber_node(NtUIntLit, li(3, 24), 234, "EA", Base16, 8)
+            cprim(new_inumber_node(NtUIntLit, li(3, 24), 234, "EA", Base16, 8))
          ])
       ])
    ])
@@ -314,8 +317,8 @@ run_test("Full output reg port", """(
          new_identifier_node(NtNetType, li(2, 11), "reg"),
          new_identifier_node(NtType, li(2, 15), "signed"),
          new_node(NtRange, li(2, 22), @[
-            new_inumber_node(NtIntLit, li(2, 23), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(2, 25), 0, "0", Base10, -1)
+            cprim(new_inumber_node(NtIntLit, li(2, 23), 7, "7", Base10, -1)),
+            cprim(new_inumber_node(NtIntLit, li(2, 25), 0, "0", Base10, -1))
          ]),
          new_identifier_node(NtPortIdentifier, li(2, 28), "data_o"),
       ])
@@ -332,7 +335,7 @@ run_test("Variable output port", """(
          new_identifier_node(NtNetType, li(2, 11), "integer"),
          new_node(NtVariablePort, li(2, 19), @[
             new_identifier_node(NtPortIdentifier, li(2, 19), "int_o"),
-            new_inumber_node(NtIntLit, li(2, 27), 64, "64", Base10, -1),
+            cprim(new_inumber_node(NtIntLit, li(2, 27), 64, "64", Base10, -1))
          ]),
       ]),
       new_node(NtPortDecl, li(3, 4), @[
@@ -340,7 +343,7 @@ run_test("Variable output port", """(
          new_identifier_node(NtNetType, li(3, 11), "time"),
          new_node(NtVariablePort, li(3, 16), @[
             new_identifier_node(NtPortIdentifier, li(3, 16), "time_o"),
-            new_fnumber_node(NtRealLit, li(3, 25), 3.4, "3.4"),
+            cprim(new_fnumber_node(NtRealLit, li(3, 25), 3.4, "3.4"))
          ]),
       ])
    ])

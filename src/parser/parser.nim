@@ -144,7 +144,7 @@ proc look_ahead(p: Parser, curr, next: TokenType): bool =
 
 # Forward declarations
 proc parse_constant_expression(p: var Parser): PNode
-
+proc parse_constant_range_expression(p: var Parser): PNode
 
 proc parse_attribute_instance(p: var Parser): PNode =
    result = new_node(p, NtAttributeInst)
@@ -306,34 +306,35 @@ proc parse_parenthesis(p: var Parser): PNode =
 
 
 proc parse_constant_primary(p: var Parser): PNode =
+   result = new_node(p, NtConstantPrimary)
+
    case p.tok.type
    of TkOperator:
       # Prefix node
-      result = new_node(p, NtPrefix)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      let n = new_node(p, NtPrefix)
+      add(n.sons, new_identifier_node(p, NtIdentifier))
       get_token(p)
       if p.tok.type == TkLparenStar:
-         add(result.sons, parse_attribute_instances(p))
-      add(result.sons, parse_constant_primary(p))
+         add(n.sons, parse_attribute_instances(p))
+      add(n.sons, parse_constant_primary(p))
+      add(result.sons, n)
    of TkSymbol:
       # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
       #        genvar, param or specparam.
-      result = parse_constant_primary_identifier(p)
+      add(result.sons, parse_constant_primary_identifier(p))
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_constant_range_expression(p))
    of TkLbrace:
-      result = parse_constant_multiple_or_regular_concatenation(p)
+      add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
    of TkLparen:
       # Handle parenthesis, the token is required when constructing a
       # min-typ-max expression and optional when indicating expression
       # precedence.
       result = parse_parenthesis(p)
    of NumberTokens:
-      result = parse_number(p)
+      add(result.sons, parse_number(p))
    else:
-      result = unexpected_token(p)
-
-
-proc is_constant_primary(p: Parser): bool =
-   return p.tok.type in {TkLbrace, TkLparen, TkSymbol} + NumberTokens
+      unexpected_token(p, result)
 
 
 proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =
