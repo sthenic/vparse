@@ -202,6 +202,7 @@ proc parse_constant_concatenation(p: var Parser): PNode =
 
 
 proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
+   let brace_pos = new_line_info(p.tok)
    get_token(p)
    let first = parse_constant_expression(p)
 
@@ -209,6 +210,7 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
    of TkLbrace:
       # We're parsing a constant multiple concatenation.
       result = new_node(p, NtConstantMultipleConcat)
+      result.info = brace_pos
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p))
       expect_token(p, result, TkRbrace)
@@ -218,6 +220,7 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
       # is the first of several. Parse the rest and add these to the sons on
       # this level.
       result = new_node(p, NtConstantConcat)
+      result.info = brace_pos
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p).sons)
    of TkRbrace:
@@ -257,6 +260,7 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
    of TkLparenStar, TkLparen:
       # Parsing a constant function call.
       result = new_node(p, NtConstantFunctionCall)
+      result.info = identifier.info
       add(result.sons, identifier)
 
       if p.tok.type == TkLparenStar:
@@ -264,7 +268,6 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
 
       expect_token(p, result, TkLparen)
 
-      # FIXME: Make this into a function (shared w/ parse_constant_concatenation)
       get_token(p)
       while true:
          add(result.sons, parse_constant_expression(p))
@@ -278,7 +281,13 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
             break
    else:
       # We've parsed a simple identifier.
-      result = identifier
+      if p.tok.type == TkLbracket:
+         result = new_node(p, NtRangedIdentifier)
+         result.info = identifier.info
+         add(result.sons, identifier)
+         add(result.sons, parse_constant_range_expression(p))
+      else:
+         result = identifier
 
 
 proc parse_parenthesis(p: var Parser): PNode =
@@ -306,6 +315,8 @@ proc parse_parenthesis(p: var Parser): PNode =
 
 
 proc parse_constant_primary(p: var Parser): PNode =
+   # FIXME: Actually remove this, the extra layer needed by ranged
+   #        param/specparam expressions use a custom NtRangedIdentifier node.
    result = new_node(p, NtConstantPrimary)
 
    case p.tok.type
@@ -319,11 +330,10 @@ proc parse_constant_primary(p: var Parser): PNode =
       add(n.sons, parse_constant_primary(p))
       add(result.sons, n)
    of TkSymbol:
-      # FIXME: We have no way of knowing if this is a _valid_ (constant) symbol:
-      #        genvar, param or specparam.
+      # We have no way of knowing if this is a _valid_ (constant) symbol:
+      # genvar, param or specparam. Maybe that's ok and actually something for
+      # the next layer.
       add(result.sons, parse_constant_primary_identifier(p))
-      if p.tok.type == TkLbracket:
-         add(result.sons, parse_constant_range_expression(p))
    of TkLbrace:
       add(result.sons, parse_constant_multiple_or_regular_concatenation(p))
    of TkLparen:

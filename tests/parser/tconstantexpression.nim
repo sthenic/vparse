@@ -113,17 +113,49 @@ run_test("Constant primary: identifier", "FOO"):
 
 run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
    new_node(NtConstantPrimary, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 1), "bar"),
-      new_node(NtConstantRangeExpression, li(1, 4), @[
-         new_node(NtInfix, li(1, 10), @[
-            new_identifier_node(NtIdentifier, li(1, 10), "-"),
-            cprim(new_identifier_node(NtIdentifier, li(1, 5), "WIDTH")),
-            cprim(new_inumber_node(NtIntLit, li(1, 11), 1, "1", Base10, -1))
-         ]),
-         cprim(new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1))
+      new_node(NtRangedIdentifier, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), "bar"),
+         new_node(NtConstantRangeExpression, li(1, 4), @[
+            new_node(NtInfix, li(1, 10), @[
+               new_identifier_node(NtIdentifier, li(1, 10), "-"),
+               cprim(new_identifier_node(NtIdentifier, li(1, 5), "WIDTH")),
+               cprim(new_inumber_node(NtIntLit, li(1, 11), 1, "1", Base10, -1))
+            ]),
+            cprim(new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1))
+         ])
       ])
    ])
 
+run_test("Constant primary: concatenation", "{64, 32, foobar}"):
+   cprim(new_node(NtConstantConcat, li(1, 1), @[
+      cprim(new_inumber_node(NtIntLit, li(1, 2), 64, "64", Base10, -1)),
+      cprim(new_inumber_node(NtIntLit, li(1, 6), 32, "32", Base10, -1)),
+      cprim(new_identifier_node(NtIdentifier, li(1, 10), "foobar"))
+   ]))
+
+run_test("Constant primary: multiple concatenation", "{32{2'b01}}"):
+   cprim(new_node(NtConstantMultipleConcat, li(1, 1), @[
+      cprim(new_inumber_node(NtIntLit, li(1, 2), 32, "32", Base10, -1)),
+      new_node(NtConstantConcat, li(1, 4), @[
+         cprim(new_inumber_node(NtUIntLit, li(1, 5), 1, "01", Base2, 2)),
+      ])
+   ]))
+
+run_test("Constant primary: function call", "myfun (* attr = val *) (2, 3, MYCONST)"):
+   cprim(new_node(NtConstantFunctionCall, li(1, 1), @[
+      new_identifier_node(NtIdentifier, li(1, 1), "myfun"),
+      new_node(NtAttributeInst, li(1, 7), @[
+         new_identifier_node(NtAttributeName, li(1, 10), "attr"),
+         cprim(new_identifier_node(NtIdentifier, li(1, 17), "val"))
+      ]),
+      cprim(new_inumber_node(NtIntLit, li(1, 25), 2, "2", Base10, -1)),
+      cprim(new_inumber_node(NtIntLit, li(1, 28), 3, "3", Base10, -1)),
+      cprim(new_identifier_node(NtIdentifier, li(1, 31), "MYCONST"))
+   ]))
+
+# FIXME: System function call "$clog"
+# FIXME: Mintypmax expression
+# FIXME: String
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

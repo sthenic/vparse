@@ -24,6 +24,8 @@ type
       NtInfix,
       NtParenthesis,
       NtDirection,
+      # Custom node types
+      NtRangedIdentifier,
       # Modules A.1.3
       NtSourceText,
       NtModuleDecl,
