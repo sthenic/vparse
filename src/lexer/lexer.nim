@@ -204,12 +204,14 @@ proc get_binary_precedence*(tok: Token): int =
    of TkOperator:
       let str = tok.identifier.s
       if str == "**":
-         return 11
+         return 12
       elif str in ["*", "/", "%"]:
-         return 10
+         return 11
       elif str in ["+", "-"]:
-         return 9
+         return 10
       elif str in ["<<", ">>", "<<<", ">>>"]:
+         return 9
+      elif str in ["<", "<=", ">", ">="]:
          return 8
       elif str in ["==", "!=", "===", "!=="]:
          return 7
