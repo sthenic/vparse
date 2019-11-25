@@ -16,7 +16,7 @@ var
 template run_test(title, stimuli: string, reference: PNode) =
    # var response: PNode
    cache = new_ident_cache()
-   let response = parse_specific_grammar(stimuli, cache, NtListOfPorts)
+   let response = parse_string(stimuli, cache)
 
    if response == reference:
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
@@ -33,37 +33,17 @@ proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
 
-# Wrapper for a constant primary expression
-template cprim(n: PNode): PNode =
-   n
-
-
 template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
-run_test("test_0", """
-#(
-   parameter signed [10:50]
-      myparam = 2,
-      param2 = {3,2,1},
-      multi = (2:1:2),
-      binpar = {MY_MAN{3'b01X}},
-   parameter [7:0] stuff = AMAZING,
-   parameter real N_sa$ICE = 3.4e-1,
-   parameter signed A_func = myfunc(4, 5, SOMETHING),
-   parameter [myparam-1:0] infantry = (32'd2),
-   parameter MYPAR = ((THING == 9) ? AWESOME : STUFF) - 8'h5A,
-   parameter /*blocking comment */ THING = &(* noice *) 8,
-   // This is a comment
-   parameter SECOND = 7 + (*impressive*) (thing - (*with *) (78))
-)""", nil)
-
-
-run_test("test_1", """
-#(
-   parameter ABC = &3 + -10 / 45
-)""", nil)
+run_test("test_0", """module my_module #(
+   parameter MY_PARAMETER = 8
+)(
+   input wire [7:0] clk_i
+);
+endmodule"""):
+   new_node(NtSourceText, li(1, 1), @[])
 
 
 # Print summary
