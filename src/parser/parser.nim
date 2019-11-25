@@ -768,23 +768,25 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
 
    # FIXME: Parse the optional list or ports/port declarations. This will
    #        determine what to allow as the module contents.
+   add(result.sons, parse_list_of_ports_or_port_declarations(p))
 
-   # FIXME: Expect a semicolon.
+   # Expect a semicolon.
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
 
    # FIXME: Parse module items or non_port
-
-   # FIXME: Expect endmodule.
-
-   # FIXME: Properly handle this, don't just eat past it.
    while true:
       case p.tok.type
-      of TkEndmodule:
-         get_token(p)
-         break
-      of TkEndOfFile:
+      of TkEndmodule, TkEndOfFile:
          break
       else:
          get_token(p)
+
+   # Expect the 'endmodule' keyword.
+   expect_token(p, result, TkEndmodule)
+   get_token(p)
+
+   # FIXME: Properly handle this, don't just eat past it.
 
 
 proc assume_source_text(p: var Parser): PNode =
@@ -806,9 +808,8 @@ proc assume_source_text(p: var Parser): PNode =
 
 
 proc parse_all*(p: var Parser): PNode =
-   result = new_node(p, NtSourceText) # FIXME: Proper init value
-
    get_token(p)
+   result = new_node(p, NtSourceText) # FIXME: Proper init value
    while p.tok.type != TkEndOfFile:
       let n = assume_source_text(p)
       # echo "Got node ", n
