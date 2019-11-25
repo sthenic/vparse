@@ -171,6 +171,354 @@ run_test("Constant primary: mintypmax", "(2'b00:8'd32:MYMAX)"):
 run_test("Constant primary: string", """"This is a string""""):
    cprim(new_str_lit_node(li(1, 1), "This is a string"))
 
+# Unary operators (prefix nodes)
+for op in UnaryOperators:
+   run_test(
+      format("Unary operator: '$1'", op),
+      format("$1MYPARAM", op)
+   ):
+      new_node(NtPrefix, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), op),
+         new_identifier_node(NtIdentifier, li(1, 1+int16(len(op))), "MYPARAM")
+      ])
+
+run_test("Unary operator w/ attributes", """
+- (* attr = val, another *) (* second_attr *) 4'd3
+"""):
+   new_node(NtPrefix, li(1, 1), @[
+      new_identifier_node(NtIdentifier, li(1, 1), "-"),
+      new_node(NtAttributeInst, li(1, 3), @[
+         new_identifier_node(NtAttributeName, li(1, 6), "attr"),
+         new_identifier_node(NtIdentifier, li(1, 13), "val"),
+         new_identifier_node(NtAttributeName, li(1, 18), "another")
+      ]),
+      new_node(NtAttributeInst, li(1, 29), @[
+         new_identifier_node(NtAttributeName, li(1, 32), "second_attr"),
+      ]),
+      new_inumber_node(NtUIntLit, li(1, 47), 3, "3", Base10, 4)
+   ])
+
+# Binary operators (infix nodex)
+for op in BinaryOperators:
+   run_test(
+      format("Binary operator: '$1'", op),
+      format("LHS $1 RHS", op)
+   ):
+      new_node(NtInfix, li(1, 5), @[
+         new_identifier_node(NtIdentifier, li(1, 5), op),
+         new_identifier_node(NtIdentifier, li(1, 1), "LHS"),
+         new_identifier_node(NtIdentifier, li(1, 6+int16(len(op))), "RHS")
+      ])
+
+run_test("Binary operator w/ attributes", """
+left_hand_side && (* attr = val, another *) (* second_attr *) right_hand_side
+"""):
+   new_node(NtInfix, li(1, 16), @[
+      new_identifier_node(NtIdentifier, li(1, 16), "&&"),
+      new_identifier_node(NtIdentifier, li(1, 1), "left_hand_side"),
+      new_node(NtAttributeInst, li(1, 19), @[
+         new_identifier_node(NtAttributeName, li(1, 22), "attr"),
+         new_identifier_node(NtIdentifier, li(1, 29), "val"),
+         new_identifier_node(NtAttributeName, li(1, 34), "another")
+      ]),
+      new_node(NtAttributeInst, li(1, 45), @[
+         new_identifier_node(NtAttributeName, li(1, 48), "second_attr"),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 63), "right_hand_side"),
+   ])
+
+run_test("Binary operator precedence: arithmetic", """
+2 * 2**32 - 1 + 3 / 2**32 + 3 % 5
+"""):
+   new_node(NtInfix, li(1, 27), @[
+      new_identifier_node(NtIdentifier, li(1, 27), "+"),
+      new_node(NtInfix, li(1, 15), @[
+         new_identifier_node(NtIdentifier, li(1, 15), "+"),
+         new_node(NtInfix, li(1, 11), @[
+            new_identifier_node(NtIdentifier, li(1, 11), "-"),
+            new_node(NtInfix, li(1, 3), @[
+               new_identifier_node(NtIdentifier, li(1, 3), "*"),
+               new_inumber_node(NtIntLit, li(1, 1), 2, "2", Base10, -1),
+               new_node(NtInfix, li(1, 6), @[
+                  new_identifier_node(NtIdentifier, li(1, 6), "**"),
+                  new_inumber_node(NtIntLit, li(1, 5), 2, "2", Base10, -1),
+                  new_inumber_node(NtIntLit, li(1, 8), 32, "32", Base10, -1)
+               ])
+            ]),
+            new_inumber_node(NtIntLit, li(1, 13), 1, "1", Base10, -1)
+         ]),
+         new_node(NtInfix, li(1, 19), @[
+            new_identifier_node(NtIdentifier, li(1, 19), "/"),
+            new_inumber_node(NtIntLit, li(1, 17), 3, "3", Base10, -1),
+            new_node(NtInfix, li(1, 22), @[
+               new_identifier_node(NtIdentifier, li(1, 22), "**"),
+               new_inumber_node(NtIntLit, li(1, 21), 2, "2", Base10, -1),
+               new_inumber_node(NtIntLit, li(1, 24), 32, "32", Base10, -1)
+            ])
+         ])
+      ]),
+      new_node(NtInfix, li(1, 31), @[
+         new_identifier_node(NtIdentifier, li(1, 31), "%"),
+         new_inumber_node(NtIntLit, li(1, 29), 3, "3", Base10, -1),
+         new_inumber_node(NtIntLit, li(1, 33), 5, "5", Base10, -1)
+      ])
+   ])
+
+run_test("Binary operator precedence: shifts", """
+2 + 1 << 32 - 2'b10 >> 1 >>> 1 + (3'b010 <<< 1)
+"""):
+   new_node(NtInfix, li(1, 26), @[
+      new_identifier_node(NtIdentifier, li(1, 26), ">>>"),
+      new_node(NtInfix, li(1, 21), @[
+         new_identifier_node(NtIdentifier, li(1, 21), ">>"),
+         new_node(NtInfix, li(1, 7), @[
+            new_identifier_node(NtIdentifier, li(1, 7), "<<"),
+            new_node(NtInfix, li(1, 3), @[
+               new_identifier_node(NtIdentifier, li(1, 3), "+"),
+               new_inumber_node(NtIntLit, li(1, 1), 2, "2", Base10, -1),
+               new_inumber_node(NtIntLit, li(1, 5), 1, "1", Base10, -1)
+            ]),
+            new_node(NtInfix, li(1, 13), @[
+               new_identifier_node(NtIdentifier, li(1, 13), "-"),
+               new_inumber_node(NtIntLit, li(1, 10), 32, "32", Base10, -1),
+               new_inumber_node(NtUIntLit, li(1, 15), 2, "10", Base2, 2)
+            ])
+         ]),
+         new_inumber_node(NtIntLit, li(1, 24), 1, "1", Base10, -1)
+      ]),
+      new_node(NtInfix, li(1, 32), @[
+         new_identifier_node(NtIdentifier, li(1, 32), "+"),
+         new_inumber_node(NtIntLit, li(1, 30), 1, "1", Base10, -1),
+         new_node(NtParenthesis, li(1, 34), @[
+            new_node(NtInfix, li(1, 42), @[
+               new_identifier_node(NtIdentifier, li(1, 42), "<<<"),
+               new_inumber_node(NtUIntLit, li(1, 35), 2, "010", Base2, 3),
+               new_inumber_node(NtIntLit, li(1, 46), 1, "1", Base10, -1)
+            ])
+         ])
+      ])
+   ])
+
+run_test("Binary operator precedence: comparisons (1)", """
+2 < 3 <= 4 >= 3 > 2
+"""):
+   new_node(NtInfix, li(1, 17), @[
+      new_identifier_node(NtIdentifier, li(1, 17), ">"),
+      new_node(NtInfix, li(1, 12), @[
+         new_identifier_node(NtIdentifier, li(1, 12), ">="),
+         new_node(NtInfix, li(1, 7), @[
+            new_identifier_node(NtIdentifier, li(1, 7), "<="),
+            new_node(NtInfix, li(1, 3), @[
+               new_identifier_node(NtIdentifier, li(1, 3), "<"),
+               new_inumber_node(NtIntLit, li(1, 1), 2, "2", Base10, -1),
+               new_inumber_node(NtIntLit, li(1, 5), 3, "3", Base10, -1)
+            ]),
+            new_inumber_node(NtIntLit, li(1, 10), 4, "4", Base10, -1)
+         ]),
+         new_inumber_node(NtIntLit, li(1, 15), 3, "3", Base10, -1)
+      ]),
+      new_inumber_node(NtIntLit, li(1, 19), 2, "2", Base10, -1)
+   ])
+
+run_test("Binary operator precedence: comparisons (2)", """
+2 == 3 != 4 === 3 !== 2
+"""):
+   new_node(NtInfix, li(1, 19), @[
+      new_identifier_node(NtIdentifier, li(1, 19), "!=="),
+      new_node(NtInfix, li(1, 13), @[
+         new_identifier_node(NtIdentifier, li(1, 13), "==="),
+         new_node(NtInfix, li(1, 8), @[
+            new_identifier_node(NtIdentifier, li(1, 8), "!="),
+            new_node(NtInfix, li(1, 3), @[
+               new_identifier_node(NtIdentifier, li(1, 3), "=="),
+               new_inumber_node(NtIntLit, li(1, 1), 2, "2", Base10, -1),
+               new_inumber_node(NtIntLit, li(1, 6), 3, "3", Base10, -1)
+            ]),
+            new_inumber_node(NtIntLit, li(1, 11), 4, "4", Base10, -1)
+         ]),
+         new_inumber_node(NtIntLit, li(1, 17), 3, "3", Base10, -1)
+      ]),
+      new_inumber_node(NtIntLit, li(1, 23), 2, "2", Base10, -1)
+   ])
+
+run_test("Binary operator precedence: comparisons (3)", """
+2 == 3 >= 3 != 4
+"""):
+   new_node(NtInfix, li(1, 13), @[
+      new_identifier_node(NtIdentifier, li(1, 13), "!="),
+      new_node(NtInfix, li(1, 3), @[
+         new_identifier_node(NtIdentifier, li(1, 3), "=="),
+         new_inumber_node(NtIntLit, li(1, 1), 2, "2", Base10, -1),
+         new_node(NtInfix, li(1, 8), @[
+            new_identifier_node(NtIdentifier, li(1, 8), ">="),
+            new_inumber_node(NtIntLit, li(1, 6), 3, "3", Base10, -1),
+            new_inumber_node(NtIntLit, li(1, 11), 3, "3", Base10, -1)
+         ])
+      ]),
+      new_inumber_node(NtIntLit, li(1, 16), 4, "4", Base10, -1)
+   ])
+
+run_test("Binary operator precedence: logical operations", """
+A & B ^ C | D ~^ E && F || G ^~ H
+"""):
+   new_node(NtInfix, li(1, 25), @[
+      new_identifier_node(NtIdentifier, li(1, 25), "||"),
+      new_node(NtInfix, li(1, 20), @[
+         new_identifier_node(NtIdentifier, li(1, 20), "&&"),
+         new_node(NtInfix, li(1, 11), @[
+            new_identifier_node(NtIdentifier, li(1, 11), "|"),
+            new_node(NtInfix, li(1, 7), @[
+               new_identifier_node(NtIdentifier, li(1, 7), "^"),
+               new_node(NtInfix, li(1, 3), @[
+                  new_identifier_node(NtIdentifier, li(1, 3), "&"),
+                  new_identifier_node(NtIdentifier, li(1, 1), "A"),
+                  new_identifier_node(NtIdentifier, li(1, 5), "B"),
+               ]),
+               new_identifier_node(NtIdentifier, li(1, 9), "C"),
+            ]),
+            new_node(NtInfix, li(1, 15), @[
+               new_identifier_node(NtIdentifier, li(1, 15), "~^"),
+               new_identifier_node(NtIdentifier, li(1, 13), "D"),
+               new_identifier_node(NtIdentifier, li(1, 18), "E"),
+            ]),
+         ]),
+         new_identifier_node(NtIdentifier, li(1, 23), "F"),
+      ]),
+      new_node(NtInfix, li(1, 30), @[
+         new_identifier_node(NtIdentifier, li(1, 30), "^~"),
+         new_identifier_node(NtIdentifier, li(1, 28), "G"),
+         new_identifier_node(NtIdentifier, li(1, 33), "H"),
+      ]),
+   ])
+
+run_test("Binary operator precedence: complex expression", """
+A || B && C | D ^ E & F == G < H >> I + J / K ** L /
+A + B >> C < D == E & F ^ G | H && I || J
+"""):
+   new_node(NtInfix, li(2, 38), @[
+      new_identifier_node(NtIdentifier, li(2, 38), "||"),
+      new_node(NtInfix, li(1, 3), @[
+         new_identifier_node(NtIdentifier, li(1, 3), "||"),
+         new_identifier_node(NtIdentifier, li(1, 1), "A"),
+         new_node(NtInfix, li(2, 33), @[
+            new_identifier_node(NtIdentifier, li(2, 33), "&&"),
+            new_node(NtInfix, li(1, 8), @[
+               new_identifier_node(NtIdentifier, li(1, 8), "&&"),
+               new_identifier_node(NtIdentifier, li(1, 6), "B"),
+               new_node(NtInfix, li(2, 29), @[
+                  new_identifier_node(NtIdentifier, li(2, 29), "|"),
+                  new_node(NtInfix, li(1, 13), @[
+                     new_identifier_node(NtIdentifier, li(1, 13), "|"),
+                     new_identifier_node(NtIdentifier, li(1, 11), "C"),
+                     new_node(NtInfix, li(2, 25), @[
+                        new_identifier_node(NtIdentifier, li(2, 25), "^"),
+                        new_node(NtInfix, li(1, 17), @[
+                           new_identifier_node(NtIdentifier, li(1, 17), "^"),
+                           new_identifier_node(NtIdentifier, li(1, 15), "D"),
+                           new_node(NtInfix, li(2, 21), @[
+                              new_identifier_node(NtIdentifier, li(2, 21), "&"),
+                              new_node(NtInfix, li(1, 21), @[
+                                 new_identifier_node(NtIdentifier, li(1, 21), "&"),
+                                 new_identifier_node(NtIdentifier, li(1, 19), "E"),
+                                 new_node(NtInfix, li(2, 16), @[
+                                    new_identifier_node(NtIdentifier, li(2, 16), "=="),
+                                    new_node(NtInfix, li(1, 25), @[
+                                       new_identifier_node(NtIdentifier, li(1, 25), "=="),
+                                       new_identifier_node(NtIdentifier, li(1, 23), "F"),
+                                       new_node(NtInfix, li(2, 12), @[
+                                          new_identifier_node(NtIdentifier, li(2, 12), "<"),
+                                          new_node(NtInfix, li(1, 30), @[
+                                             new_identifier_node(NtIdentifier, li(1, 30), "<"),
+                                             new_identifier_node(NtIdentifier, li(1, 28), "G"),
+                                             new_node(NtInfix, li(2, 7), @[
+                                                new_identifier_node(NtIdentifier, li(2, 7), ">>"),
+                                                new_node(NtInfix, li(1, 34), @[
+                                                   new_identifier_node(NtIdentifier, li(1, 34), ">>"),
+                                                   new_identifier_node(NtIdentifier, li(1, 32), "H"),
+                                                   new_node(NtInfix, li(2, 3), @[
+                                                      new_identifier_node(NtIdentifier, li(2, 3), "+"),
+                                                      new_node(NtInfix, li(1, 39), @[
+                                                         new_identifier_node(NtIdentifier, li(1, 39), "+"),
+                                                         new_identifier_node(NtIdentifier, li(1, 37), "I"),
+                                                         new_node(NtInfix, li(1, 52), @[
+                                                            new_identifier_node(NtIdentifier, li(1, 52), "/"),
+                                                            new_node(NtInfix, li(1, 43), @[
+                                                               new_identifier_node(NtIdentifier, li(1, 43), "/"),
+                                                               new_identifier_node(NtIdentifier, li(1, 41), "J"),
+                                                               new_node(NtInfix, li(1, 47), @[
+                                                                  new_identifier_node(NtIdentifier, li(1, 47), "**"),
+                                                                  new_identifier_node(NtIdentifier, li(1, 45), "K"),
+                                                                  new_identifier_node(NtIdentifier, li(1, 50), "L"),
+                                                               ]),
+                                                            ]),
+                                                            new_identifier_node(NtIdentifier, li(2, 1), "A"),
+                                                         ]),
+                                                      ]),
+                                                      new_identifier_node(NtIdentifier, li(2, 5), "B"),
+                                                   ]),
+                                                ]),
+                                                new_identifier_node(NtIdentifier, li(2, 10), "C"),
+                                             ]),
+                                          ]),
+                                          new_identifier_node(NtIdentifier, li(2, 14), "D"),
+                                       ]),
+                                    ]),
+                                    new_identifier_node(NtIdentifier, li(2, 19), "E"),
+                                 ]),
+                              ]),
+                              new_identifier_node(NtIdentifier, li(2, 23), "F"),
+                           ]),
+                        ]),
+                        new_identifier_node(NtIdentifier, li(2, 27), "G"),
+                     ]),
+                  ]),
+                  new_identifier_node(NtIdentifier, li(2, 31), "H"),
+               ]),
+            ]),
+            new_identifier_node(NtIdentifier, li(2, 36), "I"),
+         ]),
+      ]),
+      new_identifier_node(NtIdentifier, li(2, 41), "J"),
+   ])
+
+run_test("Conditional expression", """
+A == B ? C + D : E || F
+"""):
+   new_node(NtConstantConditionalExpression, li(1, 8), @[
+      new_node(NtInfix, li(1, 3), @[
+         new_identifier_node(NtIdentifier, li(1, 3), "=="),
+         new_identifier_node(NtIdentifier, li(1, 1), "A"),
+         new_identifier_node(NtIdentifier, li(1, 6), "B"),
+      ]),
+      new_node(NtInfix, li(1, 12), @[
+         new_identifier_node(NtIdentifier, li(1, 12), "+"),
+         new_identifier_node(NtIdentifier, li(1, 10), "C"),
+         new_identifier_node(NtIdentifier, li(1, 14), "D"),
+      ]),
+      new_node(NtInfix, li(1, 20), @[
+         new_identifier_node(NtIdentifier, li(1, 20), "||"),
+         new_identifier_node(NtIdentifier, li(1, 18), "E"),
+         new_identifier_node(NtIdentifier, li(1, 23), "F"),
+      ]),
+   ])
+
+run_test("Conditional expression w/ attributes", """
+A ? (* attr = val, another *) (* second_attr *) B : C
+"""):
+   new_node(NtConstantConditionalExpression, li(1, 3), @[
+      new_identifier_node(NtIdentifier, li(1, 1), "A"),
+      new_node(NtAttributeInst, li(1, 5), @[
+         new_identifier_node(NtAttributeName, li(1, 8), "attr"),
+         new_identifier_node(NtIdentifier, li(1, 15), "val"),
+         new_identifier_node(NtAttributeName, li(1, 20), "another")
+      ]),
+      new_node(NtAttributeInst, li(1, 31), @[
+         new_identifier_node(NtAttributeName, li(1, 34), "second_attr"),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 49), "B"),
+      new_identifier_node(NtIdentifier, li(1, 53), "C"),
+   ])
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
