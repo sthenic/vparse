@@ -471,21 +471,15 @@ proc parse_parameter_port_list(p: var Parser): PNode =
    get_token(p)
 
    # Parse the contents, at least one parameter declaration is expected.
-   add(result.sons, parse_parameter_declaration(p))
-
    while true:
+      add(result.sons, parse_parameter_declaration(p))
       if p.tok.type == TkComma:
-         # If the token is a comma, the current cannot be anything other than
-         # the keyword 'parameter'.
          get_token(p)
-         expect_token(p, result, TkParameter)
-         add(result.sons, parse_parameter_declaration(p))
       else:
-         # If token is not a comma, we expect a closing parenthesis.
-         expect_token(p, result, TkRparen)
-         get_token(p)
          break
 
+   expect_token(p, result, TkRparen)
+   get_token(p)
 
 proc parse_inout_or_input_port_declaration(p: var Parser,
                                            attributes: seq[PNode]): PNode =
@@ -619,13 +613,12 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPortDeclarations)
 
-   expect_token(p, result, {TkInout, TkInput, TkOutput, TkLparenStar})
-   add(result.sons, parse_port_declaration(p))
    while true:
+      # FIXME: May be removed? Token is checked twice.
+      expect_token(p, result, {TkInout, TkInput, TkOutput, TkLparenStar})
+      add(result.sons, parse_port_declaration(p))
       if p.tok.type == TkComma:
          get_token(p)
-         expect_token(p, result, {TkInout, TkInput, TkOutput})
-         add(result.sons, parse_port_declaration(p))
       else:
          break
 
