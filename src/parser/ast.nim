@@ -47,6 +47,10 @@ type
       NtRange,
       # Net and variable types A.2.2.1
       NtNetType,
+      # Generate construct A.4.2
+      NtGenerateRegion,
+      # Specify section A.7.1
+      NtSpecifyBlock,
       # Concatenations A.8.1
       NtConstantConcat, NtConstantMultipleConcat,
       # Function calls A.8.2

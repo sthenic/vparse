@@ -15,6 +15,7 @@ type
 
 const
    UnexpectedToken = "Unexpected token $1."
+   AttributesNotAllowed = "Attributes are not allowed here."
    ExpectedToken = "Expected token $1, got $2."
    ExpectedTokens = "Expected one of the tokens $1, got $2."
 
@@ -595,11 +596,7 @@ proc parse_output_port_declaration(p: var Parser, attributes: seq[PNode]): PNode
       add(result.sons, parse_list_of_port_identifiers(p))
 
 
-proc parse_port_declaration(p: var Parser): PNode =
-   var attributes: seq[PNode] = @[]
-   if p.tok.type == TkLparenStar:
-      add(attributes, parse_attribute_instances(p))
-
+proc parse_port_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkInout, TkInput:
       result = parse_inout_or_input_port_declaration(p, attributes)
@@ -615,8 +612,12 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
 
    while true:
       # FIXME: May be removed? Token is checked twice.
-      expect_token(p, result, {TkInout, TkInput, TkOutput, TkLparenStar})
-      add(result.sons, parse_port_declaration(p))
+      var attributes: seq[PNode] = @[]
+      if p.tok.type == TkLparenStar:
+         add(attributes, parse_attribute_instances(p))
+
+      expect_token(p, result, {TkInout, TkInput, TkOutput})
+      add(result.sons, parse_port_declaration(p, attributes))
       if p.tok.type == TkComma:
          get_token(p)
       else:
@@ -744,42 +745,132 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_specparam_declaration(p: var Parser): PNode =
+   # FIXME: Implement
+   get_token(p)
+
+   while true:
+      if p.tok.type in {TkSemicolon, TkEndOfFile}:
+         break
+      get_token(p)
+
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+
+
+proc parse_generate_region(p: var Parser): PNode =
+   result = new_node(p, NtGenerateRegion)
+   get_token(p)
+
+   # FIXME: Implement
+   while true:
+      if p.tok.type in {TkEndgenerate, TkEndOfFile}:
+         break
+      get_token(p)
+
+   expect_token(p, result, TkEndgenerate)
+   get_token(p)
+
+
+proc parse_specify_block(p: var Parser): PNode =
+   result = new_node(p, NtSpecifyBlock)
+   get_token(p)
+
+   # FIXME: Implement
+   while true:
+      if p.tok.type in {TkEndspecify, TkEndOfFile}:
+         break
+      get_token(p)
+
+   expect_token(p, result, TkEndspecify)
+   get_token(p)
+
+
+
+proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =
+   # Specify blocks and generate regions are not allowed attribute instances
+   # so if there's anything in the input argument we should return an error.
+   case p.tok.type
+   of TkGenerate:
+      if len(attributes) > 0:
+         result = new_error_node(p, AttributesNotAllowed)
+         result.info = attributes[0].info
+      else:
+         result = parse_generate_region(p)
+   of TkSpecify:
+      if len(attributes) > 0:
+         result = new_error_node(p, AttributesNotAllowed)
+         result.info = attributes[0].info
+      else:
+         result = parse_specify_block(p)
+   of TkParameter:
+      # A parameter declaration with optional attributes and ending w/ a
+      # semicolon.
+      result = parse_parameter_declaration(p)
+      if len(attributes) > 0:
+         result.sons = attributes & result.sons
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+   of TkSpecparam:
+      result = parse_specparam_declaration(p)
+      if len(attributes) > 0:
+         result.sons = attributes & result.sons
+   else:
+      get_token(p)
+
+
+proc parse_module_item(p: var Parser, attributes: seq[PNode]): PNode =
+   if p.tok.type in {TkInout, TkInput, TkOutput}:
+      result = parse_port_declaration(p, attributes)
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+   else:
+      result = parse_non_port_module_item(p, attributes)
+
+
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    result = new_node(p, NtModuleDecl)
+   get_token(p)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
    # Expect an idenfitier as the first token after the module keyword.
-   get_token(p)
    expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtModuleIdentifier))
-
-   # FIXME: Parse the optional parameter port list.
    get_token(p)
+
+   # Parse the optional parameter port list.
    if p.tok.type == TkHash:
       add(result.sons, parse_parameter_port_list(p))
 
-   # FIXME: Parse the optional list or ports/port declarations. This will
-   #        determine what to allow as the module contents.
-   add(result.sons, parse_list_of_ports_or_port_declarations(p))
+   # Parse the optional list or ports/port declarations. This will determine
+   # what to allow as the module contents.
+   var parse_body = parse_non_port_module_item
+   if p.tok.type == TkLparen:
+      let n = parse_list_of_ports_or_port_declarations(p)
+      if n.type == NtListOfPortDeclarations:
+         parse_body = parse_module_item
+      add(result.sons, n)
 
    # Expect a semicolon.
    expect_token(p, result, TkSemicolon)
    get_token(p)
 
-   # FIXME: Parse module items or non_port
+   # Parse the body of the module using the function pointed to by parse_body.
+   # For each statement, parse any attribute instances. It's not until we're
+   # past these in the token stream that we can determine what syntax to parse
+   # next and even if the attributes were allowed or not.
    while true:
-      case p.tok.type
-      of TkEndmodule, TkEndOfFile:
+      if p.tok.type in {TkEndmodule, TkEndOfFile}:
          break
-      else:
-         get_token(p)
+      var attributes: seq[PNode] = @[]
+      if p.tok.type == TkLparenStar:
+         add(attributes, parse_attribute_instances(p))
+      add(result.sons, parse_body(p, attributes))
 
    # Expect the 'endmodule' keyword.
    expect_token(p, result, TkEndmodule)
    get_token(p)
-
-   # FIXME: Properly handle this, don't just eat past it.
 
 
 proc assume_source_text(p: var Parser): PNode =
