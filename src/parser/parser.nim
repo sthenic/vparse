@@ -848,7 +848,7 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    var parse_body = parse_non_port_module_item
    if p.tok.type == TkLparen:
       let n = parse_list_of_ports_or_port_declarations(p)
-      if n.type == NtListOfPortDeclarations:
+      if n.type == NtListOfPorts:
          parse_body = parse_module_item
       add(result.sons, n)
 
