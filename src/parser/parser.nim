@@ -834,6 +834,7 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
          n.info = first.info
          add(n.sons, first)
          add(n.sons, parse_range(p))
+         add(result, n)
       else:
          add(result, first)
 
@@ -843,11 +844,13 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
          get_token(p)
          expect_token(p, result, TkSymbol)
          let identifier = new_identifier_node(p, NtIdentifier)
+         get_token(p)
          if p.tok.type == TkLbracket:
             let n = new_node(p, NtRangedIdentifier)
             n.info = identifier.info
             add(n.sons, identifier)
             add(n.sons, parse_range(p))
+            add(result, n)
          else:
             add(result, identifier)
 
@@ -876,7 +879,6 @@ proc parse_delay(p: var Parser, nof_expressions: int): PNode =
 
 proc parse_drive_strength(p: var Parser): PNode =
    result = new_node(p, NtDriveStrength)
-   get_token(p)
 
    case p.tok.type
    of DriveStrength0Tokens, TkHighz0:
@@ -913,8 +915,6 @@ proc parse_net_declaration(p: var Parser): PNode =
       if p.tok.type == TkLparen:
          get_token(p)
          add(result.sons, parse_drive_strength(p))
-         expect_token(p, result, TkRparen)
-         get_token(p)
 
       if p.tok.type in {TkVectored, TkScalared}:
          add(result.sons, new_identifier_node(p, NtType))
