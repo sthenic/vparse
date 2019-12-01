@@ -715,7 +715,6 @@ proc parse_list_of_ports(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NtListOfPorts)
 
-   # FIXME: Restructure
    while true:
       add(result.sons, parse_port(p))
       case p.tok.type
@@ -742,6 +741,53 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
       result = parse_list_of_ports(p)
 
    expect_token(p, result, TkRparen)
+   get_token(p)
+
+
+proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
+   # Expect at least one variable type. Unless we see an equals sign or a left
+   # bracket, the AST node is a regular identifier.
+   while true:
+      expect_token(p, result, TkSymbol)
+      let identifier = new_identifier_node(p, NtIdentifier)
+      get_token(p)
+
+      if p.tok.type in {TkLbracket, TkEquals}:
+         let n = new_node(p, NtVariableType)
+         n.info = identifier.info
+         add(n.sons, identifier)
+         if p.tok.type == TkLbracket:
+            # Handle any number of dimension specifiers (array).
+            while true:
+               if p.tok.type != TkLbracket:
+                  break
+               add(n.sons, parse_range(p))
+         else:
+            get_token(p)
+            add(n.sons, parse_constant_expression(p))
+         add(result, n)
+      else:
+         add(result, identifier)
+
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
+      get_token(p)
+
+
+proc parse_reg_declaration(p: var Parser): PNode =
+   result = new_node(p, NtRegDecl)
+   get_token(p)
+
+   if p.tok.type == TkSigned:
+      add(result.sons, new_identifier_node(p, NtType))
+      get_token(p)
+
+   if p.tok.type == TkLbracket:
+      add(result.sons, parse_range(p))
+
+   add(result.sons, parse_list_of_variable_identifiers(p))
+
+   expect_token(p, result, TkSemicolon)
    get_token(p)
 
 
@@ -793,8 +839,9 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
       # FIXME: net decl.
       get_token(p)
    of TkReg:
-      # FIXME: reg decl.
-      get_token(p)
+      result = parse_reg_declaration(p)
+      if len(attributes) > 0:
+         result.sons = attributes & result.sons
    of TkInteger:
       # FIXME: reg decl.
       get_token(p)
@@ -995,6 +1042,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       parse_proc = parse_parameter_port_list
    of NtConstantExpression:
       parse_proc = parse_constant_expression
+   of NtRegDecl:
+      parse_proc = parse_reg_declaration
    else:
       parse_proc = nil
 

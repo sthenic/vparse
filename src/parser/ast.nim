@@ -41,12 +41,12 @@ type
       # Type declarations A.2.1.3
       NtEventDecl, NtGenvarDecl, NtIntegerDecl, NtNetDecl, NtRealDecl,
       NtRealtimeDecl, NtRegDecl, NtTimeDecl,
+      # Net and variable types A.2.2.1
+      NtNetType, NtVariableType,
       # Declaration assignments A.2.4
       NtParamAssignment,
       # Declaration ranges A.2.5
       NtRange,
-      # Net and variable types A.2.2.1
-      NtNetType,
       # Generate construct A.4.2
       NtGenerateRegion,
       # Specify section A.7.1
