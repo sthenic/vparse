@@ -91,6 +91,14 @@ const
    NumberTokens* = {TkIntLit, TkUIntLit, TkAmbIntLit, TkAmbUIntLit, TkRealLit}
    NetTypeTokens* = {TkSupply0, TkSupply1, TkTri, TkTriand, TkTrior, TkTri0,
                      TkTri1, TkWire, TkWand, TkWor}
+   GateSwitchTypeTokens* = {TkCmos, TkRcmos,
+                            TkBufif0, TkBufif1, TkNotif0, TkNotif1,
+                            TkNmos, TkPmos, TkRnmos, TkRpmos,
+                            TkAnd, TkNand, TkOr, TkNor, TkXor, TkXnor,
+                            TkBuf, TkNot,
+                            TkTranif0, TkTranif1,
+                            TkRtranif0, TkRtranif1,
+                            TkTran, TkRtran}
 
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",

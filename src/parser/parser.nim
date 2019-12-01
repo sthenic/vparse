@@ -786,6 +786,75 @@ proc parse_specify_block(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_module_or_generate_item_declaration(p: var Parser,
+                                               attributes: seq[PNode]): PNode =
+   case p.tok.type
+   of NetTypeTokens, TkTrireg:
+      # FIXME: net decl.
+      get_token(p)
+   of TkReg:
+      # FIXME: reg decl.
+      get_token(p)
+   of TkInteger:
+      # FIXME: reg decl.
+      get_token(p)
+   of TkReal:
+      # FIXME: real decl.
+      get_token(p)
+   of TkTime:
+      # FIXME: time decl.
+      get_token(p)
+   of TkRealtime:
+      # FIXME: realtime decl.
+      get_token(p)
+   of TkEvent:
+      # FIXME: event decl.
+      get_token(p)
+   of TkGenvar:
+      # FIXME: genvar decl.
+      get_token(p)
+   of TkTask:
+      # FIXME: task decl.
+      get_token(p)
+   of TkFunction:
+      # FIXME: function decl.
+      get_token(p)
+   else:
+      result = unexpected_token(p)
+
+
+proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
+   case p.tok.type
+   of TkLocalparam:
+      # FIXME: localparam
+      get_token(p)
+   of TkDefparam:
+      # FIXME: parameter override
+      get_token(p)
+   of TkAssign:
+      # FIXME: continuous assing
+      get_token(p)
+   of GateSwitchTypeTokens:
+      result = new_error_node(p, "Gate instantiatiation is currently not supported.")
+      get_token(p)
+   of TkInitial:
+      # FIXME: Parse initial statement
+      get_token(p)
+   of TkAlways:
+      # FIXME: Parse always statement
+      get_token(p)
+   of TkFor:
+      # FIXME: Parse loop generate construct
+      get_token(p)
+   of TkIf, TkCase:
+      # FIXME: Parse conditional generate construct
+      get_token(p)
+   of TkSymbol:
+      # Might be UDP or module instantiation
+      get_token(p)
+   else:
+      result = parse_module_or_generate_item_declaration(p, attributes)
+
 
 proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =
    # Specify blocks and generate regions are not allowed attribute instances
@@ -816,7 +885,8 @@ proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =
       if len(attributes) > 0:
          result.sons = attributes & result.sons
    else:
-      get_token(p)
+      # Assume module or generate item.
+      result = parse_module_or_generate_item(p, attributes)
 
 
 proc parse_module_item(p: var Parser, attributes: seq[PNode]): PNode =
