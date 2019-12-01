@@ -291,27 +291,28 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
          result = identifier
 
 
+proc parse_mintypmax_expression(p: var Parser): PNode =
+   # Expect an expression. This may be the first of a triplet constituting a
+   # min:typ:max expression. We'll know if we encounter a colon.
+   let first = parse_constant_expression(p)
+   if p.tok.type == TkColon:
+      result = new_node(p, NtConstantMinTypMaxExpression)
+      result.info = first.info
+      add(result.sons, first)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, result, TkColon)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+   else:
+      result = first
+
+
 proc parse_parenthesis(p: var Parser): PNode =
    result = new_node(p, NtParenthesis)
    get_token(p)
-
    if p.tok.type != TkRparen:
-      # Expect an expression. This may be the first of a triplet constituting a
-      # min:typ:max expression. We'll know if we encounter a colon.
-      let first = parse_constant_expression(p)
-      if p.tok.type == TkColon:
-         let mtm = new_node(p, NtConstantMinTypMaxExpression)
-         mtm.info = first.info
-         add(mtm.sons, first)
-         get_token(p)
-         add(mtm.sons, parse_constant_expression(p))
-         expect_token(p, result, TkColon)
-         get_token(p)
-         add(mtm.sons, parse_constant_expression(p))
-         add(result.sons, mtm)
-      else:
-         add(result.sons, first)
-
+      add(result.sons, parse_mintypmax_expression(p))
    expect_token(p, result, TkRparen)
    get_token(p)
 
@@ -798,6 +799,183 @@ proc parse_list_of_dimension_identifiers(p: var Parser): seq[PNode] =
       get_token(p)
 
 
+proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): seq[PNode] =
+   # It's no until we've parsed the first identifier that we know which syntax
+   # to expect.
+   expect_token(p, result, TkSymbol)
+   let first = new_identifier_node(p, NtIdentifier)
+   get_token(p)
+
+   if p.tok.type == TkEquals:
+      # We're parsing a list of net declaration assignments.
+      get_token(p)
+      let n = new_node(p, NtNetDeclAssignment)
+      n.info = first.info
+      add(n.sons, first)
+      add(n.sons, parse_constant_expression(p))
+      add(result, n)
+
+      while true:
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+         let m = new_node(p, NtNetDeclAssignment)
+         expect_token(p, result, TkSymbol)
+         add(m.sons, new_identifier_node(p, NtIdentifier))
+         get_token(p)
+         expect_token(p, result, TkEquals)
+         get_token(p)
+         add(m.sons, parse_constant_expression(p))
+         add(result, m)
+   else:
+      # We're parsing a list of identifiers.
+      if p.tok.type == TkLbracket:
+         let n = new_node(p, NtRangedIdentifier)
+         n.info = first.info
+         add(n.sons, first)
+         add(n.sons, parse_range(p))
+      else:
+         add(result, first)
+
+      while true:
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+         expect_token(p, result, TkSymbol)
+         let identifier = new_identifier_node(p, NtIdentifier)
+         if p.tok.type == TkLbracket:
+            let n = new_node(p, NtRangedIdentifier)
+            n.info = identifier.info
+            add(n.sons, identifier)
+            add(n.sons, parse_range(p))
+         else:
+            add(result, identifier)
+
+
+proc parse_delay(p: var Parser, nof_expressions: int): PNode =
+   result = new_node(p, NtDelay)
+   get_token(p)
+
+   case p.tok.type
+   of TkLparen:
+      # Expect a min:typ:max expression. There should be at least one and at
+      # most nof_expressions.
+      for i in 0..<nof_expressions:
+         add(result.sons, parse_mintypmax_expression(p))
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+   of TkSymbol:
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+   of NumberTokens:
+      add(result.sons, parse_number(p))
+   else:
+      unexpected_token(p, result)
+
+
+proc parse_drive_strength(p: var Parser): PNode =
+   result = new_node(p, NtDriveStrength)
+   get_token(p)
+
+   case p.tok.type
+   of DriveStrength0Tokens, TkHighz0:
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      expect_token(p, result, TkComma)
+      get_token(p)
+      expect_token(p, result, DriveStrength1Tokens + {TkHighz1})
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+   of DriveStrength1Tokens, TkHighz1:
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      expect_token(p, result, TkComma)
+      get_token(p)
+      expect_token(p, result, DriveStrength0Tokens + {TkHighz0})
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+   else:
+      unexpected_token(p, result)
+
+   expect_token(p, result, TkRparen)
+   get_token(p)
+
+
+proc parse_net_declaration(p: var Parser): PNode =
+   result = new_node(p, NtNetDecl)
+
+   case p.tok.type
+   of NetTypeTokens:
+      add(result.sons, new_identifier_node(p, NtType))
+      get_token(p)
+
+      if p.tok.type == TkLparen:
+         get_token(p)
+         add(result.sons, parse_drive_strength(p))
+         expect_token(p, result, TkRparen)
+         get_token(p)
+
+      if p.tok.type in {TkVectored, TkScalared}:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+
+      if p.tok.type == TkHash:
+         # The syntax expects a delay3 expression.
+         add(result.sons, parse_delay(p, 3))
+
+      add(result.sons,
+          parse_list_of_net_identifiers_or_declaration_assignments(p))
+
+   of TkTrireg:
+      add(result.sons, new_identifier_node(p, NtType))
+      get_token(p)
+
+      if p.tok.type == TkLparen:
+         get_token(p)
+         case p.tok.type
+         of DriveStrengthTokens:
+            add(result.sons, parse_drive_strength(p))
+         of ChargeStrengthTokens:
+            let n = new_node(p, NtChargeStrength)
+            add(n.sons, new_identifier_node(p, NtIdentifier))
+            add(result.sons, n)
+         else:
+            unexpected_token(p, result)
+         expect_token(p, result, TkRparen)
+         get_token(p)
+
+      if p.tok.type in {TkVectored, TkScalared}:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+
+      if p.tok.type == TkHash:
+         # The syntax expects a delay3 expression.
+         add(result.sons, parse_delay(p, 3))
+
+      add(result.sons,
+          parse_list_of_net_identifiers_or_declaration_assignments(p))
+   else:
+      unexpected_token(p, result)
+
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+
+
 proc parse_event_declaration(p: var Parser): PNode =
    result = new_node(p, NtEventDecl)
    get_token(p)
@@ -886,8 +1064,9 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
                                                attributes: seq[PNode]): PNode =
    case p.tok.type
    of NetTypeTokens, TkTrireg:
-      # FIXME: net decl.
-      get_token(p)
+      result = parse_net_declaration(p)
+      if len(attributes) > 0:
+         result.sons = attributes & result.sons
    of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
       result = parse_variable_type_declaration(p)
       if len(attributes) > 0:
@@ -1085,6 +1264,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       parse_proc = parse_variable_type_declaration
    of NtEventDecl:
       parse_proc = parse_event_declaration
+   of NtNetDecl:
+      parse_proc = parse_net_declaration
    else:
       parse_proc = nil
 

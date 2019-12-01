@@ -43,8 +43,12 @@ type
       NtRealtimeDecl, NtRegDecl, NtTimeDecl,
       # Net and variable types A.2.2.1
       NtNetType, NtVariableType,
+      # Drive strengths A.2.2.2
+      NtDriveStrength, NtChargeStrength,
+      # Delays A.2.2.3
+      NtDelay,
       # Declaration assignments A.2.4
-      NtParamAssignment,
+      NtParamAssignment, NtNetDeclAssignment,
       # Declaration ranges A.2.5
       NtRange,
       # Generate construct A.4.2

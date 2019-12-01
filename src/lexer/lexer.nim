@@ -99,6 +99,10 @@ const
                             TkTranif0, TkTranif1,
                             TkRtranif0, TkRtranif1,
                             TkTran, TkRtran}
+   DriveStrength0Tokens* = {TkSupply0, TkStrong0, TkPull0, TkWeak0}
+   DriveStrength1Tokens* = {TkSupply1, TkStrong1, TkPull1, TkWeak1}
+   DriveStrengthTokens* = DriveStrength0Tokens + DriveStrength1Tokens + {TkHighz0, TkHighz1}
+   ChargeStrengthTokens* = {TkSmall, TkMedium, TkLarge}
 
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",
