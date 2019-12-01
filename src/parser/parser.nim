@@ -774,19 +774,69 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
       get_token(p)
 
 
-proc parse_reg_declaration(p: var Parser): PNode =
-   result = new_node(p, NtRegDecl)
-   get_token(p)
-
-   if p.tok.type == TkSigned:
-      add(result.sons, new_identifier_node(p, NtType))
+proc parse_list_of_dimension_identifiers(p: var Parser): seq[PNode] =
+   while true:
+      expect_token(p, result, TkSymbol)
+      let identifier = new_identifier_node(p, NtIdentifier)
       get_token(p)
 
-   if p.tok.type == TkLbracket:
-      add(result.sons, parse_range(p))
+      if p.tok.type == TkLbracket:
+         # FIXME: Questionable AST type.
+         let n = new_node(p, NtVariableType)
+         n.info = identifier.info
+         add(n.sons, identifier)
+         while true:
+            if p.tok.type != TkLbracket:
+               break
+            add(n.sons, parse_range(p))
+         add(result, n)
+      else:
+         add(result, identifier)
+
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
+      get_token(p)
+
+
+proc parse_event_declaration(p: var Parser): PNode =
+   result = new_node(p, NtEventDecl)
+   get_token(p)
+   add(result.sons, parse_list_of_dimension_identifiers(p))
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+
+
+proc parse_variable_type_declaration(p: var Parser): PNode =
+   # Parse declarations of identifiers that may have a variable type. This
+   # includes reg, integer, real, realtime and time.
+   case p.tok.type
+   of TkReg:
+      result = new_node(p, NtRegDecl)
+      get_token(p)
+
+      if p.tok.type == TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+   of TkInteger:
+      result = new_node(p, NtIntegerDecl)
+      get_token(p)
+   of TkReal:
+      result = new_node(p, NtRealDecl)
+      get_token(p)
+   of TkRealtime:
+      result = new_node(p, NtRealtimeDecl)
+      get_token(p)
+   of TkTime:
+      result = new_node(p, NtTimeDecl)
+      get_token(p)
+   else:
+      result = unexpected_token(p)
+      return
 
    add(result.sons, parse_list_of_variable_identifiers(p))
-
    expect_token(p, result, TkSemicolon)
    get_token(p)
 
@@ -838,25 +888,14 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
    of NetTypeTokens, TkTrireg:
       # FIXME: net decl.
       get_token(p)
-   of TkReg:
-      result = parse_reg_declaration(p)
+   of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
+      result = parse_variable_type_declaration(p)
       if len(attributes) > 0:
          result.sons = attributes & result.sons
-   of TkInteger:
-      # FIXME: reg decl.
-      get_token(p)
-   of TkReal:
-      # FIXME: real decl.
-      get_token(p)
-   of TkTime:
-      # FIXME: time decl.
-      get_token(p)
-   of TkRealtime:
-      # FIXME: realtime decl.
-      get_token(p)
    of TkEvent:
-      # FIXME: event decl.
-      get_token(p)
+      result = parse_event_declaration(p)
+      if len(attributes) > 0:
+         result.sons = attributes & result.sons
    of TkGenvar:
       # FIXME: genvar decl.
       get_token(p)
@@ -1042,8 +1081,10 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       parse_proc = parse_parameter_port_list
    of NtConstantExpression:
       parse_proc = parse_constant_expression
-   of NtRegDecl:
-      parse_proc = parse_reg_declaration
+   of NtRegDecl, NtIntegerDecl, NtRealDecl, NtRealtimeDecl, NtTimeDecl:
+      parse_proc = parse_variable_type_declaration
+   of NtEventDecl:
+      parse_proc = parse_event_declaration
    else:
       parse_proc = nil
 
