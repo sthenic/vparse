@@ -28,6 +28,7 @@ task parsertests, "Run the parser test suite":
       exec("nim c -r tparameterportlist")
       exec("nim c -r tvariabletypedeclaration")
       exec("nim c -r teventdeclaration")
+      exec("nim c -r tnetdeclaration")
    setCommand "nop"
 
 
