@@ -1236,7 +1236,6 @@ proc parse_all*(p: var Parser): PNode =
    result = new_node(p, NtSourceText) # FIXME: Proper init value
    while p.tok.type != TkEndOfFile:
       let n = assume_source_text(p)
-      # echo "Got node ", n
       if n.type != NtEmpty:
          add(result.sons, n)
 
