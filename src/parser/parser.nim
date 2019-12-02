@@ -746,27 +746,35 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_array_identifier(p: var Parser, identifier: PNode): PNode =
+   result = new_node(p, NtArrayIdentifer)
+   result.info = identifier.info
+   add(result.sons, identifier)
+   # Handle any number of dimension specifiers (array).
+   while true:
+      if p.tok.type != TkLbracket:
+         break
+      add(result.sons, parse_range(p))
+
+
 proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
-   # Expect at least one variable type. Unless we see an equals sign or a left
-   # bracket, the AST node is a regular identifier.
+   # Expect at least one variable identifier. Unless we see an equals sign
+   # (assignment) or a left bracket (array), the AST node is a regular
+   # identifier.
    while true:
       expect_token(p, result, TkSymbol)
       let identifier = new_identifier_node(p, NtIdentifier)
       get_token(p)
 
-      if p.tok.type in {TkLbracket, TkEquals}:
-         let n = new_node(p, NtVariableType)
+      case p.tok.type
+      of TkLbracket:
+         add(result, parse_array_identifier(p, identifier))
+      of TkEquals:
+         let n = new_node(p, NtAssignment)
          n.info = identifier.info
          add(n.sons, identifier)
-         if p.tok.type == TkLbracket:
-            # Handle any number of dimension specifiers (array).
-            while true:
-               if p.tok.type != TkLbracket:
-                  break
-               add(n.sons, parse_range(p))
-         else:
-            get_token(p)
-            add(n.sons, parse_constant_expression(p))
+         get_token(p)
+         add(n.sons, parse_constant_expression(p))
          add(result, n)
       else:
          add(result, identifier)
@@ -776,22 +784,14 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
       get_token(p)
 
 
-proc parse_list_of_dimension_identifiers(p: var Parser): seq[PNode] =
+proc parse_list_of_array_identifiers(p: var Parser): seq[PNode] =
    while true:
       expect_token(p, result, TkSymbol)
       let identifier = new_identifier_node(p, NtIdentifier)
       get_token(p)
 
       if p.tok.type == TkLbracket:
-         # FIXME: Questionable AST type.
-         let n = new_node(p, NtVariableType)
-         n.info = identifier.info
-         add(n.sons, identifier)
-         while true:
-            if p.tok.type != TkLbracket:
-               break
-            add(n.sons, parse_range(p))
-         add(result, n)
+         add(result, parse_array_identifier(p, identifier))
       else:
          add(result, identifier)
 
@@ -983,7 +983,7 @@ proc parse_net_declaration(p: var Parser): PNode =
 proc parse_event_declaration(p: var Parser): PNode =
    result = new_node(p, NtEventDecl)
    get_token(p)
-   add(result.sons, parse_list_of_dimension_identifiers(p))
+   add(result.sons, parse_list_of_array_identifiers(p))
    expect_token(p, result, TkSemicolon)
    get_token(p)
 

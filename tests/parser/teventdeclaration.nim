@@ -50,7 +50,7 @@ run_test("Event declaration, multiple identifiers", "event foo, bar;"):
 
 run_test("Event declaration, dimension", "event foo[7:0];"):
    new_node(NtEventDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 7), @[
+      new_node(NtArrayIdentifer, li(1, 7), @[
          new_identifier_node(NtIdentifier, li(1, 7), "foo"),
          new_node(NtRange, li(1, 10), @[
             new_inumber_node(NtIntLit, li(1, 11), 7, "7", Base10, -1),
@@ -61,7 +61,7 @@ run_test("Event declaration, dimension", "event foo[7:0];"):
 
 run_test("Event declaration, multiple dimensions", "event foo[7:0][3:0];"):
    new_node(NtEventDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 7), @[
+      new_node(NtArrayIdentifer, li(1, 7), @[
          new_identifier_node(NtIdentifier, li(1, 7), "foo"),
          new_node(NtRange, li(1, 10), @[
             new_inumber_node(NtIntLit, li(1, 11), 7, "7", Base10, -1),

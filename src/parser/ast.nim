@@ -25,7 +25,9 @@ type
       NtParenthesis,
       NtDirection,
       # Custom node types
-      NtRangedIdentifier,
+      NtRangedIdentifier, # FIXME: Still useful? Same as NtArrayIdentifier?
+      NtArrayIdentifer,
+      NtAssignment,
       # Modules A.1.3
       NtSourceText,
       NtModuleDecl,
@@ -42,7 +44,7 @@ type
       NtEventDecl, NtGenvarDecl, NtIntegerDecl, NtNetDecl, NtRealDecl,
       NtRealtimeDecl, NtRegDecl, NtTimeDecl,
       # Net and variable types A.2.2.1
-      NtNetType, NtVariableType,
+      NtNetType,
       # Drive strengths A.2.2.2
       NtDriveStrength, NtChargeStrength,
       # Delays A.2.2.3

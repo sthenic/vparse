@@ -95,7 +95,7 @@ run_test("Variable types: assignment (default value)", """
 reg with_default = 1'b0;
 """):
    new_node(NtRegDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 5), @[
+      new_node(NtAssignment, li(1, 5), @[
          new_identifier_node(NtIdentifier, li(1, 5), "with_default"),
          new_inumber_node(NtUIntLit, li(1, 20), 0, "0", Base2, 1)
       ]),
@@ -106,7 +106,7 @@ run_test("Variable types: dimension (array)", """
 reg array[7:0][2:0];
 """):
    new_node(NtRegDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 5), @[
+      new_node(NtArrayIdentifer, li(1, 5), @[
          new_identifier_node(NtIdentifier, li(1, 5), "array"),
          new_node(NtRange, li(1, 10), @[
             new_inumber_node(NtIntLit, li(1, 11), 7, "7", Base10, -1),
@@ -136,7 +136,7 @@ run_test("Integer declaration, multiple identifiers", "integer FOO, BAR;"):
 
 run_test("Integer declaration, assignment", "integer foo = 8 + 8;"):
    new_node(NtIntegerDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 9), @[
+      new_node(NtAssignment, li(1, 9), @[
          new_identifier_node(NtIdentifier, li(1, 9), "foo"),
          new_node(NtInfix, li(1, 17), @[
             new_identifier_node(NtIdentifier, li(1, 17), "+"),
@@ -149,7 +149,7 @@ run_test("Integer declaration, assignment", "integer foo = 8 + 8;"):
 
 run_test("Integer declaration, dimension", "integer i_ranged[7:0];"):
    new_node(NtIntegerDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 9), @[
+      new_node(NtArrayIdentifer, li(1, 9), @[
          new_identifier_node(NtIdentifier, li(1, 9), "i_ranged"),
          new_node(NtRange, li(1, 17), @[
             new_inumber_node(NtIntLit, li(1, 18), 7, "7", Base10, -1),
@@ -161,11 +161,11 @@ run_test("Integer declaration, dimension", "integer i_ranged[7:0];"):
 
 run_test("Integer declaration, hybrid", "integer i = 0, j[7:0][3:0];"):
    new_node(NtIntegerDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 9), @[
+      new_node(NtAssignment, li(1, 9), @[
          new_identifier_node(NtIdentifier, li(1, 9), "i"),
          new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1),
       ]),
-      new_node(NtVariableType, li(1, 16), @[
+      new_node(NtArrayIdentifer, li(1, 16), @[
          new_identifier_node(NtIdentifier, li(1, 16), "j"),
          new_node(NtRange, li(1, 17), @[
             new_inumber_node(NtIntLit, li(1, 18), 7, "7", Base10, -1),
@@ -195,7 +195,7 @@ run_test("Real declaration, multiple identifiers", "real FOO, BAR;"):
 
 run_test("Real declaration, assignment", "real foo = 8 + 8;"):
    new_node(NtRealDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 6), @[
+      new_node(NtAssignment, li(1, 6), @[
          new_identifier_node(NtIdentifier, li(1, 6), "foo"),
          new_node(NtInfix, li(1, 14), @[
             new_identifier_node(NtIdentifier, li(1, 14), "+"),
@@ -208,7 +208,7 @@ run_test("Real declaration, assignment", "real foo = 8 + 8;"):
 
 run_test("Real declaration, dimension", "real i_ranged[7:0];"):
    new_node(NtRealDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 6), @[
+      new_node(NtArrayIdentifer, li(1, 6), @[
          new_identifier_node(NtIdentifier, li(1, 6), "i_ranged"),
          new_node(NtRange, li(1, 14), @[
             new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
@@ -220,11 +220,11 @@ run_test("Real declaration, dimension", "real i_ranged[7:0];"):
 
 run_test("Real declaration, hybrid", "real i = 0, j[7:0][3:0];"):
    new_node(NtRealDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 6), @[
+      new_node(NtAssignment, li(1, 6), @[
          new_identifier_node(NtIdentifier, li(1, 6), "i"),
          new_inumber_node(NtIntLit, li(1, 10), 0, "0", Base10, -1),
       ]),
-      new_node(NtVariableType, li(1, 13), @[
+      new_node(NtArrayIdentifer, li(1, 13), @[
          new_identifier_node(NtIdentifier, li(1, 13), "j"),
          new_node(NtRange, li(1, 14), @[
             new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
@@ -254,7 +254,7 @@ run_test("Realtime declaration, multiple identifiers", "realtime FOO, BAR;"):
 
 run_test("Realtime declaration, assignment", "realtime foo = 8 + 8;"):
    new_node(NtRealtimeDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 10), @[
+      new_node(NtAssignment, li(1, 10), @[
          new_identifier_node(NtIdentifier, li(1, 10), "foo"),
          new_node(NtInfix, li(1, 18), @[
             new_identifier_node(NtIdentifier, li(1, 18), "+"),
@@ -267,7 +267,7 @@ run_test("Realtime declaration, assignment", "realtime foo = 8 + 8;"):
 
 run_test("Realtime declaration, dimension", "realtime i_ranged[7:0];"):
    new_node(NtRealtimeDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 10), @[
+      new_node(NtArrayIdentifer, li(1, 10), @[
          new_identifier_node(NtIdentifier, li(1, 10), "i_ranged"),
          new_node(NtRange, li(1, 18), @[
             new_inumber_node(NtIntLit, li(1, 19), 7, "7", Base10, -1),
@@ -279,11 +279,11 @@ run_test("Realtime declaration, dimension", "realtime i_ranged[7:0];"):
 
 run_test("Realtime declaration, hybrid", "realtime i = 0, j[7:0][3:0];"):
    new_node(NtRealtimeDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 10), @[
+      new_node(NtAssignment, li(1, 10), @[
          new_identifier_node(NtIdentifier, li(1, 10), "i"),
          new_inumber_node(NtIntLit, li(1, 14), 0, "0", Base10, -1),
       ]),
-      new_node(NtVariableType, li(1, 17), @[
+      new_node(NtArrayIdentifer, li(1, 17), @[
          new_identifier_node(NtIdentifier, li(1, 17), "j"),
          new_node(NtRange, li(1, 18), @[
             new_inumber_node(NtIntLit, li(1, 19), 7, "7", Base10, -1),
@@ -313,7 +313,7 @@ run_test("Time declaration, multiple identifiers", "time FOO, BAR;"):
 
 run_test("Time declaration, assignment", "time foo = 8 + 8;"):
    new_node(NtTimeDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 6), @[
+      new_node(NtAssignment, li(1, 6), @[
          new_identifier_node(NtIdentifier, li(1, 6), "foo"),
          new_node(NtInfix, li(1, 14), @[
             new_identifier_node(NtIdentifier, li(1, 14), "+"),
@@ -326,7 +326,7 @@ run_test("Time declaration, assignment", "time foo = 8 + 8;"):
 
 run_test("Time declaration, dimension", "time i_ranged[7:0];"):
    new_node(NtTimeDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 6), @[
+      new_node(NtArrayIdentifer, li(1, 6), @[
          new_identifier_node(NtIdentifier, li(1, 6), "i_ranged"),
          new_node(NtRange, li(1, 14), @[
             new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
@@ -338,11 +338,11 @@ run_test("Time declaration, dimension", "time i_ranged[7:0];"):
 
 run_test("Time declaration, hybrid", "time i = 0, j[7:0][3:0];"):
    new_node(NtTimeDecl, li(1, 1), @[
-      new_node(NtVariableType, li(1, 6), @[
+      new_node(NtAssignment, li(1, 6), @[
          new_identifier_node(NtIdentifier, li(1, 6), "i"),
          new_inumber_node(NtIntLit, li(1, 10), 0, "0", Base10, -1),
       ]),
-      new_node(NtVariableType, li(1, 13), @[
+      new_node(NtArrayIdentifer, li(1, 13), @[
          new_identifier_node(NtIdentifier, li(1, 13), "j"),
          new_node(NtRange, li(1, 14), @[
             new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
