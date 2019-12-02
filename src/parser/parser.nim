@@ -988,8 +988,7 @@ proc parse_event_declaration(p: var Parser): PNode =
    get_token(p)
 
 
-# FIXME: This should just be parse_variable_declaration Section 4.4.2
-proc parse_variable_type_declaration(p: var Parser): PNode =
+proc parse_variable_declaration(p: var Parser): PNode =
    # Parse declarations of identifiers that may have a variable type. This
    # includes reg, integer, real, realtime and time.
    case p.tok.type
@@ -1073,7 +1072,7 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
       if len(attributes) > 0:
          result.sons = attributes & result.sons
    of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
-      result = parse_variable_type_declaration(p)
+      result = parse_variable_declaration(p)
       if len(attributes) > 0:
          result.sons = attributes & result.sons
    of TkEvent:
@@ -1265,7 +1264,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
    of NtConstantExpression:
       parse_proc = parse_constant_expression
    of NtRegDecl, NtIntegerDecl, NtRealDecl, NtRealtimeDecl, NtTimeDecl:
-      parse_proc = parse_variable_type_declaration
+      parse_proc = parse_variable_declaration
    of NtEventDecl:
       parse_proc = parse_event_declaration
    of NtNetDecl:
