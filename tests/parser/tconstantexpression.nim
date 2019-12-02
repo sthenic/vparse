@@ -171,6 +171,14 @@ run_test("Constant primary: mintypmax", "(2'b00:8'd32:MYMAX)"):
 run_test("Constant primary: string", """"This is a string""""):
    cprim(new_str_lit_node(li(1, 1), "This is a string"))
 
+# Legal syntax but the expression doesn't make sense in a Verilog context.
+run_test("Constant primary: two strings", """"This is a string" + "Another string""""):
+   new_node(NtInfix, li(1, 20), @[
+      cprim(new_identifier_node(NtIdentifier, li(1, 20), "+")),
+      cprim(new_str_lit_node(li(1, 1), "This is a string")),
+      cprim(new_str_lit_node(li(1, 22), "Another string"))
+   ])
+
 # Unary operators (prefix nodes)
 for op in UnaryOperators:
    run_test(

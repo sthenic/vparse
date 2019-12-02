@@ -358,6 +358,7 @@ proc parse_constant_primary(p: var Parser): PNode =
       result = parse_number(p)
    of TkStrLit:
       result = new_str_lit_node(p)
+      get_token(p)
    else:
       result = unexpected_token(p)
 
@@ -802,6 +803,7 @@ proc parse_list_of_dimension_identifiers(p: var Parser): seq[PNode] =
 proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): seq[PNode] =
    # It's no until we've parsed the first identifier that we know which syntax
    # to expect.
+   # FIXME: This really needs some optimization.
    expect_token(p, result, TkSymbol)
    let first = new_identifier_node(p, NtIdentifier)
    get_token(p)
@@ -931,6 +933,7 @@ proc parse_net_declaration(p: var Parser): PNode =
          # The syntax expects a delay3 expression.
          add(result.sons, parse_delay(p, 3))
 
+      # FIXME: WHat's expected here depends of if we have any strength specifiers.
       add(result.sons,
           parse_list_of_net_identifiers_or_declaration_assignments(p))
 
@@ -967,6 +970,7 @@ proc parse_net_declaration(p: var Parser): PNode =
          # The syntax expects a delay3 expression.
          add(result.sons, parse_delay(p, 3))
 
+      # FIXME: WHat's expected here depends of if we have any strength specifiers.
       add(result.sons,
           parse_list_of_net_identifiers_or_declaration_assignments(p))
    else:
@@ -984,6 +988,7 @@ proc parse_event_declaration(p: var Parser): PNode =
    get_token(p)
 
 
+# FIXME: This should just be parse_variable_declaration Section 4.4.2
 proc parse_variable_type_declaration(p: var Parser): PNode =
    # Parse declarations of identifiers that may have a variable type. This
    # includes reg, integer, real, realtime and time.
