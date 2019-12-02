@@ -800,61 +800,47 @@ proc parse_list_of_array_identifiers(p: var Parser): seq[PNode] =
       get_token(p)
 
 
+proc parse_list_of_assignments(p: var Parser): seq[PNode] =
+   while true:
+      expect_token(p, result, TkSymbol)
+      let n = new_node(p, NtAssignment)
+      add(n.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      expect_token(p, result, TkEquals)
+      get_token(p)
+      add(n.sons, parse_constant_expression(p))
+      add(result, n)
+
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
+      get_token(p)
+
+
 proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): seq[PNode] =
-   # It's no until we've parsed the first identifier that we know which syntax
+   # It's not until we've parsed the first identifier that we know which syntax
    # to expect.
-   # FIXME: This really needs some optimization.
    expect_token(p, result, TkSymbol)
    let first = new_identifier_node(p, NtIdentifier)
    get_token(p)
 
    if p.tok.type == TkEquals:
-      # We're parsing a list of net declaration assignments.
-      get_token(p)
-      let n = new_node(p, NtNetDeclAssignment)
+      # We're parsing a list of net declaration assignments. Handle the first
+      # one manually.
+      let n = new_node(p, NtAssignment)
       n.info = first.info
+      get_token(p)
       add(n.sons, first)
       add(n.sons, parse_constant_expression(p))
       add(result, n)
-
-      while true:
-         if p.tok.type != TkComma:
-            break
+      if p.tok.type == TkComma:
          get_token(p)
-         let m = new_node(p, NtNetDeclAssignment)
-         expect_token(p, result, TkSymbol)
-         add(m.sons, new_identifier_node(p, NtIdentifier))
-         get_token(p)
-         expect_token(p, result, TkEquals)
-         get_token(p)
-         add(m.sons, parse_constant_expression(p))
-         add(result, m)
+         add(result, parse_list_of_assignments(p))
    else:
-      # We're parsing a list of identifiers.
-      if p.tok.type == TkLbracket:
-         let n = new_node(p, NtRangedIdentifier)
-         n.info = first.info
-         add(n.sons, first)
-         add(n.sons, parse_range(p))
-         add(result, n)
-      else:
-         add(result, first)
-
-      while true:
-         if p.tok.type != TkComma:
-            break
+      # We're parsing a list of net identifiers. These may be arrays.
+      add(result, parse_array_identifier(p, first))
+      if p.tok.type == TkComma:
          get_token(p)
-         expect_token(p, result, TkSymbol)
-         let identifier = new_identifier_node(p, NtIdentifier)
-         get_token(p)
-         if p.tok.type == TkLbracket:
-            let n = new_node(p, NtRangedIdentifier)
-            n.info = identifier.info
-            add(n.sons, identifier)
-            add(n.sons, parse_range(p))
-            add(result, n)
-         else:
-            add(result, identifier)
+         add(result, parse_list_of_array_identifiers(p))
 
 
 proc parse_delay(p: var Parser, nof_expressions: int): PNode =
