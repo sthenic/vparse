@@ -13,6 +13,11 @@ type
       tok: Token
       next_tok: Token
 
+   # Enumeration for strength types used in net declarations.
+   Strength = enum
+      None, DriveStrength, ChargeStrength
+
+
 const
    UnexpectedToken = "Unexpected token $1."
    AttributesNotAllowed = "Attributes are not allowed here."
@@ -900,9 +905,11 @@ proc parse_net_declaration(p: var Parser): PNode =
       add(result.sons, new_identifier_node(p, NtType))
       get_token(p)
 
+      var has_drive_strength = false
       if p.tok.type == TkLparen:
          get_token(p)
          add(result.sons, parse_drive_strength(p))
+         has_drive_strength = true
 
       if p.tok.type in {TkVectored, TkScalared}:
          add(result.sons, new_identifier_node(p, NtType))
@@ -919,23 +926,31 @@ proc parse_net_declaration(p: var Parser): PNode =
          # The syntax expects a delay3 expression.
          add(result.sons, parse_delay(p, 3))
 
-      # FIXME: WHat's expected here depends of if we have any strength specifiers.
-      add(result.sons,
-          parse_list_of_net_identifiers_or_declaration_assignments(p))
+      # If we've encountered a drive strength specifier, the syntax requires
+      # that what follows is a list of net declaration assignments. Otherwise,
+      # we're ready to accept a list of net identifiers as well.
+      if has_drive_strength:
+         add(result.sons, parse_list_of_assignments(p))
+      else:
+         add(result.sons,
+             parse_list_of_net_identifiers_or_declaration_assignments(p))
 
    of TkTrireg:
       add(result.sons, new_identifier_node(p, NtType))
       get_token(p)
 
+      var strength: Strength = None
       if p.tok.type == TkLparen:
          get_token(p)
          case p.tok.type
          of DriveStrengthTokens:
             add(result.sons, parse_drive_strength(p))
+            strength = DriveStrength
          of ChargeStrengthTokens:
             let n = new_node(p, NtChargeStrength)
             add(n.sons, new_identifier_node(p, NtIdentifier))
             add(result.sons, n)
+            strength = ChargeStrength
          else:
             unexpected_token(p, result)
          expect_token(p, result, TkRparen)
@@ -956,9 +971,17 @@ proc parse_net_declaration(p: var Parser): PNode =
          # The syntax expects a delay3 expression.
          add(result.sons, parse_delay(p, 3))
 
-      # FIXME: WHat's expected here depends of if we have any strength specifiers.
-      add(result.sons,
-          parse_list_of_net_identifiers_or_declaration_assignments(p))
+      # If we've encountered a strength specifier, a certain syntax is expected.
+      # If not, we cannot be sure of what syntax to expect until we've parsed
+      # the first identifier.
+      case strength
+      of DriveStrength:
+         add(result.sons, parse_list_of_assignments(p))
+      of ChargeStrength:
+         add(result.sons, parse_list_of_array_identifiers(p))
+      of None:
+         add(result.sons,
+             parse_list_of_net_identifiers_or_declaration_assignments(p))
    else:
       unexpected_token(p, result)
 
