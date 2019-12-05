@@ -1032,6 +1032,17 @@ proc parse_variable_declaration(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_genvar_declaration(p: var Parser): PNode =
+   result = new_node(p, NtGenvarDecl)
+   get_token(p)
+   while true:
+      expect_token(p, result, TkSymbol)
+      add(result.sons, new_node(p, NtIdentifier))
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
+      get_token(p)
+
+
 proc parse_specparam_declaration(p: var Parser): PNode =
    # FIXME: Implement
    get_token(p)
@@ -1089,8 +1100,9 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
       if len(attributes) > 0:
          result.sons = attributes & result.sons
    of TkGenvar:
-      # FIXME: genvar decl.
-      get_token(p)
+      result = parse_genvar_declaration(p)
+      if len(attributes) > 0:
+         result.sons = attributes & result.sons
    of TkTask:
       # FIXME: task decl.
       get_token(p)
