@@ -842,7 +842,11 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
          add(result, parse_list_of_assignments(p))
    else:
       # We're parsing a list of net identifiers. These may be arrays.
-      add(result, parse_array_identifier(p, first))
+      if p.tok.type == TkLbracket:
+         add(result, parse_array_identifier(p, first))
+      else:
+         add(result, first)
+
       if p.tok.type == TkComma:
          get_token(p)
          add(result, parse_list_of_array_identifiers(p))
