@@ -1097,21 +1097,28 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
    of TkParameter:
       result = parse_parameter_declaration(p)
    else:
-      unexpected_token(p, result)
+      result = unexpected_token(p)
+      return
 
    if len(attributes) > 0:
       result.sons = attributes & result.sons
 
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+
+
 proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    if p.tok.type in {TkInput, TkInout, TkOutput}:
       result = parse_task_port(p, attributes)
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
    else:
       result = parse_block_item_declaration(p, attributes)
 
 
 proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
    # FIXME: Implement
-   get_token(p)
+   discard
 
 
 proc parse_task_declaration(p: var Parser): PNode =
@@ -1131,12 +1138,14 @@ proc parse_task_declaration(p: var Parser): PNode =
    # Parse the task port list. If ports are specified, the syntax does not allow
    # port declarations within the task itself.
    var parse_body_declaration = parse_task_item_declaration
+   var expected_tokens = DeclarationTokens + {TkInput, TkInout, TkOutput}
    if p.tok.type == TkLparen:
       get_token(p)
       add(result.sons, parse_task_port_list(p))
       expect_token(p, result, TkRparen)
       get_token(p)
       parse_body_declaration = parse_block_item_declaration
+      expected_tokens = DeclarationTokens
 
    expect_token(p, result, TkSemicolon)
    get_token(p)
@@ -1146,7 +1155,7 @@ proc parse_task_declaration(p: var Parser): PNode =
    while true:
       if p.tok.type == TkLparenStar:
          add(attributes, parse_attribute_instances(p))
-      if p.tok.type notin DeclarationTokens + {TkInput, TkInout, TkOutput}:
+      if p.tok.type notin expected_tokens:
          break
       add(result.sons, parse_body_declaration(p, attributes))
 
@@ -1408,6 +1417,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       parse_proc = parse_event_declaration
    of NtNetDecl:
       parse_proc = parse_net_declaration
+   of NtTaskDecl:
+      parse_proc = parse_task_declaration
    else:
       parse_proc = nil
 
