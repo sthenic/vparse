@@ -1097,6 +1097,11 @@ proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
       result = parse_block_item_declaration(p, attributes)
 
 
+proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
+   # FIXME: Implement
+   get_token(p)
+
+
 proc parse_task_declaration(p: var Parser): PNode =
    result = new_node(p, NtTaskDecl)
    get_token(p)
@@ -1111,9 +1116,8 @@ proc parse_task_declaration(p: var Parser): PNode =
    add(result.sons, new_identifier_node(p, NtIdentifier))
    get_token(p)
 
-   # Parse the task port list if there is one.
-   # FIXME: If ports are specified, we expect a block item declarations in the
-   #        body. Otherwise we expect a task item declaration (containg ports).
+   # Parse the task port list. If ports are specified, the syntax does not allow
+   # port declarations within the task itself.
    var parse_body_declaration = parse_task_item_declaration
    if p.tok.type == TkLparen:
       get_token(p)
@@ -1125,16 +1129,20 @@ proc parse_task_declaration(p: var Parser): PNode =
    expect_token(p, result, TkSemicolon)
    get_token(p)
 
-   # FIXME: Complete implementation
-   # Parse zero or more declarations with parse_body_declaration. Otherwise,
-   # expect exactly one statement or NULL (a semicolon).
+   var attributes: seq[PNode] = @[]
+   # Parse zero or more declarations with parse_body_declaration.
    while true:
-      var attributes: seq[PNode] = @[]
       if p.tok.type == TkLparenStar:
          add(attributes, parse_attribute_instances(p))
-      # FIXME: Check for a declaration token (create set?) -> only
+      if p.tok.type notin DeclarationTokens + {TkInput, TkInout, TkOutput}:
+         break
+      add(result.sons, parse_body_declaration(p, attributes))
 
-   # FIXME: Parse a statement
+   # Parse a statement or null (a single semicolon)
+   if p.tok.type == TkLparenStar:
+      add(attributes, parse_attribute_instances(p))
+
+   add(result.sons, parse_statement_or_null(p, attributes))
 
    expect_token(p, result, TkEndtask)
    get_token(p)

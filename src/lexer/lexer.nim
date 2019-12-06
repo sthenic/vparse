@@ -103,6 +103,8 @@ const
    DriveStrength1Tokens* = {TkSupply1, TkStrong1, TkPull1, TkWeak1}
    DriveStrengthTokens* = DriveStrength0Tokens + DriveStrength1Tokens + {TkHighz0, TkHighz1}
    ChargeStrengthTokens* = {TkSmall, TkMedium, TkLarge}
+   DeclarationTokens* = {TkReg, TkInteger, TkTime, TkReal, TkRealtime, TkEvent,
+                         TkLocalparam, TkParameter}
 
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",
