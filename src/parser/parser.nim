@@ -1086,9 +1086,21 @@ proc parse_task_port_list(p: var Parser): seq[PNode] =
 
 
 proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
-   # FIXME: Implement
-   get_token(p)
+   case p.tok.type
+   of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
+      result = parse_variable_declaration(p)
+   of TkEvent:
+      result = parse_event_declaration(p)
+   of TkLocalparam:
+      # FIXME: localparam
+      get_token(p)
+   of TkParameter:
+      result = parse_parameter_declaration(p)
+   else:
+      unexpected_token(p, result)
 
+   if len(attributes) > 0:
+      result.sons = attributes & result.sons
 
 proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    if p.tok.type in {TkInput, TkInout, TkOutput}:
