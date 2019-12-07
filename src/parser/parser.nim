@@ -1116,6 +1116,132 @@ proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
       result = parse_block_item_declaration(p, attributes)
 
 
+proc parse_variable_lvalue(p: var Parser): PNode =
+   case p.tok.type
+   of TkSymbol:
+      result = new_node(p, NtVariableLvalue)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+
+      # The identifier may be followed by any number of bracketed expressions.
+      # However, it's only the last one that's allowed to be a range expression.
+      # TODO: Fix this parsing since we're allowing everything to be a range
+      #       expression. We should probably have NtBrackets like we do for
+      #       parentheses.
+      while true:
+         if p.tok.type != TkLbracket:
+            break
+         add(result.sons, parse_constant_range_expression(p))
+
+   of TkLbrace:
+      # Concatenation of lvalues, expecting at least one.
+      get_token(p)
+      result = new_node(p, NtVariableLvalueConcat)
+      while true:
+         add(result.sons, parse_variable_lvalue(p))
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+      expect_token(p, TkRbrace)
+      get_token(p)
+   else:
+      result = unexpected_token(p)
+      return
+
+
+proc parse_event_expression(p: var Parser): PNode =
+   result = new_node(p, NtEventExpression)
+
+   if p.tok.type in {TkPosedge, TkNegedge}:
+      # FIXME: Improve node type?
+      add(result.sons, new_identifier_node(p, NtType))
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+   else:
+      add(result.sons, parse_constant_expression(p))
+
+   # Check if the expression is followed by 'or', in which case we expect
+   # another event expression to follow.
+   # FIXME: This creates a weird AST
+   if p.tok.type == TkOr:
+      add(result.sons, parse_event_expression(p))
+
+
+proc parse_event_control(p: var Parser): PNode =
+   result = new_node(p, NtEventControl)
+   expect_token(p, result, TkAt)
+   get_token(p)
+
+   case p.tok.type
+   of TkSymbol:
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+   of TkOperator:
+      if p.tok.identifier.s != "*":
+         unexpected_token(p, result)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+   of TkLparen:
+      let n = new_node(p, NtParenthesis)
+      get_token(p)
+      if p.tok.type == TkOperator and p.tok.identifier.s == "*":
+         add(n.sons, new_identifier_node(p, NtIdentifier))
+         get_token(p)
+      elif p.tok.type == TkSymbol:
+         add(n.sons, parse_event_expression(p))
+      else:
+         unexpected_token(p, result)
+
+      expect_token(p, result, TkRparen)
+      get_token(p)
+      add(result.sons, n)
+   else:
+      unexpected_token(p, result)
+
+
+proc parse_delay_or_event_control(p: var Parser): PNode =
+   case p.tok.type
+   of TkHash:
+      result = parse_delay(p, 1)
+   of TkAt:
+      result = parse_event_control(p)
+   of TkRepeat:
+      result = new_node(p, NtRepeat)
+      get_token(p)
+      expect_token(p, result, TkLparen)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, result, TkRparen)
+      get_token(p)
+      add(result.sons, parse_event_control(p))
+   else:
+      result = unexpected_token(p)
+
+
+proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
+   let lvalue = parse_variable_lvalue(p)
+
+   # Initialize the node depending on the next token.
+   case p.tok.type
+   of TkEquals:
+      result = new_node(p, NtBlockingAssignment)
+   of TkOperator:
+      if p.tok.identifier.s != "<=":
+         result = unexpected_token(p)
+         return
+      result = new_node(p, NtNonblockingAssignment)
+   else:
+      result = unexpected_token(p)
+      return
+
+   add(result.sons, lvalue)
+
+   # Handle a delay or event control specifier.
+   if p.tok.type in {TkHash, TkAt, TkRepeat}:
+      add(result.sons, parse_delay_or_event_control(p))
+
+   add(result.sons, parse_constant_expression(p))
+
+
 proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkCase, TkCasex, TkCasez:
@@ -1480,6 +1606,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       parse_proc = parse_net_declaration
    of NtTaskDecl:
       parse_proc = parse_task_declaration
+   of NtBlockingAssignment, NtNonblockingAssignment:
+      parse_proc = parse_blocking_or_nonblocking_assignment
    else:
       parse_proc = nil
 
