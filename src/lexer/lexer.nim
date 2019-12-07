@@ -41,7 +41,7 @@ type
       TkXnor, TkXor, # end keywords, begin special characters:
       TkBackslash, TkComma, TkDot, TkQuestionMark, TkSemicolon, TkColon, TkAt,
       TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkLbrace, TkRbrace,
-      TkLparenStar, TkRparenStar, TkPlusColon, TkMinusColon,
+      TkLparenStar, TkRparenStar, TkPlusColon, TkMinusColon, TkRightArrow,
       TkEquals, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
@@ -139,7 +139,7 @@ const
       "wait", "wand", "weak0", "weak1", "while", "wire", "wor",
       "xnor", "xor",
       "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}",
-      "(*", "*)", "+:", "-:", "=",
+      "(*", "*)", "+:", "-:", "->", "=",
       "TkSymbol", "TkOperator", "TkStrLit",
       "TkIntLit", "TkUIntLit",
       "TkAmbIntLit", "TkAmbUIntLit",

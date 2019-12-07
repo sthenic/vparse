@@ -516,6 +516,11 @@ run_test("Compact expression w/ integers and reals", "3+4-4.3e-3", @[
    Token.new_fnumber(TkRealLit, 1, 4, 0.0043, "4.3e-3")
 ])
 
+run_test("Event trigger", "-> trig", @[
+   Token.new_identifier(TkRightArrow, 1, 0, "->"),
+   Token.new_identifier(TkSymbol, 1, 3, "trig")
+])
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
