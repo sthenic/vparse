@@ -57,6 +57,11 @@ type
       NtTaskDecl, NtTaskPort, # FIXME: We should probably have one 'port node'.
       # Generate construct A.4.2
       NtGenerateRegion,
+      # Procedural blocks and assignments A.6.2
+      NtBlockingAssignment,
+      NtNonblockingAssignment,
+      # Timing control statements A.6.5
+      NtEventControl, NtEventExpression, NtRepeat,
       # Specify section A.7.1
       NtSpecifyBlock,
       # Concatenations A.8.1
@@ -69,6 +74,9 @@ type
       NtConstantConditionalExpression, NtConstantRangeExpression,
       # Primaries A.8.4
       NtConstantPrimary,
+      # Expression left-side values A.8.5
+      NtVariableLvalue,
+      NtVariableLvalueConcat,
       # Operators A.8.6
       NtUnaryOperator, NtBinaryOperator,
       # Attributes A.9.1
