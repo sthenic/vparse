@@ -1149,23 +1149,24 @@ proc parse_variable_lvalue(p: var Parser): PNode =
       return
 
 
-proc parse_event_expression(p: var Parser): PNode =
-   result = new_node(p, NtEventExpression)
-
+proc parse_event_expression(p: var Parser): seq[PNode] =
+   # This function returns a sequence of nodes since the syntax allows one event
+   # expression to consist of many chained expressions chained together w/ 'or'.
+   let n = new_node(p, NtEventExpression)
    if p.tok.type in {TkPosedge, TkNegedge}:
       # FIXME: Improve node type?
-      add(result.sons, new_identifier_node(p, NtType))
+      add(n.sons, new_identifier_node(p, NtType))
       get_token(p)
-      add(result.sons, parse_constant_expression(p))
+      add(n.sons, parse_constant_expression(p))
    else:
-      add(result.sons, parse_constant_expression(p))
+      add(n.sons, parse_constant_expression(p))
+   add(result, n)
 
    # Check if the expression is followed by 'or', in which case we expect
    # another event expression to follow.
-   # FIXME: This creates a weird AST
    if p.tok.type == TkOr:
       get_token(p)
-      add(result.sons, parse_event_expression(p))
+      add(result, parse_event_expression(p))
 
 
 proc parse_event_control(p: var Parser): PNode =
