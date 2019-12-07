@@ -1135,8 +1135,8 @@ proc parse_variable_lvalue(p: var Parser): PNode =
 
    of TkLbrace:
       # Concatenation of lvalues, expecting at least one.
-      get_token(p)
       result = new_node(p, NtVariableLvalueConcat)
+      get_token(p)
       while true:
          add(result.sons, parse_variable_lvalue(p))
          if p.tok.type != TkComma:
@@ -1176,16 +1176,29 @@ proc parse_event_control(p: var Parser): PNode =
    case p.tok.type
    of TkSymbol:
       add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
    of TkOperator:
       if p.tok.identifier.s != "*":
          unexpected_token(p, result)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_node(p, NtWildcard))
       get_token(p)
+   of TkLparenStar:
+      # If the left parenthesis is not separated from the '*' with whitespace,
+      # the lexer will output this as a '(*' token used to indicate an attribute
+      # instance. We have to interpret this differently.
+      let n = new_node(p, NtParenthesis)
+      let wc = new_node(p, NtWildcard)
+      inc(wc.info.col)
+      add(n.sons, wc)
+      get_token(p)
+      expect_token(p, result, TkRparen)
+      get_token(p)
+      add(result.sons, n)
    of TkLparen:
       let n = new_node(p, NtParenthesis)
       get_token(p)
       if p.tok.type == TkOperator and p.tok.identifier.s == "*":
-         add(n.sons, new_identifier_node(p, NtIdentifier))
+         add(n.sons, new_node(p, NtWildcard))
          get_token(p)
       else:
          add(n.sons, parse_event_expression(p))

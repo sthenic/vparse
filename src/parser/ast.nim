@@ -24,6 +24,7 @@ type
       NtInfix,
       NtParenthesis,
       NtDirection,
+      NtWildcard, # Symbolizes a '*' in an event expression.
       # Custom node types
       NtRangedIdentifier, # FIXME: Still useful? Same as NtArrayIdentifier?
       NtArrayIdentifer,
@@ -122,6 +123,8 @@ type
       of OperatorTypes:
          # FIXME: Unused right now
          op*: string
+      of NtWildcard:
+         discard
       else:
          sons*: TNodeSeq
 
@@ -150,6 +153,8 @@ proc pretty*(n: PNode, indent: int = 0): string =
       add(result, format(": $1\n", n.msg))
    of NtStrLit:
       add(result, format(": $1\n", n.s))
+   of NtWildcard:
+      add(result, "\n")
    else:
       add(result, "\n")
       var sons_str = ""
@@ -182,7 +187,7 @@ proc `==`*(x, y: PNode): bool =
       result = x.op == y.op
    of NtStrLit:
       result = x.s == y.s
-   of NtError:
+   of NtError, NtWildcard:
       return true
    else:
       if len(x.sons) != len(y.sons):
@@ -216,7 +221,8 @@ proc detailed_compare*(x, y: PNode) =
       return
 
    case x.type
-   of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError, NtStrLit:
+   of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError,
+      NtStrLit, NtWildcard:
       if x != y:
          echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
          return
