@@ -188,6 +188,99 @@ run_test("Blocking assignment: event control, wildcard w/ parentheses, spaced ou
       new_identifier_node(NtIdentifier, li(1, 14), "FOO")
    ])
 
+run_test("Blocking assignment: event control, event expression, posedge", "foo = @(posedge clk) FOO"):
+   new_node(NtBlockingAssignment, li(1, 1), @[
+      new_node(NtVariableLvalue, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+      ]),
+      new_node(NtEventControl, li(1, 7), @[
+         new_node(NtParenthesis, li(1, 8), @[
+            new_node(NtEventExpression, li(1, 9), @[
+               new_identifier_node(NtType, li(1, 9), "posedge"),
+               new_identifier_node(NtIdentifier, li(1, 17), "clk")
+            ]),
+         ]),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 22), "FOO")
+   ])
+
+run_test("Blocking assignment: event control, event expression, negedge", "foo = @(negedge clk) FOO"):
+   new_node(NtBlockingAssignment, li(1, 1), @[
+      new_node(NtVariableLvalue, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+      ]),
+      new_node(NtEventControl, li(1, 7), @[
+         new_node(NtParenthesis, li(1, 8), @[
+            new_node(NtEventExpression, li(1, 9), @[
+               new_identifier_node(NtType, li(1, 9), "negedge"),
+               new_identifier_node(NtIdentifier, li(1, 17), "clk")
+            ]),
+         ]),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 22), "FOO")
+   ])
+
+run_test("Blocking assignment: event control, event expression, expression", "foo = @(A_SYMBOL + 3) FOO"):
+   new_node(NtBlockingAssignment, li(1, 1), @[
+      new_node(NtVariableLvalue, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+      ]),
+      new_node(NtEventControl, li(1, 7), @[
+         new_node(NtParenthesis, li(1, 8), @[
+            new_node(NtEventExpression, li(1, 9), @[
+               new_node(NtInfix, li(1, 18), @[
+                  new_identifier_node(NtIdentifier, li(1, 18), "+"),
+                  new_identifier_node(NtIdentifier, li(1, 9), "A_SYMBOL"),
+                  new_inumber_node(NtIntLit, li(1, 20), 3, "3", Base10, -1)
+               ]),
+            ]),
+         ]),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 23), "FOO")
+   ])
+
+run_test("Blocking assignment: event control, multiple event expressions", "foo = @(posedge clk or negedge rst_n or random_signal) FOO"):
+   new_node(NtBlockingAssignment, li(1, 1), @[
+      new_node(NtVariableLvalue, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+      ]),
+      new_node(NtEventControl, li(1, 7), @[
+         new_node(NtParenthesis, li(1, 8), @[
+            new_node(NtEventExpression, li(1, 9), @[
+               new_identifier_node(NtType, li(1, 9), "posedge"),
+               new_identifier_node(NtIdentifier, li(1, 17), "clk")
+            ]),
+            new_node(NtEventExpression, li(1, 24), @[
+               new_identifier_node(NtType, li(1, 24), "negedge"),
+               new_identifier_node(NtIdentifier, li(1, 32), "rst_n")
+            ]),
+            new_node(NtEventExpression, li(1, 41), @[
+               new_identifier_node(NtIdentifier, li(1, 41), "random_signal")
+            ]),
+         ]),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 56), "FOO")
+   ])
+
+run_test("Blocking assignment: event control, repeat", "foo = repeat (3) @(posedge clk) FOO"):
+   new_node(NtBlockingAssignment, li(1, 1), @[
+      new_node(NtVariableLvalue, li(1, 1), @[
+         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+      ]),
+      new_node(NtRepeat, li(1, 7), @[
+         new_inumber_node(NtIntLit, li(1, 15), 3, "3", Base10, -1),
+         new_node(NtEventControl, li(1, 18), @[
+            new_node(NtParenthesis, li(1, 19), @[
+               new_node(NtEventExpression, li(1, 20), @[
+                  new_identifier_node(NtType, li(1, 20), "posedge"),
+                  new_identifier_node(NtIdentifier, li(1, 28), "clk")
+               ])
+            ]),
+         ]),
+      ]),
+      new_identifier_node(NtIdentifier, li(1, 33), "FOO")
+   ])
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
