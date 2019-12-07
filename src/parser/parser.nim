@@ -1116,9 +1116,70 @@ proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
       result = parse_block_item_declaration(p, attributes)
 
 
+proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
+   case p.tok.type
+   of TkCase, TkCasex, TkCasez:
+      # FIXME: Case statement
+      get_token(p)
+   of TkIf:
+      # FIXME: Conditional statement
+      get_token(p)
+   of TkDisable:
+      # FIXME: Disable statement
+      get_token(p)
+   of TkRightArrow:
+      # FIXME: Event trigger
+      get_token(p)
+   of TkForever, TkRepeat, TkWhile, TkFor:
+      # FIXME: Loop statement
+      get_token(p)
+   of TkFork:
+      # FIXME: Parallel block
+      get_token(p)
+   of TkBegin:
+      # FIXME: Sequential block
+      get_token(p)
+   of TkAssign, TkDeassign, TkForce, TkRelease:
+      # FIXME: Procedural continuouos assignment
+      get_token(p)
+      # FIXME: Make sure result is not nil.
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+   of TkHash, TkAt:
+      # FIXME: Procedural timing control statement.
+      get_token(p)
+   of TkDollar:
+      # FIXME: System task identifier
+      get_token(p)
+   of TkWait:
+      # FIXME: Wait statement
+      get_token(p)
+   of TkSymbol:
+      # FIXME: Task identifier if followed by parentheses or by a semicolon.
+      # FIXME: Blocking assignment if followed by '='.
+      # FIXME: Nonblocking assignment if followed by '<='.
+      get_token(p)
+   of TkLbrace:
+      # FIXME: blocking or nonblocking assignment.
+      get_token(p)
+   else:
+      result = unexpected_token(p)
+      return
+
+   if len(attributes) > 0:
+      result.sons = attributes & result.sons
+
+
 proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
-   # FIXME: Implement
-   discard
+   if p.tok.type == TkSemicolon:
+      # This is a null statement.
+      # FIXME: use a better node type, include attributes.
+      result = new_node(p, NtEmpty)
+      get_token(p)
+   else:
+      # Parse a statement.
+      result = parse_statement(p, attributes)
+      discard
 
 
 proc parse_task_declaration(p: var Parser): PNode =
