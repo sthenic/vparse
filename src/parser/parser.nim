@@ -1164,6 +1164,7 @@ proc parse_event_expression(p: var Parser): PNode =
    # another event expression to follow.
    # FIXME: This creates a weird AST
    if p.tok.type == TkOr:
+      get_token(p)
       add(result.sons, parse_event_expression(p))
 
 
@@ -1186,10 +1187,8 @@ proc parse_event_control(p: var Parser): PNode =
       if p.tok.type == TkOperator and p.tok.identifier.s == "*":
          add(n.sons, new_identifier_node(p, NtIdentifier))
          get_token(p)
-      elif p.tok.type == TkSymbol:
-         add(n.sons, parse_event_expression(p))
       else:
-         unexpected_token(p, result)
+         add(n.sons, parse_event_expression(p))
 
       expect_token(p, result, TkRparen)
       get_token(p)
@@ -1233,6 +1232,8 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
       result = unexpected_token(p)
       return
 
+   get_token(p)
+   result.info = lvalue.info
    add(result.sons, lvalue)
 
    # Handle a delay or event control specifier.
