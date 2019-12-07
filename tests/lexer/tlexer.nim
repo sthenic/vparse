@@ -521,6 +521,19 @@ run_test("Event trigger", "-> trig", @[
    Token.new_identifier(TkSymbol, 1, 3, "trig")
 ])
 
+run_test("Asynchronous event, clash w/ attribute begin", "@(*)", @[
+   Token.new_token(TkAt, 1, 0),
+   Token.new_token(TkLparenStar, 1, 1),
+   Token.new_token(TkRparen, 1, 3),
+])
+
+run_test("Asynchronous event, whitespace separated", "@( * )", @[
+   Token.new_token(TkAt, 1, 0),
+   Token.new_token(TkLparen, 1, 1),
+   Token.new_identifier(TkOperator, 1, 3, "*"),
+   Token.new_token(TkRparen, 1, 5),
+])
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
