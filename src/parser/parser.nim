@@ -1260,6 +1260,20 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
    add(result.sons, parse_constant_expression(p))
 
 
+proc parse_procedural_continuous_assignment(p: var Parser): PNode =
+   result = new_node(p, NtProceduralContinuousAssignment)
+   add(result.sons, new_identifier_node(p, NtType)) # FIXME: Better node type?
+   let tok = p.tok
+   get_token(p)
+   # Regardless of which syntax we've parsing, there's always an lvalue.
+   add(result.sons, parse_variable_lvalue(p))
+   # If this is an 'assign' or 'force' statement, the syntax requires an assignment.
+   if tok.type in {TkAssign, TkForce}:
+      expect_token(p, result, TkEquals)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+
+
 # Forward declaration
 proc parse_statement_or_null(p: var Parser): PNode
 
@@ -1293,14 +1307,17 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: Sequential block
       get_token(p)
    of TkAssign, TkDeassign, TkForce, TkRelease:
-      # FIXME: Procedural continuouos assignment
-      get_token(p)
-      # FIXME: Make sure result is not nil.
+      result = parse_procedural_continuous_assignment(p)
       expect_token(p, result, TkSemicolon)
       get_token(p)
-   of TkHash, TkAt:
-      # FIXME: Procedural timing control statement.
-      get_token(p)
+   of TkHash:
+      result = new_node(p, NtProceduralTimingControl)
+      add(result.sons, parse_delay(p, 1))
+      add(result.sons, parse_statement_or_null(p))
+   of TkAt:
+      result = new_node(p, NtProceduralTimingControl)
+      add(result.sons, parse_event_control(p))
+      add(result.sons, parse_statement_or_null(p))
    of TkDollar:
       # The syntax to enable a system task is different to a regular task.
       # The arguments may be empty. To indicate this we insert empty nodes in
