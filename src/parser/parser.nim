@@ -1399,7 +1399,19 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: Disable statement
       get_token(p)
    of TkRightArrow:
-      # FIXME: Event trigger
+      result = new_node(p, NtEventTrigger)
+      get_token(p)
+      expect_token(p, result, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      while true:
+         if p.tok.type != TkLbracket:
+            break
+         get_token(p)
+         add(result.sons, parse_constant_expression(p))
+         expect_token(p, result, TkRbracket)
+         get_token(p)
+      expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkForever, TkRepeat, TkWhile, TkFor:
       result = parse_loop_statement(p)

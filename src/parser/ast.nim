@@ -68,7 +68,7 @@ type
       NtTaskEnable, NtSystemTaskEnable,
       # Timing control statements A.6.5
       NtEventControl, NtEventExpression, NtRepeat, NtWait,
-      NtProceduralTimingControl,
+      NtProceduralTimingControl, NtEventTrigger,
       # Looping statements A.6.8
       NtForever, NtWhile, NtFor,
       # Specify section A.7.1
