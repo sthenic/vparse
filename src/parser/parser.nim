@@ -1337,6 +1337,56 @@ proc parse_block(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_variable_assignment(p: var Parser): PNode =
+   result = new_node(p, NtAssignment)
+   add(result.sons, parse_variable_lvalue(p))
+   expect_token(p, result, TkEquals)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+
+
+proc parse_loop_statement(p: var Parser): PNode =
+   case p.tok.type
+   of TkForever:
+      result = new_node(p, NtForever)
+      get_token(p)
+   of TkRepeat:
+      result = new_node(p, NtRepeat)
+      get_token(p)
+      expect_token(p, TkLparen)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, TkRparen)
+      get_token(p)
+   of TkWhile:
+      result = new_node(p, NtWhile)
+      get_token(p)
+      expect_token(p, TkLparen)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, TkRparen)
+      get_token(p)
+   of TkFor:
+      result = new_node(p, NtFor)
+      get_token(p)
+      expect_token(p, TkLparen)
+      get_token(p)
+      add(result.sons, parse_variable_assignment(p))
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+      add(result.sons, parse_variable_assignment(p))
+      expect_token(p, TkRparen)
+      get_token(p)
+   else:
+      # FIXME: Better served by an error node w/ sons?
+      result = new_node(p, NtFor)
+      unexpected_token(p, result)
+
+   add(result.sons, parse_statement(p))
+
 proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkCase, TkCasex, TkCasez:
@@ -1352,10 +1402,8 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: Event trigger
       get_token(p)
    of TkForever, TkRepeat, TkWhile, TkFor:
-      # FIXME: Loop statement
-      get_token(p)
+      result = parse_loop_statement(p)
    of TkFork, TkBegin:
-      # Parallel or sequential block.
       result = parse_block(p)
    of TkAssign, TkDeassign, TkForce, TkRelease:
       result = parse_procedural_continuous_assignment(p)
