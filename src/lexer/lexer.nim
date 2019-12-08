@@ -105,6 +105,10 @@ const
    ChargeStrengthTokens* = {TkSmall, TkMedium, TkLarge}
    DeclarationTokens* = {TkReg, TkInteger, TkTime, TkReal, TkRealtime, TkEvent,
                          TkLocalparam, TkParameter}
+   StatementTokens* = {TkCase, TkCasex, TkCasez, TkIf, TkDisable, TkRightArrow,
+                       TkForever, TkRepeat, TkWhile, TkFor, TkFork, TkBegin,
+                       TkAssign, TkDeassign, TkForce, TkRelease, TkHash,
+                       TkAt, TkDollar, TkWait, TkSymbol, TkLbrace}
 
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",

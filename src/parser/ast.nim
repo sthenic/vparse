@@ -62,6 +62,8 @@ type
       NtBlockingAssignment,
       NtNonblockingAssignment,
       NtProceduralContinuousAssignment,
+      # Parallel and sequential blocks A.6.3
+      NtParBlock, NtSeqBlock,
       # Statements A.6.4
       NtTaskEnable, NtSystemTaskEnable,
       # Timing control statements A.6.5

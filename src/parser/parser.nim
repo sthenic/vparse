@@ -1098,8 +1098,12 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
    of TkLocalparam:
       # FIXME: localparam
       get_token(p)
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
    of TkParameter:
       result = parse_parameter_declaration(p)
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
    else:
       result = unexpected_token(p)
       return
@@ -1107,8 +1111,9 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
    if len(attributes) > 0:
       result.sons = attributes & result.sons
 
-   expect_token(p, result, TkSemicolon)
-   get_token(p)
+
+proc parse_block_item_declaration(p: var Parser): PNode =
+   result = parse_block_item_declaration(p, parse_attribute_instances(p))
 
 
 proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
@@ -1275,16 +1280,65 @@ proc parse_procedural_continuous_assignment(p: var Parser): PNode =
 
 
 # Forward declaration
+proc parse_statement(p: var Parser): PNode
+proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode
 proc parse_statement_or_null(p: var Parser): PNode
+proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode
 
 
-proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
+proc parse_block(p: var Parser): PNode =
    case p.tok.type
-   of TkSemicolon:
-      # Null statement.
-      # FIXME: use a better node type?
-      result = new_node(p, NtEmpty)
+   of TkBegin:
+      result = new_node(p, NtSeqBlock)
+   of TkFork:
+      result = new_node(p, NtParBlock)
+   else:
+      result = new_node(p, NtSeqBlock)
+      unexpected_token(p, result)
+
+   var attributes: seq[PNode] = @[]
+   # Optional block identifier.
+   get_token(p)
+   if p.tok.type == TkColon:
       get_token(p)
+      expect_token(p, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+
+      while true:
+         attributes = parse_attribute_instances(p)
+         if p.tok.type notin DeclarationTokens:
+            break
+         add(result.sons, parse_block_item_declaration(p, attributes))
+
+   # If the while loop parsing declarations was aborted but there are
+   # unprocessed attributes. We handle this case manually, expecting a statement
+   # to follow.
+   if len(attributes) > 0:
+      add(result.sons, parse_statement(p, attributes))
+
+   while true:
+      attributes = parse_attribute_instances(p)
+      if p.tok.type notin StatementTokens:
+         break
+      add(result.sons, parse_statement(p, attributes))
+
+   # It's a parse error if the loop was broken with unprocessed attributes.
+   if len(attributes) > 0:
+      let n = new_error_node(p, "Unexpected attribute instance.")
+      n.info = attributes[0].info
+      add(result.sons, n)
+      return
+
+   if result.type == NtSeqBlock:
+      expect_token(p, result, TkEnd)
+   elif result.type == NtParBlock:
+      expect_token(p, result, TkJoin)
+   get_token(p)
+
+
+proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
+   case p.tok.type
    of TkCase, TkCasex, TkCasez:
       # FIXME: Case statement
       get_token(p)
@@ -1300,12 +1354,9 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
    of TkForever, TkRepeat, TkWhile, TkFor:
       # FIXME: Loop statement
       get_token(p)
-   of TkFork:
-      # FIXME: Parallel block
-      get_token(p)
-   of TkBegin:
-      # FIXME: Sequential block
-      get_token(p)
+   of TkFork, TkBegin:
+      # Parallel or sequential block.
+      result = parse_block(p)
    of TkAssign, TkDeassign, TkForce, TkRelease:
       result = parse_procedural_continuous_assignment(p)
       expect_token(p, result, TkSemicolon)
@@ -1388,6 +1439,21 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
 
    if len(attributes) > 0:
       result.sons = attributes & result.sons
+
+
+proc parse_statement(p: var Parser): PNode =
+   result = parse_statement(p, parse_attribute_instances(p))
+
+
+proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
+   if p.tok.type == TkSemicolon:
+      # Null statement.
+      # FIXME: use a better node type?
+      result = new_node(p, NtEmpty)
+      get_token(p)
+      add(result.sons, attributes)
+   else:
+      result = parse_statement(p, attributes)
 
 
 proc parse_statement_or_null(p: var Parser): PNode =
