@@ -1387,14 +1387,37 @@ proc parse_loop_statement(p: var Parser): PNode =
 
    add(result.sons, parse_statement(p))
 
+
+proc parse_conditional_statement(p: var Parser): PNode =
+   result = new_node(p, NtIf)
+   get_token(p)
+
+   # Parse the conditional expression.
+   expect_token(p, result, TkLparen)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkRparen)
+   get_token(p)
+   add(result.sons, parse_statement_or_null(p))
+
+   if p.tok.type == TkElse:
+      get_token(p)
+      # And else-if replaces the else statement.
+      if p.tok.type == TkIf:
+         add(result.sons, parse_conditional_statement(p))
+      else:
+         add(result.sons, parse_statement_or_null(p))
+   else:
+      add(result.sons, new_node(p, NtEmpty))
+
+
 proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkCase, TkCasex, TkCasez:
       # FIXME: Case statement
       get_token(p)
    of TkIf:
-      # FIXME: Conditional statement
-      get_token(p)
+      result = parse_conditional_statement(p)
    of TkDisable:
       result = new_node(p, NtDisable)
       get_token(p)

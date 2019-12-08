@@ -69,6 +69,8 @@ type
       # Timing control statements A.6.5
       NtEventControl, NtEventExpression, NtRepeat, NtWait,
       NtProceduralTimingControl, NtEventTrigger, NtDisable,
+      # Conditional statements A.6.6
+      NtIf,
       # Looping statements A.6.8
       NtForever, NtWhile, NtFor,
       # Specify section A.7.1
