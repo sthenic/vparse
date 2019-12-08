@@ -139,6 +139,23 @@ run_test("Constant primary: multiple concatenation", "{32{2'b01}}"):
       ])
    ]))
 
+run_test("Constant primary: nested concatenation", "{{(WIDTH-1){1'b0}}, 1'b1}"):
+   new_node(NtConstantConcat, li(1, 1), @[
+      new_node(NtConstantMultipleConcat, li(1, 2), @[
+         new_node(NtParenthesis, li(1, 3), @[
+            new_node(NtInfix, li(1, 9), @[
+               new_identifier_node(NtIdentifier, li(1, 9), "-"),
+               new_identifier_node(NtIdentifier, li(1, 4), "WIDTH"),
+               new_inumber_node(NtIntLit, li(1, 10), 1, "1", Base10, -1)
+            ]),
+         ]),
+         new_node(NtConstantConcat, li(1, 12), @[
+            new_inumber_node(NtUIntLit, li(1, 13), 0, "0", Base2, 1),
+         ])
+      ]),
+      new_inumber_node(NtUIntLit, li(1, 21), 1, "1", Base2, 1),
+   ])
+
 run_test("Constant primary: function call", "myfun (* attr = val *) (2, 3, MYCONST)"):
    cprim(new_node(NtConstantFunctionCall, li(1, 1), @[
       new_identifier_node(NtIdentifier, li(1, 1), "myfun"),
