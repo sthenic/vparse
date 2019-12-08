@@ -1468,29 +1468,23 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
    case p.tok.type
    of NetTypeTokens, TkTrireg:
       result = parse_net_declaration(p)
-      if len(attributes) > 0:
-         result.sons = attributes & result.sons
    of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
       result = parse_variable_declaration(p)
-      if len(attributes) > 0:
-         result.sons = attributes & result.sons
    of TkEvent:
       result = parse_event_declaration(p)
-      if len(attributes) > 0:
-         result.sons = attributes & result.sons
    of TkGenvar:
       result = parse_genvar_declaration(p)
-      if len(attributes) > 0:
-         result.sons = attributes & result.sons
    of TkTask:
       result = parse_task_declaration(p)
-      if len(attributes) > 0:
-         result.sons = attributes & result.sons
    of TkFunction:
       # FIXME: function decl.
       get_token(p)
    else:
       result = unexpected_token(p)
+      return
+
+   if len(attributes) > 0:
+      result.sons = attributes & result.sons
 
 
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
