@@ -1396,7 +1396,12 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: Conditional statement
       get_token(p)
    of TkDisable:
-      # FIXME: Disable statement
+      result = new_node(p, NtDisable)
+      get_token(p)
+      expect_token(p, result, TkSymbol)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkRightArrow:
       result = new_node(p, NtEventTrigger)
