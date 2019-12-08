@@ -64,7 +64,7 @@ type
       # Statements A.6.4
       NtTaskEnable,
       # Timing control statements A.6.5
-      NtEventControl, NtEventExpression, NtRepeat,
+      NtEventControl, NtEventExpression, NtRepeat, NtWait,
       # Specify section A.7.1
       NtSpecifyBlock,
       # Concatenations A.8.1

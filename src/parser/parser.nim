@@ -1259,9 +1259,17 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
 
    add(result.sons, parse_constant_expression(p))
 
+# Forward declaration
+proc parse_statement_or_null(p: var Parser): PNode
 
-proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
+
+proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
+   of TkSemicolon:
+      # Null statement.
+      # FIXME: use a better node type?
+      result = new_node(p, NtEmpty)
+      get_token(p)
    of TkCase, TkCasex, TkCasez:
       # FIXME: Case statement
       get_token(p)
@@ -1296,8 +1304,14 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: System task identifier
       get_token(p)
    of TkWait:
-      # FIXME: Wait statement
+      result = new_node(p, NtWait)
       get_token(p)
+      expect_token(p, result, TkLparen)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, result, TkRparen)
+      get_token(p)
+      add(result.sons, parse_statement_or_null(p))
    of TkSymbol:
       # We have to look ahead one token to determine which syntax to parse. If
       # the next token is a parenthesis or a semicolon, we're parsing a task
@@ -1333,15 +1347,8 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       result.sons = attributes & result.sons
 
 
-proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
-   if p.tok.type == TkSemicolon:
-      # This is a null statement.
-      # FIXME: use a better node type, include attributes.
-      result = new_node(p, NtEmpty)
-      get_token(p)
-   else:
-      # Parse a statement.
-      result = parse_statement(p, attributes)
+proc parse_statement_or_null(p: var Parser): PNode =
+   result = parse_statement_or_null(p, parse_attribute_instances(p))
 
 
 proc parse_task_declaration(p: var Parser): PNode =
@@ -1377,15 +1384,12 @@ proc parse_task_declaration(p: var Parser): PNode =
    # Parse zero or more declarations with parse_body_declaration.
    while true:
       if p.tok.type == TkLparenStar:
-         add(attributes, parse_attribute_instances(p))
+         attributes = parse_attribute_instances(p)
       if p.tok.type notin expected_tokens:
          break
       add(result.sons, parse_body_declaration(p, attributes))
 
    # Parse a statement or null (a single semicolon)
-   if p.tok.type == TkLparenStar:
-      add(attributes, parse_attribute_instances(p))
-
    add(result.sons, parse_statement_or_null(p, attributes))
 
    expect_token(p, result, TkEndtask)
