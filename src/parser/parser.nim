@@ -1259,6 +1259,7 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
 
    add(result.sons, parse_constant_expression(p))
 
+
 # Forward declaration
 proc parse_statement_or_null(p: var Parser): PNode
 
@@ -1301,7 +1302,32 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: Procedural timing control statement.
       get_token(p)
    of TkDollar:
-      # FIXME: System task identifier
+      # The syntax to enable a system task is different to a regular task.
+      # The arguments may be empty. To indicate this we insert empty nodes in
+      # the AST. We then have to differentiate between two 'types' of commas
+      # or parenthesis: those following an expression and those who don't.
+      result = new_node(p, NtSystemTaskEnable)
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
+      if p.tok.type == TkLparen:
+         get_token(p)
+         while true:
+            case p.tok.type
+            of TkRparen:
+               add(result.sons, new_node(p, NtEmpty))
+               break
+            of TkComma:
+               add(result.sons, new_node(p, NtEmpty))
+               get_token(p)
+            else:
+               add(result.sons, parse_constant_expression(p))
+               if p.tok.type == TkRparen:
+                  break
+               elif p.tok.type == TkComma:
+                  get_token(p)
+         expect_token(p, result, TkRparen)
+         get_token(p)
+      expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkWait:
       result = new_node(p, NtWait)

@@ -62,7 +62,7 @@ type
       NtBlockingAssignment,
       NtNonblockingAssignment,
       # Statements A.6.4
-      NtTaskEnable,
+      NtTaskEnable, NtSystemTaskEnable,
       # Timing control statements A.6.5
       NtEventControl, NtEventExpression, NtRepeat, NtWait,
       # Specify section A.7.1
