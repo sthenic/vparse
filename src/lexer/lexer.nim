@@ -109,6 +109,8 @@ const
                        TkForever, TkRepeat, TkWhile, TkFor, TkFork, TkBegin,
                        TkAssign, TkDeassign, TkForce, TkRelease, TkHash,
                        TkAt, TkDollar, TkWait, TkSymbol, TkLbrace}
+   PrimaryTokens* = NumberTokens + {TkSymbol, TkLbrace, TkLparen, TkStrLit, TkOperator}
+   ExpressionTokens* = PrimaryTokens
 
    TokenTypeToStr*: array[TokenType, string] = [
       "Invalid",

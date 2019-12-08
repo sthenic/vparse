@@ -1411,11 +1411,64 @@ proc parse_conditional_statement(p: var Parser): PNode =
       add(result.sons, new_node(p, NtEmpty))
 
 
+proc parse_case_item(p: var Parser): PNode =
+   result = new_node(p, NtCaseItem)
+   echo pretty(p.tok)
+   if p.tok.type == TkDefault:
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      # FIXME: The ':' is optional for the default case label. How to indicate
+      #        the presence/absence in the AST.
+      get_token(p)
+      if p.tok.type == TkColon:
+         get_token(p)
+      add(result.sons, parse_statement(p))
+   else:
+      # Assume it's one or several expressions.
+      while true:
+         add(result.sons, parse_constant_expression(p))
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+      expect_token(p, result, TkColon)
+      get_token(p)
+      add(result.sons, parse_statement(p))
+
+
+proc parse_case_statement(p: var Parser): PNode =
+   case p.tok.type
+   of TkCase:
+      result = new_node(p, NtCase)
+   of TkCasez:
+      result = new_node(p, NtCasez)
+   of TkCasex:
+      result = new_node(p, NtCasex)
+   else:
+      # FIXME: Better served by an error node w/ sons?
+      result = new_node(p, NtCase)
+      unexpected_token(p, result)
+
+   # Parse the expression.
+   get_token(p)
+   expect_token(p, result, TkLparen)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkRparen)
+   get_token(p)
+
+   # Expect at least one case item.
+   while true:
+      add(result.sons, parse_case_item(p))
+      if p.tok.type notin ExpressionTokens + {TkDefault}:
+         break
+
+   expect_token(p, result, TkEndcase)
+   get_token(p)
+
+
 proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkCase, TkCasex, TkCasez:
-      # FIXME: Case statement
-      get_token(p)
+      result = parse_case_statement(p)
    of TkIf:
       result = parse_conditional_statement(p)
    of TkDisable:

@@ -71,6 +71,8 @@ type
       NtProceduralTimingControl, NtEventTrigger, NtDisable,
       # Conditional statements A.6.6
       NtIf,
+      # Case statements A.6.7
+      NtCase, NtCasez, NtCasex, NtCaseItem,
       # Looping statements A.6.8
       NtForever, NtWhile, NtFor,
       # Specify section A.7.1
