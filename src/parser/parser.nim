@@ -148,6 +148,10 @@ proc look_ahead(p: Parser, curr, next: TokenType): bool =
    result = p.tok.type == curr and p.next_tok.type == next
 
 
+proc look_ahead(p: Parser, curr: TokenType, next: set[TokenType]): bool =
+   result = p.tok.type == curr and p.next_tok.type in next
+
+
 # Forward declarations
 proc parse_constant_expression(p: var Parser): PNode
 proc parse_constant_range_expression(p: var Parser): PNode
@@ -1238,13 +1242,12 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
    of TkEquals:
       result = new_node(p, NtBlockingAssignment)
    of TkOperator:
-      if p.tok.identifier.s != "<=":
-         result = unexpected_token(p)
-         return
       result = new_node(p, NtNonblockingAssignment)
+      if p.tok.identifier.s != "<=":
+         unexpected_token(p, result)
    else:
-      result = unexpected_token(p)
-      return
+      result = new_node(p, NtBlockingAssignment)
+      unexpected_token(p, result)
 
    get_token(p)
    result.info = lvalue.info
@@ -1296,12 +1299,31 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # FIXME: Wait statement
       get_token(p)
    of TkSymbol:
-      # FIXME: Task identifier if followed by parentheses or by a semicolon.
-      # FIXME: Blocking assignment if followed by '='.
-      # FIXME: Nonblocking assignment if followed by '<='.
+      # We have to look ahead one token to determine which syntax to parse. If
+      # the next token is a parenthesis or a semicolon, we're parsing a task
+      # identifier. Otherwise, if the next token is '=' or '<=', we're parsing
+      # a blocking or nonblocking assignment.
+      if look_ahead(p, TkSymbol, {TkLparen, TkSemicolon}):
+         result = new_node(p, NtTaskEnable)
+         add(result.sons, new_identifier_node(p, NtIdentifier))
+         get_token(p)
+         if p.tok.type == TkLparen:
+            get_token(p)
+            while true:
+               add(result.sons, parse_constant_expression(p))
+               if p.tok.type != TkComma:
+                  break
+               get_token(p)
+            expect_token(p, result, TkRparen)
+            get_token(p)
+      else:
+         result = parse_blocking_or_nonblocking_assignment(p)
+      expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkLbrace:
-      # FIXME: blocking or nonblocking assignment.
+      result = parse_blocking_or_nonblocking_assignment(p)
+      get_token(p)
+      expect_token(p, result, TkSemicolon)
       get_token(p)
    else:
       result = unexpected_token(p)
@@ -1320,7 +1342,6 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
    else:
       # Parse a statement.
       result = parse_statement(p, attributes)
-      discard
 
 
 proc parse_task_declaration(p: var Parser): PNode =

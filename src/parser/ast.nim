@@ -61,6 +61,8 @@ type
       # Procedural blocks and assignments A.6.2
       NtBlockingAssignment,
       NtNonblockingAssignment,
+      # Statements A.6.4
+      NtTaskEnable,
       # Timing control statements A.6.5
       NtEventControl, NtEventExpression, NtRepeat,
       # Specify section A.7.1
