@@ -1051,44 +1051,6 @@ proc parse_genvar_declaration(p: var Parser): PNode =
       get_token(p)
 
 
-proc parse_task_port(p: var Parser, attributes: seq[PNode]): PNode =
-   result = new_node(p, NtTaskPort)
-   if len(attributes) > 0:
-      add(result.sons, attributes)
-   expect_token(p, result, {TkInput, TkInout, TkOutput})
-   add(result.sons, new_identifier_node(p, NtDirection))
-   get_token(p)
-
-   if p.tok.type in {TkInteger, TkReal, TkRealtime, TkTime}:
-      add(result.sons, new_identifier_node(p, NtType))
-      get_token(p)
-   else:
-      # Register syntax
-      if p.tok.type == TkReg:
-         add(result.sons, new_identifier_node(p, NtType))
-         get_token(p)
-      if p.tok.type == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
-         get_token(p)
-      if p.tok.type == TkLbracket:
-         add(result.sons, parse_range(p))
-
-   # Parse a list of port identifiers
-   add(result.sons, parse_list_of_port_identifiers(p))
-
-
-proc parse_task_port_list(p: var Parser): seq[PNode] =
-   while true:
-      var attributes: seq[PNode] = @[]
-      if p.tok.type == TkLparenStar:
-         add(attributes, parse_attribute_instances(p))
-      add(result, parse_task_port(p, attributes))
-
-      if p.tok.type != TkComma:
-         break
-      get_token(p)
-
-
 proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
@@ -1110,19 +1072,6 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
 
    if len(attributes) > 0:
       result.sons = attributes & result.sons
-
-
-proc parse_block_item_declaration(p: var Parser): PNode =
-   result = parse_block_item_declaration(p, parse_attribute_instances(p))
-
-
-proc parse_task_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
-   if p.tok.type in {TkInput, TkInout, TkOutput}:
-      result = parse_task_port(p, attributes)
-      expect_token(p, result, TkSemicolon)
-      get_token(p)
-   else:
-      result = parse_block_item_declaration(p, attributes)
 
 
 proc parse_variable_lvalue(p: var Parser): PNode =
@@ -1413,7 +1362,6 @@ proc parse_conditional_statement(p: var Parser): PNode =
 
 proc parse_case_item(p: var Parser): PNode =
    result = new_node(p, NtCaseItem)
-   echo pretty(p.tok)
    if p.tok.type == TkDefault:
       add(result.sons, new_identifier_node(p, NtIdentifier))
       # FIXME: The ':' is optional for the default case label. How to indicate
@@ -1601,8 +1549,69 @@ proc parse_statement_or_null(p: var Parser): PNode =
    result = parse_statement_or_null(p, parse_attribute_instances(p))
 
 
-proc parse_task_declaration(p: var Parser): PNode =
-   result = new_node(p, NtTaskDecl)
+proc parse_task_or_function_port(p: var Parser, kind: NodeType,
+                                 attributes: seq[PNode]): PNode =
+   result = new_node(p, NtPort)
+   if len(attributes) > 0:
+      add(result.sons, attributes)
+
+   if kind == NtFunctionDecl:
+      expect_token(p, result, TkInput)
+   else:
+      expect_token(p, result, {TkInput, TkInout, TkOutput})
+   add(result.sons, new_identifier_node(p, NtDirection))
+   get_token(p)
+
+   if p.tok.type in {TkInteger, TkReal, TkRealtime, TkTime}:
+      add(result.sons, new_identifier_node(p, NtType))
+      get_token(p)
+   else:
+      # Register syntax
+      if p.tok.type == TkReg:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+      if p.tok.type == TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+      if p.tok.type == TkLbracket:
+         add(result.sons, parse_range(p))
+
+   # Parse a list of port identifiers
+   add(result.sons, parse_list_of_port_identifiers(p))
+
+
+proc parse_task_or_function_port(p: var Parser, kind: NodeType): PNode =
+   result = parse_task_or_function_port(p, kind, parse_attribute_instances(p))
+
+
+proc parse_task_or_function_port_list(p: var Parser, kind: NodeType): seq[PNode] =
+   while true:
+      add(result, parse_task_or_function_port(p, kind))
+      if p.tok.type != TkComma:
+         break
+      get_token(p)
+
+
+proc parse_task_or_function_item_declaration(p: var Parser, kind: NodeType,
+                                             attributes: seq[PNode]): PNode =
+   if p.tok.type in {TkInput, TkInout, TkOutput}:
+      result = parse_task_or_function_port(p, kind, attributes)
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+   else:
+      result = parse_block_item_declaration(p, attributes)
+
+
+proc parse_task_or_function_declaration(p: var Parser): PNode =
+   case p.tok.type
+   of TkTask:
+      result = new_node(p, NtTaskDecl)
+   of TkFunction:
+      result = new_node(p, NtFunctionDecl)
+   else:
+      # FIXME: Proper error node?
+      result = new_node(p, NtTaskDecl)
+      unexpected_token(p, result)
    get_token(p)
 
    if p.tok.type == TkAutomatic:
@@ -1610,39 +1619,69 @@ proc parse_task_declaration(p: var Parser): PNode =
       add(result.sons, new_identifier_node(p, NtType))
       get_token(p)
 
-   # Expect the task identifier.
+   # Parse optional range or type specifier for functions.
+   if result.type == NtFunctionDecl:
+      case p.tok.type
+      of TkSigned:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+         if p.tok.type == TkLbracket:
+            add(result.sons, parse_range(p))
+      of TkLbracket:
+         add(result.sons, parse_range(p))
+      of TkInteger, TkReal, TkRealtime, TkTime:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+      else:
+         discard
+
+   # Expect the task or function identifier.
    expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtIdentifier))
    get_token(p)
 
-   # Parse the task port list. If ports are specified, the syntax does not allow
-   # port declarations within the task itself.
-   var parse_body_declaration = parse_task_item_declaration
-   var expected_tokens = DeclarationTokens + {TkInput, TkInout, TkOutput}
+   # Parse the port list. If ports are specified, the syntax does not allow
+   # port declarations within the task or function itself.
+   var allow_declarations = true
    if p.tok.type == TkLparen:
       get_token(p)
-      add(result.sons, parse_task_port_list(p))
-      expect_token(p, result, TkRparen)
-      get_token(p)
-      parse_body_declaration = parse_block_item_declaration
-      expected_tokens = DeclarationTokens
+      if result.type == NtTaskDecl and p.tok.type == TkRparen:
+         # FIXME: Add empty node?
+         get_token(p)
+      else:
+         add(result.sons, parse_task_or_function_port_list(p, result.type))
+         expect_token(p, result, TkRparen)
+         get_token(p)
+      allow_declarations = false
 
    expect_token(p, result, TkSemicolon)
    get_token(p)
 
+   # If there are no ports, then the function syntax _requires_ at least one
+   # declaration while it's optional for the task syntax.
+   if result.type == NtFunctionDecl and allow_declarations:
+      let attributes = parse_attribute_instances(p)
+      add(result.sons, parse_task_or_function_item_declaration(p, result.type, attributes))
+
    var attributes: seq[PNode] = @[]
-   # Parse zero or more declarations with parse_body_declaration.
    while true:
-      if p.tok.type == TkLparenStar:
-         attributes = parse_attribute_instances(p)
-      if p.tok.type notin expected_tokens:
-         break
-      add(result.sons, parse_body_declaration(p, attributes))
+      attributes = parse_attribute_instances(p)
+      if allow_declarations:
+         if p.tok.type notin DeclarationTokens + {TkInput, TkInout, TkOutput}:
+            break
+         add(result.sons, parse_task_or_function_item_declaration(p, result.type, attributes))
+      else:
+         if p.tok.type notin DeclarationTokens:
+            break
+         add(result.sons, parse_block_item_declaration(p, attributes))
 
    # Parse a statement or null (a single semicolon)
-   add(result.sons, parse_statement_or_null(p, attributes))
-
-   expect_token(p, result, TkEndtask)
+   if result.type == NtTaskDecl:
+      add(result.sons, parse_statement_or_null(p, attributes))
+      expect_token(p, result, TkEndtask)
+   else:
+      add(result.sons, parse_statement(p, attributes))
+      expect_token(p, result, TkEndfunction)
    get_token(p)
 
 
@@ -1698,11 +1737,8 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
       result = parse_event_declaration(p)
    of TkGenvar:
       result = parse_genvar_declaration(p)
-   of TkTask:
-      result = parse_task_declaration(p)
-   of TkFunction:
-      # FIXME: function decl.
-      get_token(p)
+   of TkTask, TkFunction:
+      result = parse_task_or_function_declaration(p)
    else:
       result = unexpected_token(p)
       return
@@ -1888,8 +1924,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       parse_proc = parse_event_declaration
    of NtNetDecl:
       parse_proc = parse_net_declaration
-   of NtTaskDecl:
-      parse_proc = parse_task_declaration
+   of NtTaskDecl, NtFunctionDecl:
+      parse_proc = parse_task_or_function_declaration
    of NtBlockingAssignment, NtNonblockingAssignment:
       parse_proc = parse_blocking_or_nonblocking_assignment
    else:

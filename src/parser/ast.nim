@@ -54,8 +54,10 @@ type
       NtParamAssignment, NtNetDeclAssignment,
       # Declaration ranges A.2.5
       NtRange,
+      # Function declarations A.2.6
+      NtFunctionDecl,
       # Task declarations A.2.7
-      NtTaskDecl, NtTaskPort, # FIXME: We should probably have one 'port node'.
+      NtTaskDecl,
       # Generate construct A.4.2
       NtGenerateRegion,
       # Procedural blocks and assignments A.6.2
