@@ -1726,8 +1726,7 @@ proc parse_specify_block(p: var Parser): PNode =
    get_token(p)
 
 
-proc parse_module_or_generate_item_declaration(p: var Parser,
-                                               attributes: seq[PNode]): PNode =
+proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
    case p.tok.type
    of NetTypeTokens, TkTrireg:
       result = parse_net_declaration(p)
@@ -1742,9 +1741,6 @@ proc parse_module_or_generate_item_declaration(p: var Parser,
    else:
       result = unexpected_token(p)
       return
-
-   if len(attributes) > 0:
-      result.sons = attributes & result.sons
 
 
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
@@ -1777,7 +1773,10 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       # Might be UDP or module instantiation
       get_token(p)
    else:
-      result = parse_module_or_generate_item_declaration(p, attributes)
+      result = parse_module_or_generate_item_declaration(p)
+
+   if len(attributes) > 0:
+      result.sons = attributes & result.sons
 
 
 proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =
