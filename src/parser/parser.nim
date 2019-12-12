@@ -884,6 +884,8 @@ proc parse_delay(p: var Parser, nof_expressions: int): PNode =
 
 proc parse_drive_strength(p: var Parser): PNode =
    result = new_node(p, NtDriveStrength)
+   expect_token(p, result, TkLparen)
+   get_token(p)
 
    case p.tok.type
    of DriveStrength0Tokens, TkHighz0:
@@ -919,7 +921,6 @@ proc parse_net_declaration(p: var Parser): PNode =
 
       var has_drive_strength = false
       if p.tok.type == TkLparen:
-         get_token(p)
          add(result.sons, parse_drive_strength(p))
          has_drive_strength = true
 
@@ -952,19 +953,16 @@ proc parse_net_declaration(p: var Parser): PNode =
       get_token(p)
 
       var strength: Strength = None
-      if p.tok.type == TkLparen:
+      if look_ahead(p, TkLparen, DriveStrengthTokens):
+         add(result.sons, parse_drive_strength(p))
+         strength = DriveStrength
+      elif look_ahead(p, TkLparen, ChargeStrengthTokens):
          get_token(p)
-         case p.tok.type
-         of DriveStrengthTokens:
-            add(result.sons, parse_drive_strength(p))
-            strength = DriveStrength
-         of ChargeStrengthTokens:
-            let n = new_node(p, NtChargeStrength)
-            add(n.sons, new_identifier_node(p, NtIdentifier))
-            add(result.sons, n)
-            strength = ChargeStrength
-         else:
-            unexpected_token(p, result)
+         let n = new_node(p, NtChargeStrength)
+         add(n.sons, new_identifier_node(p, NtIdentifier))
+         add(result.sons, n)
+         strength = ChargeStrength
+         get_token(p)
          expect_token(p, result, TkRparen)
          get_token(p)
 
