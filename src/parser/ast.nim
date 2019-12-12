@@ -61,10 +61,8 @@ type
       # Generate construct A.4.2
       NtGenerateRegion,
       # Procedural blocks and assignments A.6.2
-      NtContinuousAssignment,
-      NtBlockingAssignment,
-      NtNonblockingAssignment,
-      NtProceduralContinuousAssignment,
+      NtContinuousAssignment, NtBlockingAssignment, NtNonblockingAssignment,
+      NtProceduralContinuousAssignment, NtInitial, NtAlways,
       # Parallel and sequential blocks A.6.3
       NtParBlock, NtSeqBlock,
       # Statements A.6.4

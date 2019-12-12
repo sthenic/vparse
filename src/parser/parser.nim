@@ -1795,11 +1795,13 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       result = new_error_node(p, "Gate instantiatiation is currently not supported.")
       get_token(p)
    of TkInitial:
-      # FIXME: Parse initial statement
+      result = new_node(p, NtInitial)
       get_token(p)
+      add(result.sons, parse_statement(p))
    of TkAlways:
-      # FIXME: Parse always statement
+      result = new_node(p, NtAlways)
       get_token(p)
+      add(result.sons, parse_statement(p))
    of TkFor:
       # FIXME: Parse loop generate construct
       get_token(p)
