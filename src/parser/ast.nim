@@ -38,7 +38,7 @@ type
       NtPort, NtPortExpression, NtPortReference, NtPortReferenceConcat,
       NtPortIdentifier, NtPortDecl, NtVariablePort,
       # Parameter declarations A.2.1.1
-      NtLocalparamDecl, NtParameterDecl, NtSpecparamDecl,
+      NtLocalparamDecl, NtDefparamDecl, NtParameterDecl, NtSpecparamDecl,
       # Port declarations A.2.1.2
       NtInoutDecl, NtInputDecl, NtOutputDecl, # FIXME: Remove if unused
       # Type declarations A.2.1.3
@@ -61,6 +61,7 @@ type
       # Generate construct A.4.2
       NtGenerateRegion,
       # Procedural blocks and assignments A.6.2
+      NtContinuousAssignment,
       NtBlockingAssignment,
       NtNonblockingAssignment,
       NtProceduralContinuousAssignment,

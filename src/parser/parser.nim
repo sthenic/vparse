@@ -1297,6 +1297,14 @@ proc parse_variable_assignment(p: var Parser): PNode =
    add(result.sons, parse_constant_expression(p))
 
 
+proc parse_list_of_variable_assignment(p: var Parser): seq[PNode] =
+   while true:
+      add(result, parse_variable_assignment(p))
+      if not look_ahead(p, TkComma, {TkSymbol, TkLbrace}):
+         break
+      get_token(p)
+
+
 proc parse_loop_statement(p: var Parser): PNode =
    case p.tok.type
    of TkForever:
@@ -1773,8 +1781,16 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       get_token(p)
 
    of TkAssign:
-      # FIXME: continuous assing
+      result = new_node(p, NtContinuousAssignment)
       get_token(p)
+      if look_ahead(p, TkLparen, DriveStrengthTokens):
+         add(result.sons, parse_drive_strength(p))
+      if p.tok.type == TkHash:
+         add(result.sons, parse_delay(p, 3))
+      # FIXME: Probably rename the proc, it's no longer a variable assignment,
+      #        but the syntax is the same.
+      add(result.sons, parse_list_of_variable_assignment(p))
+
    of GateSwitchTypeTokens:
       result = new_error_node(p, "Gate instantiatiation is currently not supported.")
       get_token(p)
