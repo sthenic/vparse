@@ -1305,6 +1305,15 @@ proc parse_list_of_variable_assignment(p: var Parser): seq[PNode] =
       get_token(p)
 
 
+proc parse_identifier_assignment(p: var Parser): PNode =
+   result = new_node(p, NtAssignment)
+   expect_token(p, result, TkSymbol)
+   add(result.sons, new_identifier_node(p, NtIdentifier))
+   expect_token(p, result, TkEquals)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+
+
 proc parse_loop_statement(p: var Parser): PNode =
    case p.tok.type
    of TkForever:
@@ -1696,6 +1705,25 @@ proc parse_task_or_function_declaration(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
+   case p.tok.type
+   of NetTypeTokens, TkTrireg:
+      result = parse_net_declaration(p)
+   of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
+      result = parse_variable_declaration(p)
+   of TkEvent:
+      result = parse_event_declaration(p)
+   of TkGenvar:
+      result = parse_genvar_declaration(p)
+   of TkTask, TkFunction:
+      result = parse_task_or_function_declaration(p)
+   else:
+      result = unexpected_token(p)
+      return
+
+# Forward declaration
+proc parse_module_or_generate_item(p: var Parser): PNode
+
 proc parse_specparam_declaration(p: var Parser): PNode =
    # FIXME: Implement
    get_token(p)
@@ -1713,10 +1741,13 @@ proc parse_generate_region(p: var Parser): PNode =
    result = new_node(p, NtGenerateRegion)
    get_token(p)
 
-   # FIXME: Implement
    while true:
+      # FIXME: This is opt-out parsing in which we have to check EOF to not
+      #        get stuck in an infinite loop. Opt-in is preferrable but there
+      #        are many tokens.
       if p.tok.type in {TkEndgenerate, TkEndOfFile}:
          break
+      add(result.sons, parse_module_or_generate_item(p))
       get_token(p)
 
    expect_token(p, result, TkEndgenerate)
@@ -1737,21 +1768,44 @@ proc parse_specify_block(p: var Parser): PNode =
    get_token(p)
 
 
-proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
-   case p.tok.type
-   of NetTypeTokens, TkTrireg:
-      result = parse_net_declaration(p)
-   of TkReg, TkInteger, TkReal, TkTime, TkRealtime:
-      result = parse_variable_declaration(p)
-   of TkEvent:
-      result = parse_event_declaration(p)
-   of TkGenvar:
-      result = parse_genvar_declaration(p)
-   of TkTask, TkFunction:
-      result = parse_task_or_function_declaration(p)
+proc parse_generate_block(p: var Parser): PNode =
+   if p.tok.type == TkBegin:
+      result = new_node(p, NtGenerateBlock)
+      get_token(p)
+      if p.tok.type == TkColon:
+         get_token(p)
+         expect_token(p, result, TkSymbol)
+         # TODO: Dedicated node type for block identifiers?
+         add(result.sons, new_identifier_node(p, NtIdentifier))
+      while true:
+         # TODO: This is also opt-out parsing.
+         if p.tok.type in {TkEnd, TkEndOfFile}:
+            break
+         add(result.sons, parse_module_or_generate_item(p))
+
    else:
-      result = unexpected_token(p)
-      return
+      result = parse_module_or_generate_item(p)
+
+
+proc parse_loop_generate_construct(p: var Parser): PNode =
+   result = new_node(p, NtLoopGenerate)
+   get_token(p)
+   expect_token(p, result, TkLparen)
+   get_token(p)
+   # Genvar initialization
+   add(result.sons, parse_identifier_assignment(p))
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+   # Genvar expression
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+   # Genvar iteration
+   add(result.sons, parse_identifier_assignment(p))
+   expect_token(p, result, TkRparen)
+   get_token(p)
+   # Generate block
+   add(result.sons, parse_generate_block(p))
 
 
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
@@ -1803,8 +1857,7 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       get_token(p)
       add(result.sons, parse_statement(p))
    of TkFor:
-      # FIXME: Parse loop generate construct
-      get_token(p)
+      result = parse_loop_generate_construct(p)
    of TkIf, TkCase:
       # FIXME: Parse conditional generate construct
       get_token(p)
@@ -1816,6 +1869,10 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
 
    if len(attributes) > 0:
       result.sons = attributes & result.sons
+
+
+proc parse_module_or_generate_item(p: var Parser): PNode =
+   result = parse_module_or_generate_item(p, parse_attribute_instances(p))
 
 
 proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =

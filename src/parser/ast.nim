@@ -59,7 +59,7 @@ type
       # Task declarations A.2.7
       NtTaskDecl,
       # Generate construct A.4.2
-      NtGenerateRegion,
+      NtGenerateRegion, NtLoopGenerate, NtGenerateBlock,
       # Procedural blocks and assignments A.6.2
       NtContinuousAssignment, NtBlockingAssignment, NtNonblockingAssignment,
       NtProceduralContinuousAssignment, NtInitial, NtAlways,
