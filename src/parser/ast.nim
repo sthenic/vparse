@@ -58,6 +58,8 @@ type
       NtFunctionDecl,
       # Task declarations A.2.7
       NtTaskDecl,
+      # Module instantiation A.4.1
+      NtModuleInstantiation, NtParameterValueAssignment, NtModuleInstance,
       # Generate construct A.4.2
       NtGenerateRegion, NtLoopGenerate, NtGenerateBlock, NtIfGenerate,
       NtCaseGenerate, NtCaseGenerateItem,
