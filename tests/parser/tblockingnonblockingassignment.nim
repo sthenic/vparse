@@ -281,6 +281,11 @@ run_test("Blocking assignment: event control, repeat", "foo = repeat (3) @(posed
       new_identifier_node(NtIdentifier, li(1, 33), "FOO")
    ])
 
+run_test("Blocking assignment: error", "foo A"):
+   new_node(NtBlockingAssignment, li(1, 1), @[
+      new_error_node(li(1, 5), "")
+   ])
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

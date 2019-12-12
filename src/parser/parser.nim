@@ -1201,6 +1201,7 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
          unexpected_token(p, result)
    else:
       result = new_node(p, NtBlockingAssignment)
+      result.info = lvalue.info
       unexpected_token(p, result)
 
    get_token(p)
