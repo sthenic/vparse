@@ -1787,6 +1787,15 @@ proc parse_generate_block(p: var Parser): PNode =
       result = parse_module_or_generate_item(p)
 
 
+proc parse_generate_block_or_null(p: var Parser): PNode =
+   if p.tok.type == TkSemicolon:
+      # TODO: Better node type?
+      result = new_node(p, NtEmpty)
+      get_token(p)
+   else:
+      result = parse_generate_block(p)
+
+
 proc parse_loop_generate_construct(p: var Parser): PNode =
    result = new_node(p, NtLoopGenerate)
    get_token(p)
@@ -1806,6 +1815,74 @@ proc parse_loop_generate_construct(p: var Parser): PNode =
    get_token(p)
    # Generate block
    add(result.sons, parse_generate_block(p))
+
+
+proc parse_case_generate_item(p: var Parser): PNode =
+   result = new_node(p, NtCaseGenerateItem)
+   if p.tok.type == TkDefault:
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      # FIXME: The ':' is optional for the default case label. How to indicate
+      #        the presence/absence in the AST.
+      get_token(p)
+      if p.tok.type == TkColon:
+         get_token(p)
+      add(result.sons, parse_statement(p))
+   else:
+      # Assume it's one or several expressions.
+      while true:
+         add(result.sons, parse_constant_expression(p))
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+      expect_token(p, result, TkColon)
+      get_token(p)
+      add(result.sons, parse_generate_block_or_null(p))
+
+
+proc parse_case_generate_construct(p: var Parser): PNode =
+   result = new_node(p, NtCaseGenerate)
+   get_token(p)
+
+   # Parse the expression.
+   expect_token(p, result, TkLparen)
+   get_token(p)
+   add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkRparen)
+   get_token(p)
+
+   # Expect at least one case item.
+   while true:
+      add(result.sons, parse_case_generate_item(p))
+      if p.tok.type notin ExpressionTokens + {TkDefault}:
+         break
+
+   expect_token(p, result, TkEndcase)
+   get_token(p)
+
+
+proc parse_conditional_generate_construct(p: var Parser): PNode =
+   case p.tok.type
+   of TkIf:
+      result = new_node(p, NtIfGenerate)
+      get_token(p)
+      expect_token(p, TkLparen)
+      get_token(p)
+      add(result.sons, parse_constant_expression(p))
+      expect_token(p, TkRparen)
+      get_token(p)
+      add(result.sons, parse_generate_block_or_null(p))
+      if p.tok.type == TkElse:
+         get_token(p)
+         add(result.sons, parse_generate_block_or_null(p))
+      else:
+         # Empty node to symbolize a missing else branch.
+         add(result.sons, new_node(p, NtEmpty))
+   of TkCase:
+      result = parse_case_generate_construct(p)
+   else:
+      # FIXME: Custom error type?
+      result = new_node(p, NtIfGenerate)
+      unexpected_token(p, result)
 
 
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
@@ -1859,10 +1936,10 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
    of TkFor:
       result = parse_loop_generate_construct(p)
    of TkIf, TkCase:
-      # FIXME: Parse conditional generate construct
-      get_token(p)
+      result = parse_conditional_generate_construct(p)
    of TkSymbol:
       # Might be UDP or module instantiation
+      # FIXME: Implement
       get_token(p)
    else:
       result = parse_module_or_generate_item_declaration(p)
