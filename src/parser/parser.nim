@@ -23,6 +23,8 @@ const
    AttributesNotAllowed = "Attributes are not allowed here."
    ExpectedToken = "Expected token $1, got $2."
    ExpectedTokens = "Expected one of the tokens $1, got $2."
+   GateInstantiationNotSupported = "Gate instantiatiation is currently not supported."
+   UdpInstantiationNotSupported = "UDP instantiatiation is currently not supported."
 
 
 proc get_token(p: var Parser) =
@@ -1885,6 +1887,58 @@ proc parse_conditional_generate_construct(p: var Parser): PNode =
       unexpected_token(p, result)
 
 
+proc parse_parameter_value_assignment(p: var Parser): PNode =
+   # FIXME: Implement
+   result = new_node(p, NtParameterValueAssignment)
+   get_token(p)
+
+
+proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
+   # FIXME: Implement
+   discard
+
+
+proc parse_module_instance(p: var Parser): PNode =
+   result = new_node(p, NtModuleInstance)
+   # Parse the name of module instance.
+   expect_token(p, result, TkSymbol)
+   add(result.sons, new_identifier_node(p, NtIdentifier))
+   get_token(p)
+   if p.tok.type == TkLbracket:
+      add(result.sons, parse_range(p))
+   expect_token(p, result, TkLbracket)
+   get_token(p)
+   if p.tok.type != TkRbracket:
+      add(result.sons, parse_list_of_port_connections(p))
+   expect_token(p, result, TkRbracket)
+   get_token(p)
+
+
+proc parse_module_or_udp_instantiaton(p: var Parser): PNode =
+   result = new_node(p, NtModuleInstantiation)
+   expect_token(p, result, TkSymbol)
+   add(result.sons, new_identifier_node(p, NtIdentifier))
+   get_token(p)
+
+   if p.tok.type == TkHash:
+      add(result.sons, parse_parameter_value_assignment(p))
+
+   # Try to detect the UDP syntax.
+   # TODO: Implement UDP.
+   if p.tok.type in DriveStrengthTokens + {TkHash}:
+      result = new_error_node(p, UdpInstantiationNotSupported)
+      return
+
+   # Parse the name of module instance.
+   while true:
+      add(result.sons, parse_module_instance(p))
+      if p.tok.type != TkComma:
+         break
+
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
+
+
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkLocalparam:
@@ -1923,24 +1977,29 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       add(result.sons, parse_list_of_variable_assignment(p))
 
    of GateSwitchTypeTokens:
-      result = new_error_node(p, "Gate instantiatiation is currently not supported.")
+      result = new_error_node(p, GateInstantiationNotSupported)
       get_token(p)
+
    of TkInitial:
       result = new_node(p, NtInitial)
       get_token(p)
       add(result.sons, parse_statement(p))
+
    of TkAlways:
       result = new_node(p, NtAlways)
       get_token(p)
       add(result.sons, parse_statement(p))
+
    of TkFor:
       result = parse_loop_generate_construct(p)
+
    of TkIf, TkCase:
       result = parse_conditional_generate_construct(p)
+
    of TkSymbol:
-      # Might be UDP or module instantiation
-      # FIXME: Implement
-      get_token(p)
+      # Expect an UDP or module instantiation.
+      result = parse_module_or_udp_instantiaton(p)
+
    else:
       result = parse_module_or_generate_item_declaration(p)
 
