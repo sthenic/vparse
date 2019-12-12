@@ -1768,8 +1768,12 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       get_token(p)
 
    of TkDefparam:
-      # FIXME: parameter override
+      result = new_node(p, NtDefparamDecl)
       get_token(p)
+      add(result.sons, parse_list_of_parameter_assignments(p))
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+
    of TkAssign:
       # FIXME: continuous assing
       get_token(p)
