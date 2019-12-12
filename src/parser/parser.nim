@@ -445,6 +445,14 @@ proc parse_parameter_assignment(p: var Parser): PNode =
    add(result.sons, parse_constant_expression(p))
 
 
+proc parse_list_of_parameter_assignments(p: var Parser): seq[PNode] =
+   while true:
+      add(result, parse_parameter_assignment(p))
+      if not look_ahead(p, TkComma, TkSymbol):
+         break
+      get_token(p)
+
+
 proc parse_parameter_declaration(p: var Parser): PNode =
    result = new_node(p, NtParameterDecl)
    expect_token(p, result, TkParameter)
@@ -468,11 +476,7 @@ proc parse_parameter_declaration(p: var Parser): PNode =
       unexpected_token(p, result)
 
    # Parse a list of parameter assignments, there should be at least one.
-   while true:
-      add(result.sons, parse_parameter_assignment(p))
-      if not look_ahead(p, TkComma, TkSymbol):
-         break
-      get_token(p)
+   add(result.sons, parse_list_of_parameter_assignments(p))
 
 
 proc parse_parameter_port_list(p: var Parser): PNode =
@@ -1747,8 +1751,22 @@ proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.type
    of TkLocalparam:
-      # FIXME: localparam
+      result = new_node(p, NtLocalparamDecl)
       get_token(p)
+      if p.tok.type in {TkInteger, TkReal, TkRealtime, TkTime}:
+         add(result.sons, new_identifier_node(p, NtType))
+         get_token(p)
+      else:
+         if p.tok.type == TkSigned:
+            add(result.sons, new_identifier_node(p, NtType))
+            get_token(p)
+         if p.tok.type == TkLbracket:
+            add(result.sons, parse_range(p))
+
+      add(result.sons, parse_list_of_parameter_assignments(p))
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
+
    of TkDefparam:
       # FIXME: parameter override
       get_token(p)
