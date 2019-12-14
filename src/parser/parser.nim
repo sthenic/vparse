@@ -1892,10 +1892,12 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
    get_token(p)
    if p.tok.type == TkDot:
       # Named parameter assignments.
+      get_token(p)
       while true:
          let n = new_node(p, NtAssignment)
          expect_token(p, result, TkSymbol)
          add(n.sons, new_identifier_node(p, NtIdentifier))
+         get_token(p)
          expect_token(p, result, TkLparen)
          get_token(p)
          if p.tok.type != TkRparen:
@@ -1915,9 +1917,57 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
          get_token(p)
 
 
+proc parse_named_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
+   result = new_node(p, NtPortConnection)
+   expect_token(p, result, TkDot)
+   get_token(p)
+   if len(attributes) > 0:
+      add(result.sons, attributes)
+   expect_token(p, result, TkSymbol)
+   add(result.sons, new_identifier_node(p, NtIdentifier))
+   get_token(p)
+   expect_token(p, result, TkLparen)
+   get_token(p)
+   if p.tok.type != TkRparen:
+      add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkRparen)
+   get_token(p)
+
+
+proc parse_named_port_connection(p: var Parser): PNode =
+   result = parse_named_port_connection(p, parse_attribute_instances(p))
+
+
+proc parse_ordered_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
+   result = new_node(p, NtPortConnection)
+   if len(attributes) > 0:
+      add(result.sons, attributes)
+   if p.tok.type in ExpressionTokens:
+      add(result.sons, parse_constant_expression(p))
+
+
+proc parse_ordered_port_connection(p: var Parser): PNode =
+   result = parse_ordered_port_connection(p, parse_attribute_instances(p))
+
+
 proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
-   # FIXME: Implement
-   discard
+   let attributes = parse_attribute_instances(p)
+   if p.tok.type == TkDot:
+      # Named port connections, expect at least one.
+      add(result, parse_named_port_connection(p, attributes))
+      while true:
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+         add(result, parse_named_port_connection(p))
+   else:
+      # Ordered port connections, expect at least one but it may be empty.
+      add(result, parse_ordered_port_connection(p, attributes))
+      while true:
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+         add(result, parse_ordered_port_connection(p))
 
 
 proc parse_module_instance(p: var Parser): PNode =
