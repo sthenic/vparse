@@ -1888,9 +1888,31 @@ proc parse_conditional_generate_construct(p: var Parser): PNode =
 
 
 proc parse_parameter_value_assignment(p: var Parser): PNode =
-   # FIXME: Implement
    result = new_node(p, NtParameterValueAssignment)
    get_token(p)
+   if p.tok.type == TkDot:
+      # Named parameter assignments.
+      while true:
+         let n = new_node(p, NtAssignment)
+         expect_token(p, result, TkSymbol)
+         add(n.sons, new_identifier_node(p, NtIdentifier))
+         expect_token(p, result, TkLparen)
+         get_token(p)
+         if p.tok.type != TkRparen:
+            add(n.sons, parse_mintypmax_expression(p))
+         expect_token(p, result, TkRparen)
+         get_token(p)
+         add(result.sons, n)
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
+   else:
+      # Ordered parameter assignments.
+      while true:
+         add(result.sons, parse_constant_expression(p))
+         if p.tok.type != TkComma:
+            break
+         get_token(p)
 
 
 proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
