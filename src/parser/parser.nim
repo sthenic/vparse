@@ -1050,10 +1050,14 @@ proc parse_genvar_declaration(p: var Parser): PNode =
    get_token(p)
    while true:
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NtIdentifier))
+      get_token(p)
       if not look_ahead(p, TkComma, TkSymbol):
          break
       get_token(p)
+
+   expect_token(p, result, TkSemicolon)
+   get_token(p)
 
 
 proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode =
