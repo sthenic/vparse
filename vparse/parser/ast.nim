@@ -1,5 +1,6 @@
 # Abstract syntax tree and symbol table
 import strutils
+import json
 
 import ../lexer/lexer
 import ../lexer/identifier
@@ -115,6 +116,7 @@ const
    IntegerTypes =
       {NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit}
 
+   # FIXME: Unused right now
    OperatorTypes = {NkUnaryOperator, NkBinaryOperator}
 
 type
@@ -179,6 +181,63 @@ proc pretty*(n: PNode, indent: int = 0): string =
          add(sons_str, pretty(s, indent + 2))
 
       add(result, sons_str)
+
+
+proc `%`*(n: PNode): JsonNode =
+   if n == nil:
+      return
+   case n.kind
+   of IdentifierTypes:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "identifier": n.identifier.s
+      }
+   of IntegerTypes:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "number": n.inumber,
+         "raw": n.iraw,
+         "base": to_int(n.base),
+         "size": n.size
+      }
+   of NkRealLit:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "number": n.fnumber,
+         "raw": n.fraw
+      }
+   of OperatorTypes:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "operator": n.identifier.s
+      }
+   of NkError:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "message": n.msg
+      }
+   of NkStrLit:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "string": n.s
+      }
+   of NkWildcard:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind
+      }
+   else:
+      result = %*{
+         "pos": {"line": n.info.line, "col": n.info.col + 1},
+         "kind": $n.kind,
+         "sons": %n.sons
+      }
 
 
 proc `==`*(x, y: PNode): bool =

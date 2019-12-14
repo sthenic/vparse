@@ -174,6 +174,18 @@ proc `$`*(kinds: set[TokenKind]): string =
       inc(i)
 
 
+proc to_int*(base: NumericalBase): int =
+   case base
+   of Base10:
+      result = 10
+   of Base2:
+      result = 2
+   of Base8:
+      result = 8
+   of Base16:
+      result = 16
+
+
 proc pretty*(t: Token): string =
    result = format("($1:$2: ", t.line, t.col)
    add(result, "type: " & $t.kind)
