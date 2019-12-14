@@ -1928,11 +1928,11 @@ proc parse_module_instance(p: var Parser): PNode =
    get_token(p)
    if p.tok.type == TkLbracket:
       add(result.sons, parse_range(p))
-   expect_token(p, result, TkLbracket)
+   expect_token(p, result, TkLparen)
    get_token(p)
    if p.tok.type != TkRbracket:
       add(result.sons, parse_list_of_port_connections(p))
-   expect_token(p, result, TkRbracket)
+   expect_token(p, result, TkRparen)
    get_token(p)
 
 
