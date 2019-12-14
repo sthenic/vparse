@@ -1817,6 +1817,9 @@ proc parse_generate_block(p: var Parser): PNode =
             break
          add(result.sons, parse_module_or_generate_item(p))
 
+      expect_token(p, result, TkEnd)
+      get_token(p)
+
    else:
       result = parse_module_or_generate_item(p)
 
@@ -2084,6 +2087,8 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       # FIXME: Probably rename the proc, it's no longer a variable assignment,
       #        but the syntax is the same.
       add(result.sons, parse_list_of_variable_assignment(p))
+      expect_token(p, result, TkSemicolon)
+      get_token(p)
 
    of GateSwitchTypeTokens:
       result = new_error_node(p, GateInstantiationNotSupported)
