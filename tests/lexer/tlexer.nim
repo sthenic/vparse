@@ -18,7 +18,7 @@ template echo_response(title, stimuli: string) =
    open_lexer(lex, "test", new_string_stream(stimuli))
    while true:
       get_token(lex, tok)
-      if tok.type == TokenType.TkEndOfFile:
+      if tok.kind == TokenKind.TkEndOfFile:
          break
       add(response, tok)
    close_lexer(lex)
@@ -37,7 +37,7 @@ template run_test(title, stimuli: string; reference: seq[Token],
    open_lexer(lex, "test", new_string_stream(stimuli))
    while true:
       get_token(lex, tok)
-      if tok.type == TokenType.TkEndOfFile:
+      if tok.kind == TokenKind.TkEndOfFile:
          break
       add(response, tok)
    close_lexer(lex)
@@ -63,14 +63,14 @@ template run_test(title, stimuli: string; reference: seq[Token],
 
 
 # Constructor for a new identifier token
-template init(t: Token, tt: TokenType, line, col: int) =
+template init(t: Token, tt: TokenKind, line, col: int) =
    init(t)
    (t.line, t.col) = (line, col)
-   t.type = tt
+   t.kind = tt
 
 
-proc new_token(t: typedesc[Token], `type`: TokenType, line, col: int): Token =
-   init(result, `type`, line, col)
+proc new_token(t: typedesc[Token], kind: TokenKind, line, col: int): Token =
+   init(result, kind, line, col)
 
 
 proc new_comment(t: typedesc[Token], line, col: int, comment: string): Token =
@@ -83,27 +83,27 @@ proc new_string_literal(t: typedesc[Token], line, col: int,
    init(result, TkStrLit, line, col)
    result.literal = literal
 
-proc new_fnumber(t: typedesc[Token], `type`: TokenType, line, col: int,
+proc new_fnumber(t: typedesc[Token], kind: TokenKind, line, col: int,
                  fnumber: float, literal: string): Token =
-   init(result, type, line, col)
+   init(result, kind, line, col)
    result.fnumber = fnumber
    result.base = Base10
    result.literal = literal
 
 
-proc new_inumber(t: typedesc[Token], `type`: TokenType, line, col: int,
+proc new_inumber(t: typedesc[Token], kind: TokenKind, line, col: int,
                  inumber: int, base: NumericalBase, size: int,
                  literal: string): Token =
-   init(result, type, line, col)
+   init(result, kind, line, col)
    result.inumber = inumber
    result.base = base
    result.size = size
    result.literal = literal
 
 
-proc new_identifier(t: typedesc[Token], `type`: TokenType, line, col: int,
+proc new_identifier(t: typedesc[Token], kind: TokenKind, line, col: int,
                     identifier: string): Token =
-   init(result, `type`, line, col)
+   init(result, kind, line, col)
    result.identifier = lex.cache.get_identifier(identifier)
 
 

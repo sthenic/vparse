@@ -7,7 +7,7 @@ import macros
 import ./identifier
 
 type
-   TokenType* = enum
+   TokenKind* = enum
       TkInvalid, # begin keywords:
       TkAlways, TkAnd, TkAssign, TkAutomatic,
       TkBegin, TkBuf, TkBufif0, TkBufif1,
@@ -52,10 +52,10 @@ type
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
 
-   TokenTypes* = set[TokenType]
+   TokenKinds* = set[TokenKind]
 
    Token* = object
-      `type`*: TokenType
+      kind*: TokenKind
       identifier*: PIdentifier # Identifier
       literal*: string # String literal, also comments
       inumber*: BiggestInt # Integer literal
@@ -112,7 +112,7 @@ const
    PrimaryTokens* = NumberTokens + {TkSymbol, TkLbrace, TkLparen, TkStrLit, TkOperator}
    ExpressionTokens* = PrimaryTokens
 
-   TokenTypeToStr*: array[TokenType, string] = [
+   TokenKindToStr*: array[TokenKind, string] = [
       "Invalid",
       "always", "and", "assign", "automatic",
       "begin", "buf", "bufif0", "bufif1",
@@ -155,28 +155,28 @@ const
 
 
 proc `$`*(t: Token): string =
-   if t.type in {TkSymbol, TkOperator}:
+   if t.kind in {TkSymbol, TkOperator}:
       result = "'" & t.identifier.s & "'"
    else:
-      result = "'" & TokenTypeToStr[t.type] & "'"
+      result = "'" & TokenKindToStr[t.kind] & "'"
 
 
-proc `$`*(kind: TokenType): string =
-   result = "'" & TokenTypeToStr[kind] & "'"
+proc `$`*(kind: TokenKind): string =
+   result = "'" & TokenKindToStr[kind] & "'"
 
 
-proc `$`*(kinds: set[TokenType]): string =
+proc `$`*(kinds: set[TokenKind]): string =
    var i = 0
    for kind in kinds:
       if i > 0:
          add(result, ", ")
-      add(result, "'" & TokenTypeToStr[kind] & "'")
+      add(result, "'" & TokenKindToStr[kind] & "'")
       inc(i)
 
 
 proc pretty*(t: Token): string =
    result = format("($1:$2: ", t.line, t.col)
-   add(result, "type: " & $t.type)
+   add(result, "type: " & $t.kind)
    add(result, ", identifier: " & $t.identifier)
    add(result, ", literal: \"" & t.literal & "\"")
    add(result, ", inumber: " & $t.inumber)
@@ -192,7 +192,7 @@ proc new_lexer_error(msg: string, args: varargs[string, `$`]): ref LexerError =
 
 
 proc init*(t: var Token) =
-   t.type = TkInvalid
+   t.kind = TkInvalid
    t.identifier = nil
    set_len(t.literal, 0)
    t.inumber = 0
@@ -204,7 +204,7 @@ proc init*(t: var Token) =
 
 
 proc is_valid*(t: Token): bool =
-   return t.type != TkInvalid
+   return t.kind != TkInvalid
 
 
 proc handle_crlf(l: var Lexer, pos: int): int =
@@ -220,7 +220,7 @@ proc handle_crlf(l: var Lexer, pos: int): int =
 
 proc get_binary_precedence*(tok: Token): int =
    ## Return the precedence of binary operators.
-   case tok.type
+   case tok.kind
    of TkOperator:
       let str = tok.identifier.s
       if str == "**":
@@ -274,7 +274,7 @@ proc handle_comment(l: var Lexer, tok: var Token) =
    # slash and use the other character to determine how we treat the buffer from
    # that point on.
    var pos = l.bufpos + 1
-   tok.type = TkComment
+   tok.kind = TkComment
    case l.buf[pos]
    of '/':
       # Grab everything until the end of the line.
@@ -308,7 +308,7 @@ proc handle_comment(l: var Lexer, tok: var Token) =
 
       tok.literal = strip(tok.literal)
    else:
-      tok.type = TkInvalid
+      tok.kind = TkInvalid
       echo "Invalid token: '", l.buf[pos], "', this should not happen."
       inc(pos)
 
@@ -338,9 +338,9 @@ proc handle_symbol(l: var Lexer, tok: var Token) =
 
    if tok.identifier.id > ord(TkInvalid) and
          tok.identifier.id < ord(TkBackslash):
-      tok.type = TokenType(tok.identifier.id)
+      tok.kind = TokenKind(tok.identifier.id)
    else:
-      tok.type = TkSymbol
+      tok.kind = TkSymbol
 
 
 proc handle_operator(l: var Lexer, tok: var Token) =
@@ -348,10 +348,10 @@ proc handle_operator(l: var Lexer, tok: var Token) =
 
    if tok.identifier.id < ord(TkBackslash) or tok.identifier.id > ord(TkEquals):
       # Generic operator
-      tok.type = TkOperator
+      tok.kind = TkOperator
    else:
       # Operator identified by a special token id.
-      tok.type = TokenType(tok.identifier.id)
+      tok.kind = TokenKind(tok.identifier.id)
 
 
 proc handle_forward_slash(l: var Lexer, tok: var Token) =
@@ -368,12 +368,12 @@ proc handle_equals(l: var Lexer, tok: var Token) =
       handle_operator(l, tok)
    else:
       update_token_position(l, tok)
-      tok.type = TkEquals
+      tok.kind = TkEquals
       inc(l.bufpos)
 
 
 proc handle_string(l: var Lexer, tok: var Token) =
-   tok.type = TkStrLit
+   tok.kind = TkStrLit
    inc(l.bufpos)
 
    # Grab everything from the buffer except newlines.
@@ -381,7 +381,7 @@ proc handle_string(l: var Lexer, tok: var Token) =
       let c = l.buf[l.bufpos]
       case c
       of lexbase.Newlines + {lexbase.EndOfFile}:
-         tok.type = TkInvalid
+         tok.kind = TkInvalid
          set_len(tok.literal, 0)
          break
       of '"':
@@ -397,11 +397,11 @@ proc get_base(l: var Lexer, tok: var Token) =
    if l.buf[l.bufpos] == '\'':
       if l.buf[l.bufpos + 1] in {'s', 'S'}:
          # Signed designator included in the base format.
-         tok.type = TkIntLit
+         tok.kind = TkIntLit
          inc(l.bufpos, 2)
       else:
          # Base format w/o a signed designator, assume unsigned.
-         tok.type = TkUIntLit
+         tok.kind = TkUIntLit
          inc(l.bufpos, 1)
 
       case l.buf[l.bufpos]
@@ -415,7 +415,7 @@ proc get_base(l: var Lexer, tok: var Token) =
          tok.base = Base16
       else:
          # Unexpected character, set the token as invalid.
-         tok.type = TkInvalid
+         tok.kind = TkInvalid
          inc(l.bufpos)
          return
 
@@ -426,20 +426,20 @@ proc get_base(l: var Lexer, tok: var Token) =
    else:
       # If there's no base format in the buffer, assume base 10 and signed
       # until we have more information.
-      tok.type = TkIntLit
+      tok.kind = TkIntLit
       tok.base = Base10
 
 
 proc set_ambiguous(tok: var Token) =
-   case tok.type
+   case tok.kind
    of TkIntLit:
-      tok.type = TkAmbIntLit
+      tok.kind = TkAmbIntLit
    of TkUIntLit:
-      tok.type = TkAmbUIntLit
+      tok.kind = TkAmbUIntLit
    of {TkAmbIntLit, TkAmbUIntLit}:
       discard
    else:
-      tok.type = TkInvalid
+      tok.kind = TkInvalid
 
 
 # Forward declaration
@@ -466,7 +466,7 @@ template eat_decimal_number(l: var Lexer, tok: var Token) =
 
 proc handle_suspected_real(l: var Lexer, tok: var Token) =
    # Assume invalid until we have more information.
-   tok.type = TkInvalid
+   tok.kind = TkInvalid
 
    # Expect either '.' or {'e', 'E'}, both of which have to be followed by an
    # unsigned number.
@@ -475,11 +475,11 @@ proc handle_suspected_real(l: var Lexer, tok: var Token) =
 
       # The next character must be a digit.
       if l.buf[l.bufpos] notin DecimalChars:
-         tok.type = TkInvalid
+         tok.kind = TkInvalid
          return
 
       eat_decimal_number(l, tok)
-      tok.type = TkRealLit
+      tok.kind = TkRealLit
 
 
    if l.buf[l.bufpos] in {'e', 'E'}:
@@ -495,16 +495,16 @@ proc handle_suspected_real(l: var Lexer, tok: var Token) =
 
          # The next character must be a digit.
          if l.buf[l.bufpos] notin DecimalChars:
-            tok.type = TkInvalid
+            tok.kind = TkInvalid
             return
       else:
-         tok.type = TkInvalid
+         tok.kind = TkInvalid
          return
 
       eat_decimal_number(l, tok)
-      tok.type = TkRealLit
+      tok.kind = TkRealLit
 
-   if tok.type == TkRealLit:
+   if tok.kind == TkRealLit:
       tok.fnumber = parse_float(tok.literal)
 
 
@@ -545,7 +545,7 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
 
    if len(tok.literal) == 0:
-      tok.type = TkInvalid
+      tok.kind = TkInvalid
       return
 
    tok.inumber = parse_int(tok.literal)
@@ -570,10 +570,10 @@ proc handle_binary(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
 
    if len(tok.literal) == 0:
-      tok.type = TkInvalid
+      tok.kind = TkInvalid
       return
 
-   if tok.type in {TkIntLit, TkUIntLit}:
+   if tok.kind in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_bin_int(tok.literal)
 
 
@@ -596,10 +596,10 @@ proc handle_octal(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
 
    if len(tok.literal) == 0:
-      tok.type = TkInvalid
+      tok.kind = TkInvalid
       return
 
-   if tok.type in {TkIntLit, TkUIntLit}:
+   if tok.kind in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_oct_int(tok.literal)
 
 
@@ -622,17 +622,17 @@ proc handle_hex(l: var Lexer, tok: var Token) =
       inc(l.bufpos)
 
    if len(tok.literal) == 0:
-      tok.type = TkInvalid
+      tok.kind = TkInvalid
       return
 
-   if tok.type in {TkIntLit, TkUIntLit}:
+   if tok.kind in {TkIntLit, TkUIntLit}:
       tok.inumber = parse_hex_int(tok.literal)
 
 
 proc handle_number(l: var Lexer, tok: var Token) =
    # Attempt to read the base from the buffer.
    get_base(l, tok)
-   if tok.type == TkInvalid:
+   if tok.kind == TkInvalid:
       return
 
    case tok.base
@@ -657,7 +657,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
    let c = l.buf[l.bufpos]
    case c
    of lexbase.EndOfFile:
-      tok.type = TkEndOfFile
+      tok.kind = TkEndOfFile
    of lexbase.NewLines:
       l.bufpos = handle_crlf(l, l.bufpos)
       # TODO: Risk of stack overflow?
@@ -669,7 +669,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
    of '=':
       handle_equals(l, tok)
    of '$':
-      tok.type = TkDollar
+      tok.kind = TkDollar
       inc(l.bufpos)
       handle_identifier(l, tok, SymChars)
    of '"':
@@ -677,59 +677,59 @@ proc get_token*(l: var Lexer, tok: var Token) =
    of '\'', '0'..'9':
       handle_number(l, tok)
    of '\\':
-      tok.type = TkBackslash
+      tok.kind = TkBackslash
       inc(l.bufpos)
    of ',':
-      tok.type = TkComma
+      tok.kind = TkComma
       inc(l.bufpos)
    of '.':
-      tok.type = TkDot
+      tok.kind = TkDot
       inc(l.bufpos)
    of '?':
-      tok.type = TkQuestionMark
+      tok.kind = TkQuestionMark
       inc(l.bufpos)
    of ';':
-      tok.type = TkSemicolon
+      tok.kind = TkSemicolon
       inc(l.bufpos)
    of ':':
-      tok.type = TkColon
+      tok.kind = TkColon
       inc(l.bufpos)
    of '@':
-      tok.type = TkAt
+      tok.kind = TkAt
       inc(l.bufpos)
    of '#':
-      tok.type = TkHash
+      tok.kind = TkHash
       inc(l.bufpos)
    of '(':
       if l.buf[l.bufpos + 1] == '*':
-         tok.type = TkLparenStar
+         tok.kind = TkLparenStar
          inc(l.bufpos, 2)
       else:
-         tok.type = TkLparen
+         tok.kind = TkLparen
          inc(l.bufpos, 1)
    of '*':
       if l.buf[l.bufpos + 1] == ')':
-         tok.type = TkRparenStar
+         tok.kind = TkRparenStar
          inc(l.bufpos, 2)
       else:
          handle_operator(l, tok)
    of ')':
-      tok.type = TkRparen
+      tok.kind = TkRparen
       inc(l.bufpos)
    of '[':
-      tok.type = TkLbracket
+      tok.kind = TkLbracket
       inc(l.bufpos)
    of ']':
-      tok.type = TkRbracket
+      tok.kind = TkRbracket
       inc(l.bufpos)
    of '{':
-      tok.type = TkLbrace
+      tok.kind = TkLbrace
       inc(l.bufpos)
    of '}':
-      tok.type = TkRbrace
+      tok.kind = TkRbrace
       inc(l.bufpos)
    of '`':
-      tok.type = TkDirective
+      tok.kind = TkDirective
       inc(l.bufpos)
       handle_identifier(l, tok, SymChars)
    else:
@@ -737,7 +737,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
          handle_operator(l, tok)
       else:
          echo "Invalid token: '", c, "' (", int(c), ")"
-         tok.type = TkInvalid
+         tok.kind = TkInvalid
          inc(l.bufpos)
 
 

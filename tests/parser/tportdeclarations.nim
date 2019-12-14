@@ -166,11 +166,11 @@ for direction in [TkInput, TkInout, TkOutput]:
    $1
    $2
    my_port
-)""", TokenTypeToStr[direction], TokenTypeToStr[net_type])):
+)""", TokenKindToStr[direction], TokenKindToStr[net_type])):
          new_node(NtListOfPortDeclarations, li(2, 4), @[
             new_node(NtPortDecl, li(2, 4), @[
-               new_identifier_node(NtDirection, li(2, 4), TokenTypeToStr[direction]),
-               new_identifier_node(NtNetType, li(3, 4), TokenTypeToStr[net_type]),
+               new_identifier_node(NtDirection, li(2, 4), TokenKindToStr[direction]),
+               new_identifier_node(NtNetType, li(3, 4), TokenKindToStr[net_type]),
                new_identifier_node(NtPortIdentifier, li(4, 4), "my_port"),
             ])
          ])

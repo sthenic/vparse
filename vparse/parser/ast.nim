@@ -122,7 +122,7 @@ type
    TNodeSeq* = seq[PNode]
    TNode = object of RootObj
       info*: TLineInfo
-      case `type`*: NodeType
+      case kind*: NodeType
       of NtStrLit:
          s*: string
       of NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit:
@@ -153,9 +153,9 @@ type
 proc pretty*(n: PNode, indent: int = 0): string =
    if n == nil:
       return
-   result = spaces(indent) & $n.type &
+   result = spaces(indent) & $n.kind &
             format("($1:$2)", n.info.line, n.info.col + 1)
-   case n.type
+   case n.kind
    of IdentifierTypes:
       add(result, ": " & $n.identifier.s & "\n")
    of IntegerTypes:
@@ -188,10 +188,10 @@ proc `==`*(x, y: PNode): bool =
    if x.info != y.info:
       return false
 
-   if x.type != y.type:
+   if x.kind != y.kind:
       return false
 
-   case x.type
+   case x.kind
    of IdentifierTypes:
       result = x.identifier.s == y.identifier.s
    of IntegerTypes:
@@ -233,11 +233,11 @@ proc detailed_compare*(x, y: PNode) =
       echo "Line info differs:\n", pretty(x, indent), pretty(y, indent)
       return
 
-   if x.type != y.type:
-      echo "Type differs:\n", pretty(x, indent), pretty(y, indent)
+   if x.kind != y.kind:
+      echo "Kind differs:\n", pretty(x, indent), pretty(y, indent)
       return
 
-   case x.type
+   case x.kind
    of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError,
       NtStrLit, NtWildcard:
       if x != y:
@@ -259,33 +259,33 @@ proc new_line_info*(line: uint16, col: int16): TLineInfo =
    result.col = col
 
 
-proc new_node*(`type`: NodeType, info: TLineInfo): PNode =
-   result = PNode(`type`: type, info: info)
+proc new_node*(kind: NodeType, info: TLineInfo): PNode =
+   result = PNode(kind: kind, info: info)
 
 
-proc new_node*(`type`: NodeType, info: TLineInfo, sons: seq[PNode]): PNode =
-   result = new_node(`type`, info)
+proc new_node*(kind: NodeType, info: TLineInfo, sons: seq[PNode]): PNode =
+   result = new_node(kind, info)
    result.sons = sons
 
 
-proc new_identifier_node*(`type`: NodeType, info: TLineInfo,
+proc new_identifier_node*(kind: NodeType, info: TLineInfo,
                           identifier: PIdentifier): PNode =
-   result = new_node(`type`, info)
+   result = new_node(kind, info)
    result.identifier = identifier
 
 
-proc new_inumber_node*(`type`: NodeType, info: TLineInfo, inumber: BiggestInt,
+proc new_inumber_node*(kind: NodeType, info: TLineInfo, inumber: BiggestInt,
                        raw: string, base: NumericalBase, size: int): PNode =
-   result = new_node(`type`, info)
+   result = new_node(kind, info)
    result.inumber = inumber
    result.iraw = raw
    result.base = base
    result.size = size
 
 
-proc new_fnumber_node*(`type`: NodeType, info: TLineInfo, fnumber: BiggestFloat,
+proc new_fnumber_node*(kind: NodeType, info: TLineInfo, fnumber: BiggestFloat,
                        raw: string): PNode =
-   result = new_node(`type`, info)
+   result = new_node(kind, info)
    result.fnumber = fnumber
    result.fraw = raw
 
