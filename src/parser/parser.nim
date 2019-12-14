@@ -1726,6 +1726,7 @@ proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
       result = parse_task_or_function_declaration(p)
    else:
       result = unexpected_token(p)
+      get_token(p)
       return
 
 # Forward declaration
@@ -1921,10 +1922,13 @@ proc parse_conditional_generate_construct(p: var Parser): PNode =
 proc parse_parameter_value_assignment(p: var Parser): PNode =
    result = new_node(p, NtParameterValueAssignment)
    get_token(p)
+   expect_token(p, result, TkLparen)
+   get_token(p)
    if p.tok.type == TkDot:
       # Named parameter assignments.
-      get_token(p)
       while true:
+         expect_token(p, result, TkDot)
+         get_token(p)
          let n = new_node(p, NtAssignment)
          expect_token(p, result, TkSymbol)
          add(n.sons, new_identifier_node(p, NtIdentifier))
@@ -1947,6 +1951,8 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
             break
          get_token(p)
 
+   expect_token(p, result, TkRparen)
+   get_token(p)
 
 proc parse_named_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
    result = new_node(p, NtPortConnection)
@@ -2011,7 +2017,7 @@ proc parse_module_instance(p: var Parser): PNode =
       add(result.sons, parse_range(p))
    expect_token(p, result, TkLparen)
    get_token(p)
-   if p.tok.type != TkRbracket:
+   if p.tok.type != TkRparen:
       add(result.sons, parse_list_of_port_connections(p))
    expect_token(p, result, TkRparen)
    get_token(p)
