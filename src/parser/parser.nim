@@ -1812,6 +1812,7 @@ proc parse_generate_block(p: var Parser): PNode =
          expect_token(p, result, TkSymbol)
          # TODO: Dedicated node type for block identifiers?
          add(result.sons, new_identifier_node(p, NtIdentifier))
+         get_token(p)
       while true:
          # TODO: This is also opt-out parsing.
          if p.tok.type in {TkEnd, TkEndOfFile}:
