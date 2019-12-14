@@ -25,6 +25,7 @@ const
    ExpectedTokens = "Expected one of the tokens $1, got $2."
    GateInstantiationNotSupported = "Gate instantiatiation is currently not supported."
    UdpInstantiationNotSupported = "UDP instantiatiation is currently not supported."
+   SpecifyBlockNotSupported = "Specify blocks are currently not supported."
 
 
 proc get_token(p: var Parser) =
@@ -1750,15 +1751,35 @@ proc parse_generate_region(p: var Parser): PNode =
       if p.tok.type in {TkEndgenerate, TkEndOfFile}:
          break
       add(result.sons, parse_module_or_generate_item(p))
-      get_token(p)
 
    expect_token(p, result, TkEndgenerate)
    get_token(p)
 
 
+proc parse_specify_item(p: var Parser): PNode =
+   case p.tok.type
+   of TkSpecparam:
+      result = parse_specparam_declaration(p)
+   of TkPulsestyleOndetect, TkPulsestyleOnevent:
+      # FIXME: Implement
+      get_token(p)
+   of TkShowCancelled, TkNoshowCancelled:
+      # FIXME: Implement
+      get_token(p)
+   of TkLparen, TkIf, TkIfnone:
+      # FIXME: Implement path declarations
+      get_token(p)
+   of TkDollar:
+      get_token(p)
+   else:
+      # TODO: Make sure nothing adds to this node. Should be ok.
+      result = unexpected_token(p)
+
+
 proc parse_specify_block(p: var Parser): PNode =
    result = new_node(p, NtSpecifyBlock)
    get_token(p)
+   add(result.sons, new_error_node(p, SpecifyBlockNotSupported))
 
    # FIXME: Implement
    while true:
