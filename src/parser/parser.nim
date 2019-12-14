@@ -1316,6 +1316,7 @@ proc parse_identifier_assignment(p: var Parser): PNode =
    result = new_node(p, NtAssignment)
    expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NtIdentifier))
+   get_token(p)
    expect_token(p, result, TkEquals)
    get_token(p)
    add(result.sons, parse_constant_expression(p))
