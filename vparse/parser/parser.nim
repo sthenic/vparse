@@ -69,16 +69,16 @@ proc new_line_info(p: Parser): TLineInfo =
    result = new_line_info(p.tok)
 
 
-proc new_node(p: Parser, kind: NodeType): PNode =
+proc new_node(p: Parser, kind: NodeKind): PNode =
    result = new_node(kind, new_line_info(p))
 
 
-proc new_identifier_node(p: Parser, kind: NodeType): PNode =
+proc new_identifier_node(p: Parser, kind: NodeKind): PNode =
    result = new_node(p, kind)
    result.identifier = p.tok.identifier
 
 
-proc new_inumber_node(p: Parser, kind: NodeType, inumber: BiggestInt,
+proc new_inumber_node(p: Parser, kind: NodeKind, inumber: BiggestInt,
                       raw: string, base: NumericalBase, size: int): PNode =
    result = new_node(p, kind)
    result.inumber = inumber
@@ -87,7 +87,7 @@ proc new_inumber_node(p: Parser, kind: NodeType, inumber: BiggestInt,
    result.size = size
 
 
-proc new_fnumber_node(p: Parser, kind: NodeType, fnumber: BiggestFloat,
+proc new_fnumber_node(p: Parser, kind: NodeKind, fnumber: BiggestFloat,
                       raw: string): PNode =
    result = new_node(p, kind)
    result.fnumber = fnumber
@@ -95,12 +95,12 @@ proc new_fnumber_node(p: Parser, kind: NodeType, fnumber: BiggestFloat,
 
 
 proc new_str_lit_node(p: Parser): PNode =
-   result = new_node(p, NtStrLit)
+   result = new_node(p, NkStrLit)
    result.s = p.tok.literal
 
 
 proc new_error_node(p: Parser, msg: string, args: varargs[string, `$`]): PNode =
-   result = new_node(p, NtError)
+   result = new_node(p, NkError)
    result.msg = format(msg, args)
 
 
@@ -160,12 +160,12 @@ proc parse_constant_expression(p: var Parser): PNode
 proc parse_constant_range_expression(p: var Parser): PNode
 
 proc parse_attribute_instance(p: var Parser): PNode =
-   result = new_node(p, NtAttributeInst)
+   result = new_node(p, NkAttributeInst)
    get_token(p)
 
    while true:
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtAttributeName))
+      add(result.sons, new_identifier_node(p, NkAttributeName))
       get_token(p)
       if p.tok.kind == TkEquals:
          get_token(p)
@@ -188,7 +188,7 @@ proc parse_attribute_instances(p: var Parser): seq[PNode] =
 
 
 proc parse_range(p: var Parser): PNode =
-   result = new_node(p, NtRange)
+   result = new_node(p, NkRange)
    expect_token(p, result, TkLbracket)
    get_token(p)
    add(result.sons, parse_constant_expression(p))
@@ -200,7 +200,7 @@ proc parse_range(p: var Parser): PNode =
 
 
 proc parse_constant_concatenation(p: var Parser): PNode =
-   result = new_node(p, NtConstantConcat)
+   result = new_node(p, NkConstantConcat)
    get_token(p)
    while true:
       add(result.sons, parse_constant_expression(p))
@@ -222,7 +222,7 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
    case p.tok.kind
    of TkLbrace:
       # We're parsing a constant multiple concatenation.
-      result = new_node(p, NtConstantMultipleConcat)
+      result = new_node(p, NkConstantMultipleConcat)
       result.info = brace_pos
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p))
@@ -232,13 +232,13 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
       # We're parsing a constant concatenation where the entry we parsed earlier
       # is the first of several. Parse the rest and add these to the sons on
       # this level.
-      result = new_node(p, NtConstantConcat)
+      result = new_node(p, NkConstantConcat)
       result.info = brace_pos
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p).sons)
    of TkRbrace:
       # A constant concatenation that only contains the entry we parsed earlier.
-      result = new_node(p, NtConstantConcat)
+      result = new_node(p, NkConstantConcat)
       add(result.sons, first)
    else:
       result = unexpected_token(p)
@@ -249,15 +249,15 @@ proc parse_number(p: var Parser): PNode =
    let t = p.tok
    case t.kind
    of TkIntLit:
-      result = new_inumber_node(p, NtIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkIntLit, t.inumber, t.literal, t.base, t.size)
    of TkUIntLit:
-      result = new_inumber_node(p, NtUIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkUIntLit, t.inumber, t.literal, t.base, t.size)
    of TkAmbIntLit:
-      result = new_inumber_node(p, NtAmbIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkAmbIntLit, t.inumber, t.literal, t.base, t.size)
    of TkAmbUIntLit:
-      result = new_inumber_node(p, NtAmbUIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkAmbUIntLit, t.inumber, t.literal, t.base, t.size)
    of TkRealLit:
-      result = new_fnumber_node(p, NtRealLit, t.fnumber, t.literal)
+      result = new_fnumber_node(p, NkRealLit, t.fnumber, t.literal)
    else:
       return new_error_node(p, "Expected a number, got '$1'.", p.tok)
 
@@ -266,13 +266,13 @@ proc parse_number(p: var Parser): PNode =
 
 proc parse_constant_primary_identifier(p: var Parser): PNode =
    expect_token(p, TkSymbol)
-   let identifier = new_identifier_node(p, NtIdentifier)
+   let identifier = new_identifier_node(p, NkIdentifier)
 
    get_token(p)
    case p.tok.kind
    of TkLparenStar, TkLparen:
       # Parsing a constant function call.
-      result = new_node(p, NtConstantFunctionCall)
+      result = new_node(p, NkConstantFunctionCall)
       result.info = identifier.info
       add(result.sons, identifier)
 
@@ -295,7 +295,7 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
    else:
       # We've parsed a simple identifier.
       if p.tok.kind == TkLbracket:
-         result = new_node(p, NtRangedIdentifier)
+         result = new_node(p, NkRangedIdentifier)
          result.info = identifier.info
          add(result.sons, identifier)
          add(result.sons, parse_constant_range_expression(p))
@@ -308,7 +308,7 @@ proc parse_mintypmax_expression(p: var Parser): PNode =
    # min:typ:max expression. We'll know if we encounter a colon.
    let first = parse_constant_expression(p)
    if p.tok.kind == TkColon:
-      result = new_node(p, NtConstantMinTypMaxExpression)
+      result = new_node(p, NkConstantMinTypMaxExpression)
       result.info = first.info
       add(result.sons, first)
       get_token(p)
@@ -321,7 +321,7 @@ proc parse_mintypmax_expression(p: var Parser): PNode =
 
 
 proc parse_parenthesis(p: var Parser): PNode =
-   result = new_node(p, NtParenthesis)
+   result = new_node(p, NkParenthesis)
    get_token(p)
    if p.tok.kind != TkRparen:
       add(result.sons, parse_mintypmax_expression(p))
@@ -333,8 +333,8 @@ proc parse_constant_primary(p: var Parser): PNode =
    case p.tok.kind
    of TkOperator:
       # Prefix node
-      result = new_node(p, NtPrefix)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      result = new_node(p, NkPrefix)
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       if p.tok.kind == TkLparenStar:
          add(result.sons, parse_attribute_instances(p))
@@ -347,8 +347,8 @@ proc parse_constant_primary(p: var Parser): PNode =
    of TkLbrace:
       result = parse_constant_multiple_or_regular_concatenation(p)
    of TkDollar:
-      result = new_node(p, NtConstantSystemFunctionCall)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      result = new_node(p, NkConstantSystemFunctionCall)
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       expect_token(p, result, TkLparen)
       get_token(p)
@@ -376,7 +376,7 @@ proc parse_constant_primary(p: var Parser): PNode =
 
 
 proc parse_constant_conditional_expression(p: var Parser, head: PNode): PNode =
-   result = new_node(p, NtConstantConditionalExpression)
+   result = new_node(p, NkConstantConditionalExpression)
    expect_token(p, result, TkQuestionMark)
    get_token(p)
    add(result.sons, head)
@@ -406,8 +406,8 @@ proc parse_operator(p: var Parser, head: PNode, limit: int): PNode =
       if p.tok.kind == TkQuestionMark:
          result = parse_constant_conditional_expression(p, result)
       else:
-         let infix = new_node(p, NtInfix)
-         let op = new_identifier_node(p, NtIdentifier)
+         let infix = new_node(p, NkInfix)
+         let op = new_identifier_node(p, NkIdentifier)
          get_token(p)
          var rhs_attributes: seq[PNode] = @[]
          if p.tok.kind == TkLparenStar:
@@ -436,10 +436,10 @@ proc parse_constant_expression(p: var Parser): PNode =
 
 
 proc parse_parameter_assignment(p: var Parser): PNode =
-   result = new_node(p, NtParamAssignment)
+   result = new_node(p, NkParamAssignment)
 
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtParameterIdentifier))
+   add(result.sons, new_identifier_node(p, NkParameterIdentifier))
    get_token(p)
 
    expect_token(p, result, TkEquals)
@@ -457,17 +457,17 @@ proc parse_list_of_parameter_assignments(p: var Parser): seq[PNode] =
 
 
 proc parse_parameter_declaration(p: var Parser): PNode =
-   result = new_node(p, NtParameterDecl)
+   result = new_node(p, NkParameterDecl)
    expect_token(p, result, TkParameter)
    get_token(p)
 
    # Check for type and range specifiers.
    case p.tok.kind
    of TkInteger, TkReal, TkRealtime, TkTime:
-      add(result.sons, new_identifier_node(p, NtType))
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
    of TkSigned:
-      add(result.sons, new_identifier_node(p, NtType))
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
       if p.tok.kind == TkLbracket:
          add(result.sons, parse_range(p))
@@ -483,7 +483,7 @@ proc parse_parameter_declaration(p: var Parser): PNode =
 
 
 proc parse_parameter_port_list(p: var Parser): PNode =
-   result = new_node(p, NtModuleParameterPortList)
+   result = new_node(p, NkModuleParameterPortList)
    expect_token(p, result, TkHash)
    get_token(p)
    expect_token(p, result, TkLparen)
@@ -503,22 +503,22 @@ proc parse_parameter_port_list(p: var Parser): PNode =
 proc parse_inout_or_input_port_declaration(p: var Parser,
                                            attributes: seq[PNode]): PNode =
    # Inout or input ports have a common syntax.
-   result = new_node(p, NtPortDecl)
+   result = new_node(p, NkPortDecl)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
    expect_token(p, result, {TkInout, TkInput})
-   add(result.sons, new_identifier_node(p, NtDirection))
+   add(result.sons, new_identifier_node(p, NkDirection))
    get_token(p)
 
    # Optional net type (Verilog keywords).
    if p.tok.kind in NetTypeTokens:
-      add(result.sons, new_identifier_node(p, NtNetType))
+      add(result.sons, new_identifier_node(p, NkNetType))
       get_token(p)
 
    # Optional 'signed' specifier.
    if p.tok.kind == TkSigned:
-      add(result.sons, new_identifier_node(p, NtType))
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
 
    # Optional range.
@@ -528,7 +528,7 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
    # Parse a list of port identifiers, the syntax requires at least one item.
    while true:
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtPortIdentifier))
+      add(result.sons, new_identifier_node(p, NkPortIdentifier))
       get_token(p)
       if not look_ahead(p, TkComma, TkSymbol):
          break
@@ -540,12 +540,12 @@ proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
    # AST node is a regular identifier.
    while true:
       expect_token(p, result, TkSymbol)
-      let identifier = new_identifier_node(p, NtPortIdentifier)
+      let identifier = new_identifier_node(p, NkPortIdentifier)
       get_token(p)
 
       if p.tok.kind == TkEquals:
          get_token(p)
-         let n = new_node(p, NtVariablePort)
+         let n = new_node(p, NkVariablePort)
          n.info = identifier.info
          add(n.sons, identifier)
          add(n.sons, parse_constant_expression(p))
@@ -561,8 +561,8 @@ proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
 proc parse_list_of_port_identifiers(p: var Parser): seq[PNode] =
    while true:
       expect_token(p, result, TkSymbol)
-      # FIXME: Make this a regular NtIdentifier?
-      add(result, new_identifier_node(p, NtPortIdentifier))
+      # FIXME: Make this a regular NkIdentifier?
+      add(result, new_identifier_node(p, NkPortIdentifier))
       get_token(p)
 
       if not look_ahead(p, TkComma, TkSymbol):
@@ -572,21 +572,21 @@ proc parse_list_of_port_identifiers(p: var Parser): seq[PNode] =
 
 proc parse_output_port_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    # Inout or input ports have a common syntax.
-   result = new_node(p, NtPortDecl)
+   result = new_node(p, NkPortDecl)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
    expect_token(p, result, TkOutput)
-   add(result.sons, new_identifier_node(p, NtDirection))
+   add(result.sons, new_identifier_node(p, NkDirection))
    get_token(p)
 
    case p.tok.kind
    of TkReg:
-      add(result.sons, new_identifier_node(p, NtNetType))
+      add(result.sons, new_identifier_node(p, NkNetType))
       get_token(p)
 
       if p.tok.kind == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkLbracket:
@@ -595,18 +595,18 @@ proc parse_output_port_declaration(p: var Parser, attributes: seq[PNode]): PNode
       add(result.sons, parse_list_of_variable_port_identifiers(p))
 
    of TkInteger, TkTime:
-      add(result.sons, new_identifier_node(p, NtNetType))
+      add(result.sons, new_identifier_node(p, NkNetType))
       get_token(p)
 
       add(result.sons, parse_list_of_variable_port_identifiers(p))
 
    else:
       if p.tok.kind in NetTypeTokens:
-         add(result.sons, new_identifier_node(p, NtNetType))
+         add(result.sons, new_identifier_node(p, NkNetType))
          get_token(p)
 
       if p.tok.kind == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkLbracket:
@@ -627,7 +627,7 @@ proc parse_port_declaration(p: var Parser, attributes: seq[PNode]): PNode =
 
 proc parse_list_of_port_declarations(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
-   result = new_node(p, NtListOfPortDeclarations)
+   result = new_node(p, NkListOfPortDeclarations)
 
    while true:
       # FIXME: May be removed? Token is checked twice.
@@ -643,7 +643,7 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
 
 
 proc parse_constant_range_expression(p: var Parser): PNode =
-   result = new_node(p, NtConstantRangeExpression)
+   result = new_node(p, NkConstantRangeExpression)
    get_token(p)
 
    let first = parse_constant_expression(p)
@@ -653,8 +653,8 @@ proc parse_constant_range_expression(p: var Parser): PNode =
       add(result.sons, first)
       add(result.sons, parse_constant_expression(p))
    of TkPlusColon, TkMinusColon:
-      let infix = new_node(p, NtInfix)
-      add(infix.sons, new_identifier_node(p, NtIdentifier))
+      let infix = new_node(p, NkInfix)
+      add(infix.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       add(infix.sons, first)
       add(infix.sons, parse_constant_expression(p))
@@ -669,9 +669,9 @@ proc parse_constant_range_expression(p: var Parser): PNode =
 
 
 proc parse_port_reference(p: var Parser): PNode =
-   result = new_node(p, NtPortReference)
+   result = new_node(p, NkPortReference)
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtPortIdentifier))
+   add(result.sons, new_identifier_node(p, NkPortIdentifier))
    get_token(p)
 
    if p.tok.kind == TkLbracket:
@@ -680,7 +680,7 @@ proc parse_port_reference(p: var Parser): PNode =
 
 proc parse_port_reference_concat(p: var Parser): PNode =
    expect_token(p, TkLbrace)
-   result = new_node(p, NtPortReferenceConcat)
+   result = new_node(p, NkPortReferenceConcat)
    get_token(p)
 
    while true:
@@ -704,13 +704,13 @@ proc parse_port_expression(p: var Parser): PNode =
 
 
 proc parse_port(p: var Parser): PNode =
-   result = new_node(p, NtPort)
+   result = new_node(p, NkPort)
 
    case p.tok.kind
    of TkDot:
       get_token(p)
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtPortIdentifier))
+      add(result.sons, new_identifier_node(p, NkPortIdentifier))
       get_token(p)
 
       expect_token(p, result, TkLparen)
@@ -731,7 +731,7 @@ proc parse_port(p: var Parser): PNode =
 
 proc parse_list_of_ports(p: var Parser): PNode =
    # The enclosing parenthesis will be removed by the calling procedure.
-   result = new_node(p, NtListOfPorts)
+   result = new_node(p, NkListOfPorts)
 
    while true:
       add(result.sons, parse_port(p))
@@ -750,7 +750,7 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
    #       functions w/ the new look ahead support.
    if p.tok.kind == TkRparen:
       # The node should be an empty list of port declarations.
-      result = new_node(p, NtListOfPortDeclarations)
+      result = new_node(p, NkListOfPortDeclarations)
    elif p.tok.kind in {TkInout, TkInput, TkOutput, TkLparenStar}:
       # Assume a list of port declarations.
       result = parse_list_of_port_declarations(p)
@@ -763,7 +763,7 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
 
 
 proc parse_array_identifier(p: var Parser, identifier: PNode): PNode =
-   result = new_node(p, NtArrayIdentifer)
+   result = new_node(p, NkArrayIdentifer)
    result.info = identifier.info
    add(result.sons, identifier)
    # Handle any number of dimension specifiers (array).
@@ -779,14 +779,14 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
    # identifier.
    while true:
       expect_token(p, result, TkSymbol)
-      let identifier = new_identifier_node(p, NtIdentifier)
+      let identifier = new_identifier_node(p, NkIdentifier)
       get_token(p)
 
       case p.tok.kind
       of TkLbracket:
          add(result, parse_array_identifier(p, identifier))
       of TkEquals:
-         let n = new_node(p, NtAssignment)
+         let n = new_node(p, NkAssignment)
          n.info = identifier.info
          add(n.sons, identifier)
          get_token(p)
@@ -803,7 +803,7 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
 proc parse_list_of_array_identifiers(p: var Parser): seq[PNode] =
    while true:
       expect_token(p, result, TkSymbol)
-      let identifier = new_identifier_node(p, NtIdentifier)
+      let identifier = new_identifier_node(p, NkIdentifier)
       get_token(p)
 
       if p.tok.kind == TkLbracket:
@@ -819,8 +819,8 @@ proc parse_list_of_array_identifiers(p: var Parser): seq[PNode] =
 proc parse_list_of_assignments(p: var Parser): seq[PNode] =
    while true:
       expect_token(p, result, TkSymbol)
-      let n = new_node(p, NtAssignment)
-      add(n.sons, new_identifier_node(p, NtIdentifier))
+      let n = new_node(p, NkAssignment)
+      add(n.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       expect_token(p, result, TkEquals)
       get_token(p)
@@ -836,13 +836,13 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
    # It's not until we've parsed the first identifier that we know which syntax
    # to expect.
    expect_token(p, result, TkSymbol)
-   let first = new_identifier_node(p, NtIdentifier)
+   let first = new_identifier_node(p, NkIdentifier)
    get_token(p)
 
    if p.tok.kind == TkEquals:
       # We're parsing a list of net declaration assignments. Handle the first
       # one manually.
-      let n = new_node(p, NtAssignment)
+      let n = new_node(p, NkAssignment)
       n.info = first.info
       get_token(p)
       add(n.sons, first)
@@ -864,7 +864,7 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
 
 
 proc parse_delay(p: var Parser, nof_expressions: int): PNode =
-   result = new_node(p, NtDelay)
+   result = new_node(p, NkDelay)
    get_token(p)
 
    case p.tok.kind
@@ -877,7 +877,7 @@ proc parse_delay(p: var Parser, nof_expressions: int): PNode =
             break
          get_token(p)
    of TkSymbol:
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
    of NumberTokens:
       add(result.sons, parse_number(p))
@@ -886,26 +886,26 @@ proc parse_delay(p: var Parser, nof_expressions: int): PNode =
 
 
 proc parse_drive_strength(p: var Parser): PNode =
-   result = new_node(p, NtDriveStrength)
+   result = new_node(p, NkDriveStrength)
    expect_token(p, result, TkLparen)
    get_token(p)
 
    case p.tok.kind
    of DriveStrength0Tokens, TkHighz0:
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       expect_token(p, result, TkComma)
       get_token(p)
       expect_token(p, result, DriveStrength1Tokens + {TkHighz1})
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
    of DriveStrength1Tokens, TkHighz1:
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       expect_token(p, result, TkComma)
       get_token(p)
       expect_token(p, result, DriveStrength0Tokens + {TkHighz0})
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
    else:
       unexpected_token(p, result)
@@ -915,11 +915,11 @@ proc parse_drive_strength(p: var Parser): PNode =
 
 
 proc parse_net_declaration(p: var Parser): PNode =
-   result = new_node(p, NtNetDecl)
+   result = new_node(p, NkNetDecl)
 
    case p.tok.kind
    of NetTypeTokens:
-      add(result.sons, new_identifier_node(p, NtType))
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
 
       var has_drive_strength = false
@@ -928,11 +928,11 @@ proc parse_net_declaration(p: var Parser): PNode =
          has_drive_strength = true
 
       if p.tok.kind in {TkVectored, TkScalared}:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkLbracket:
@@ -952,7 +952,7 @@ proc parse_net_declaration(p: var Parser): PNode =
              parse_list_of_net_identifiers_or_declaration_assignments(p))
 
    of TkTrireg:
-      add(result.sons, new_identifier_node(p, NtType))
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
 
       var strength: Strength = None
@@ -961,8 +961,8 @@ proc parse_net_declaration(p: var Parser): PNode =
          strength = DriveStrength
       elif look_ahead(p, TkLparen, ChargeStrengthTokens):
          get_token(p)
-         let n = new_node(p, NtChargeStrength)
-         add(n.sons, new_identifier_node(p, NtIdentifier))
+         let n = new_node(p, NkChargeStrength)
+         add(n.sons, new_identifier_node(p, NkIdentifier))
          add(result.sons, n)
          strength = ChargeStrength
          get_token(p)
@@ -970,11 +970,11 @@ proc parse_net_declaration(p: var Parser): PNode =
          get_token(p)
 
       if p.tok.kind in {TkVectored, TkScalared}:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkLbracket:
@@ -1003,7 +1003,7 @@ proc parse_net_declaration(p: var Parser): PNode =
 
 
 proc parse_event_declaration(p: var Parser): PNode =
-   result = new_node(p, NtEventDecl)
+   result = new_node(p, NkEventDecl)
    get_token(p)
    add(result.sons, parse_list_of_array_identifiers(p))
    expect_token(p, result, TkSemicolon)
@@ -1015,26 +1015,26 @@ proc parse_variable_declaration(p: var Parser): PNode =
    # includes reg, integer, real, realtime and time.
    case p.tok.kind
    of TkReg:
-      result = new_node(p, NtRegDecl)
+      result = new_node(p, NkRegDecl)
       get_token(p)
 
       if p.tok.kind == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
       if p.tok.kind == TkLbracket:
          add(result.sons, parse_range(p))
    of TkInteger:
-      result = new_node(p, NtIntegerDecl)
+      result = new_node(p, NkIntegerDecl)
       get_token(p)
    of TkReal:
-      result = new_node(p, NtRealDecl)
+      result = new_node(p, NkRealDecl)
       get_token(p)
    of TkRealtime:
-      result = new_node(p, NtRealtimeDecl)
+      result = new_node(p, NkRealtimeDecl)
       get_token(p)
    of TkTime:
-      result = new_node(p, NtTimeDecl)
+      result = new_node(p, NkTimeDecl)
       get_token(p)
    else:
       result = unexpected_token(p)
@@ -1046,11 +1046,11 @@ proc parse_variable_declaration(p: var Parser): PNode =
 
 
 proc parse_genvar_declaration(p: var Parser): PNode =
-   result = new_node(p, NtGenvarDecl)
+   result = new_node(p, NkGenvarDecl)
    get_token(p)
    while true:
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       if not look_ahead(p, TkComma, TkSymbol):
          break
@@ -1086,14 +1086,14 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
 proc parse_variable_lvalue(p: var Parser): PNode =
    case p.tok.kind
    of TkSymbol:
-      result = new_node(p, NtVariableLvalue)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      result = new_node(p, NkVariableLvalue)
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
 
       # The identifier may be followed by any number of bracketed expressions.
       # However, it's only the last one that's allowed to be a range expression.
       # TODO: Fix this parsing since we're allowing everything to be a range
-      #       expression. We should probably have NtBrackets like we do for
+      #       expression. We should probably have NkBrackets like we do for
       #       parentheses.
       while true:
          if p.tok.kind != TkLbracket:
@@ -1102,7 +1102,7 @@ proc parse_variable_lvalue(p: var Parser): PNode =
 
    of TkLbrace:
       # Concatenation of lvalues, expecting at least one.
-      result = new_node(p, NtVariableLvalueConcat)
+      result = new_node(p, NkVariableLvalueConcat)
       get_token(p)
       while true:
          add(result.sons, parse_variable_lvalue(p))
@@ -1119,10 +1119,10 @@ proc parse_variable_lvalue(p: var Parser): PNode =
 proc parse_event_expression(p: var Parser): seq[PNode] =
    # This function returns a sequence of nodes since the syntax allows one event
    # expression to consist of many chained expressions chained together w/ 'or'.
-   let n = new_node(p, NtEventExpression)
+   let n = new_node(p, NkEventExpression)
    if p.tok.kind in {TkPosedge, TkNegedge}:
       # FIXME: Improve node type?
-      add(n.sons, new_identifier_node(p, NtType))
+      add(n.sons, new_identifier_node(p, NkType))
       get_token(p)
       add(n.sons, parse_constant_expression(p))
    else:
@@ -1137,25 +1137,25 @@ proc parse_event_expression(p: var Parser): seq[PNode] =
 
 
 proc parse_event_control(p: var Parser): PNode =
-   result = new_node(p, NtEventControl)
+   result = new_node(p, NkEventControl)
    expect_token(p, result, TkAt)
    get_token(p)
 
    case p.tok.kind
    of TkSymbol:
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
    of TkOperator:
       if p.tok.identifier.s != "*":
          unexpected_token(p, result)
-      add(result.sons, new_node(p, NtWildcard))
+      add(result.sons, new_node(p, NkWildcard))
       get_token(p)
    of TkLparenStar:
       # If the left parenthesis is not separated from the '*' with whitespace,
       # the lexer will output this as a '(*' token used to indicate an attribute
       # instance. We have to interpret this differently.
-      let n = new_node(p, NtParenthesis)
-      let wc = new_node(p, NtWildcard)
+      let n = new_node(p, NkParenthesis)
+      let wc = new_node(p, NkWildcard)
       inc(wc.info.col)
       add(n.sons, wc)
       get_token(p)
@@ -1163,10 +1163,10 @@ proc parse_event_control(p: var Parser): PNode =
       get_token(p)
       add(result.sons, n)
    of TkLparen:
-      let n = new_node(p, NtParenthesis)
+      let n = new_node(p, NkParenthesis)
       get_token(p)
       if p.tok.kind == TkOperator and p.tok.identifier.s == "*":
-         add(n.sons, new_node(p, NtWildcard))
+         add(n.sons, new_node(p, NkWildcard))
          get_token(p)
       else:
          add(n.sons, parse_event_expression(p))
@@ -1185,7 +1185,7 @@ proc parse_delay_or_event_control(p: var Parser): PNode =
    of TkAt:
       result = parse_event_control(p)
    of TkRepeat:
-      result = new_node(p, NtRepeat)
+      result = new_node(p, NkRepeat)
       get_token(p)
       expect_token(p, result, TkLparen)
       get_token(p)
@@ -1203,13 +1203,13 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
    # Initialize the node depending on the next token.
    case p.tok.kind
    of TkEquals:
-      result = new_node(p, NtBlockingAssignment)
+      result = new_node(p, NkBlockingAssignment)
    of TkOperator:
-      result = new_node(p, NtNonblockingAssignment)
+      result = new_node(p, NkNonblockingAssignment)
       if p.tok.identifier.s != "<=":
          unexpected_token(p, result)
    else:
-      result = new_node(p, NtBlockingAssignment)
+      result = new_node(p, NkBlockingAssignment)
       result.info = lvalue.info
       unexpected_token(p, result)
 
@@ -1225,8 +1225,8 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
 
 
 proc parse_procedural_continuous_assignment(p: var Parser): PNode =
-   result = new_node(p, NtProceduralContinuousAssignment)
-   add(result.sons, new_identifier_node(p, NtType)) # FIXME: Better node type?
+   result = new_node(p, NkProceduralContinuousAssignment)
+   add(result.sons, new_identifier_node(p, NkType)) # FIXME: Better node type?
    let tok = p.tok
    get_token(p)
    # Regardless of which syntax we've parsing, there's always an lvalue.
@@ -1248,11 +1248,11 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode
 proc parse_block(p: var Parser): PNode =
    case p.tok.kind
    of TkBegin:
-      result = new_node(p, NtSeqBlock)
+      result = new_node(p, NkSeqBlock)
    of TkFork:
-      result = new_node(p, NtParBlock)
+      result = new_node(p, NkParBlock)
    else:
-      result = new_node(p, NtSeqBlock)
+      result = new_node(p, NkSeqBlock)
       unexpected_token(p, result)
 
    var attributes: seq[PNode] = @[]
@@ -1261,7 +1261,7 @@ proc parse_block(p: var Parser): PNode =
    if p.tok.kind == TkColon:
       get_token(p)
       expect_token(p, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
 
       while true:
@@ -1289,15 +1289,15 @@ proc parse_block(p: var Parser): PNode =
       add(result.sons, n)
       return
 
-   if result.kind == NtSeqBlock:
+   if result.kind == NkSeqBlock:
       expect_token(p, result, TkEnd)
-   elif result.kind == NtParBlock:
+   elif result.kind == NkParBlock:
       expect_token(p, result, TkJoin)
    get_token(p)
 
 
 proc parse_variable_assignment(p: var Parser): PNode =
-   result = new_node(p, NtAssignment)
+   result = new_node(p, NkAssignment)
    add(result.sons, parse_variable_lvalue(p))
    expect_token(p, result, TkEquals)
    get_token(p)
@@ -1313,9 +1313,9 @@ proc parse_list_of_variable_assignment(p: var Parser): seq[PNode] =
 
 
 proc parse_identifier_assignment(p: var Parser): PNode =
-   result = new_node(p, NtAssignment)
+   result = new_node(p, NkAssignment)
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
    expect_token(p, result, TkEquals)
    get_token(p)
@@ -1325,10 +1325,10 @@ proc parse_identifier_assignment(p: var Parser): PNode =
 proc parse_loop_statement(p: var Parser): PNode =
    case p.tok.kind
    of TkForever:
-      result = new_node(p, NtForever)
+      result = new_node(p, NkForever)
       get_token(p)
    of TkRepeat:
-      result = new_node(p, NtRepeat)
+      result = new_node(p, NkRepeat)
       get_token(p)
       expect_token(p, TkLparen)
       get_token(p)
@@ -1336,7 +1336,7 @@ proc parse_loop_statement(p: var Parser): PNode =
       expect_token(p, TkRparen)
       get_token(p)
    of TkWhile:
-      result = new_node(p, NtWhile)
+      result = new_node(p, NkWhile)
       get_token(p)
       expect_token(p, TkLparen)
       get_token(p)
@@ -1344,7 +1344,7 @@ proc parse_loop_statement(p: var Parser): PNode =
       expect_token(p, TkRparen)
       get_token(p)
    of TkFor:
-      result = new_node(p, NtFor)
+      result = new_node(p, NkFor)
       get_token(p)
       expect_token(p, TkLparen)
       get_token(p)
@@ -1359,14 +1359,14 @@ proc parse_loop_statement(p: var Parser): PNode =
       get_token(p)
    else:
       # FIXME: Better served by an error node w/ sons?
-      result = new_node(p, NtFor)
+      result = new_node(p, NkFor)
       unexpected_token(p, result)
 
    add(result.sons, parse_statement(p))
 
 
 proc parse_conditional_statement(p: var Parser): PNode =
-   result = new_node(p, NtIf)
+   result = new_node(p, NkIf)
    get_token(p)
 
    # Parse the conditional expression.
@@ -1385,13 +1385,13 @@ proc parse_conditional_statement(p: var Parser): PNode =
       else:
          add(result.sons, parse_statement_or_null(p))
    else:
-      add(result.sons, new_node(p, NtEmpty))
+      add(result.sons, new_node(p, NkEmpty))
 
 
 proc parse_case_item(p: var Parser): PNode =
-   result = new_node(p, NtCaseItem)
+   result = new_node(p, NkCaseItem)
    if p.tok.kind == TkDefault:
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       # FIXME: The ':' is optional for the default case label. How to indicate
       #        the presence/absence in the AST.
       get_token(p)
@@ -1413,14 +1413,14 @@ proc parse_case_item(p: var Parser): PNode =
 proc parse_case_statement(p: var Parser): PNode =
    case p.tok.kind
    of TkCase:
-      result = new_node(p, NtCase)
+      result = new_node(p, NkCase)
    of TkCasez:
-      result = new_node(p, NtCasez)
+      result = new_node(p, NkCasez)
    of TkCasex:
-      result = new_node(p, NtCasex)
+      result = new_node(p, NkCasex)
    else:
       # FIXME: Better served by an error node w/ sons?
-      result = new_node(p, NtCase)
+      result = new_node(p, NkCase)
       unexpected_token(p, result)
 
    # Parse the expression.
@@ -1448,18 +1448,18 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
    of TkIf:
       result = parse_conditional_statement(p)
    of TkDisable:
-      result = new_node(p, NtDisable)
+      result = new_node(p, NkDisable)
       get_token(p)
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkRightArrow:
-      result = new_node(p, NtEventTrigger)
+      result = new_node(p, NkEventTrigger)
       get_token(p)
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       while true:
          if p.tok.kind != TkLbracket:
@@ -1479,11 +1479,11 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkHash:
-      result = new_node(p, NtProceduralTimingControl)
+      result = new_node(p, NkProceduralTimingControl)
       add(result.sons, parse_delay(p, 1))
       add(result.sons, parse_statement_or_null(p))
    of TkAt:
-      result = new_node(p, NtProceduralTimingControl)
+      result = new_node(p, NkProceduralTimingControl)
       add(result.sons, parse_event_control(p))
       add(result.sons, parse_statement_or_null(p))
    of TkDollar:
@@ -1491,18 +1491,18 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # The arguments may be empty. To indicate this we insert empty nodes in
       # the AST. We then have to differentiate between two 'types' of commas
       # or parenthesis: those following an expression and those who don't.
-      result = new_node(p, NtSystemTaskEnable)
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      result = new_node(p, NkSystemTaskEnable)
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       if p.tok.kind == TkLparen:
          get_token(p)
          while true:
             case p.tok.kind
             of TkRparen:
-               add(result.sons, new_node(p, NtEmpty))
+               add(result.sons, new_node(p, NkEmpty))
                break
             of TkComma:
-               add(result.sons, new_node(p, NtEmpty))
+               add(result.sons, new_node(p, NkEmpty))
                get_token(p)
             else:
                add(result.sons, parse_constant_expression(p))
@@ -1515,7 +1515,7 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkWait:
-      result = new_node(p, NtWait)
+      result = new_node(p, NkWait)
       get_token(p)
       expect_token(p, result, TkLparen)
       get_token(p)
@@ -1529,8 +1529,8 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       # identifier. Otherwise, if the next token is '=' or '<=', we're parsing
       # a blocking or nonblocking assignment.
       if look_ahead(p, TkSymbol, {TkLparen, TkSemicolon}):
-         result = new_node(p, NtTaskEnable)
-         add(result.sons, new_identifier_node(p, NtIdentifier))
+         result = new_node(p, NkTaskEnable)
+         add(result.sons, new_identifier_node(p, NkIdentifier))
          get_token(p)
          if p.tok.kind == TkLparen:
             get_token(p)
@@ -1566,7 +1566,7 @@ proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
    if p.tok.kind == TkSemicolon:
       # Null statement.
       # FIXME: use a better node type?
-      result = new_node(p, NtEmpty)
+      result = new_node(p, NkEmpty)
       get_token(p)
       add(result.sons, attributes)
    else:
@@ -1577,29 +1577,29 @@ proc parse_statement_or_null(p: var Parser): PNode =
    result = parse_statement_or_null(p, parse_attribute_instances(p))
 
 
-proc parse_task_or_function_port(p: var Parser, kind: NodeType,
+proc parse_task_or_function_port(p: var Parser, kind: NodeKind,
                                  attributes: seq[PNode]): PNode =
-   result = new_node(p, NtPort)
+   result = new_node(p, NkPort)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
-   if kind == NtFunctionDecl:
+   if kind == NkFunctionDecl:
       expect_token(p, result, TkInput)
    else:
       expect_token(p, result, {TkInput, TkInout, TkOutput})
-   add(result.sons, new_identifier_node(p, NtDirection))
+   add(result.sons, new_identifier_node(p, NkDirection))
    get_token(p)
 
    if p.tok.kind in {TkInteger, TkReal, TkRealtime, TkTime}:
-      add(result.sons, new_identifier_node(p, NtType))
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
    else:
       # Register syntax
       if p.tok.kind == TkReg:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
       if p.tok.kind == TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
       if p.tok.kind == TkLbracket:
          add(result.sons, parse_range(p))
@@ -1608,11 +1608,11 @@ proc parse_task_or_function_port(p: var Parser, kind: NodeType,
    add(result.sons, parse_list_of_port_identifiers(p))
 
 
-proc parse_task_or_function_port(p: var Parser, kind: NodeType): PNode =
+proc parse_task_or_function_port(p: var Parser, kind: NodeKind): PNode =
    result = parse_task_or_function_port(p, kind, parse_attribute_instances(p))
 
 
-proc parse_task_or_function_port_list(p: var Parser, kind: NodeType): seq[PNode] =
+proc parse_task_or_function_port_list(p: var Parser, kind: NodeKind): seq[PNode] =
    while true:
       add(result, parse_task_or_function_port(p, kind))
       if p.tok.kind != TkComma:
@@ -1620,7 +1620,7 @@ proc parse_task_or_function_port_list(p: var Parser, kind: NodeType): seq[PNode]
       get_token(p)
 
 
-proc parse_task_or_function_item_declaration(p: var Parser, kind: NodeType,
+proc parse_task_or_function_item_declaration(p: var Parser, kind: NodeKind,
                                              attributes: seq[PNode]): PNode =
    if p.tok.kind in {TkInput, TkInout, TkOutput}:
       result = parse_task_or_function_port(p, kind, attributes)
@@ -1633,39 +1633,39 @@ proc parse_task_or_function_item_declaration(p: var Parser, kind: NodeType,
 proc parse_task_or_function_declaration(p: var Parser): PNode =
    case p.tok.kind
    of TkTask:
-      result = new_node(p, NtTaskDecl)
+      result = new_node(p, NkTaskDecl)
    of TkFunction:
-      result = new_node(p, NtFunctionDecl)
+      result = new_node(p, NkFunctionDecl)
    else:
       # FIXME: Proper error node?
-      result = new_node(p, NtTaskDecl)
+      result = new_node(p, NkTaskDecl)
       unexpected_token(p, result)
    get_token(p)
 
    if p.tok.kind == TkAutomatic:
-      # FIXME: Is NtType the best option?
-      add(result.sons, new_identifier_node(p, NtType))
+      # FIXME: Is NkType the best option?
+      add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
 
    # Parse optional range or type specifier for functions.
-   if result.kind == NtFunctionDecl:
+   if result.kind == NkFunctionDecl:
       case p.tok.kind
       of TkSigned:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
          if p.tok.kind == TkLbracket:
             add(result.sons, parse_range(p))
       of TkLbracket:
          add(result.sons, parse_range(p))
       of TkInteger, TkReal, TkRealtime, TkTime:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
       else:
          discard
 
    # Expect the task or function identifier.
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
 
    # Parse the port list. If ports are specified, the syntax does not allow
@@ -1673,7 +1673,7 @@ proc parse_task_or_function_declaration(p: var Parser): PNode =
    var allow_declarations = true
    if p.tok.kind == TkLparen:
       get_token(p)
-      if result.kind == NtTaskDecl and p.tok.kind == TkRparen:
+      if result.kind == NkTaskDecl and p.tok.kind == TkRparen:
          # FIXME: Add empty node?
          get_token(p)
       else:
@@ -1687,7 +1687,7 @@ proc parse_task_or_function_declaration(p: var Parser): PNode =
 
    # If there are no ports, then the function syntax _requires_ at least one
    # declaration while it's optional for the task syntax.
-   if result.kind == NtFunctionDecl and allow_declarations:
+   if result.kind == NkFunctionDecl and allow_declarations:
       let attributes = parse_attribute_instances(p)
       add(result.sons, parse_task_or_function_item_declaration(p, result.kind, attributes))
 
@@ -1704,7 +1704,7 @@ proc parse_task_or_function_declaration(p: var Parser): PNode =
          add(result.sons, parse_block_item_declaration(p, attributes))
 
    # Parse a statement or null (a single semicolon)
-   if result.kind == NtTaskDecl:
+   if result.kind == NkTaskDecl:
       add(result.sons, parse_statement_or_null(p, attributes))
       expect_token(p, result, TkEndtask)
    else:
@@ -1735,7 +1735,7 @@ proc parse_module_or_generate_item(p: var Parser): PNode
 
 
 proc parse_specparam_declaration(p: var Parser): PNode =
-   result = new_node(p, NtSpecparamDecl)
+   result = new_node(p, NkSpecparamDecl)
    get_token(p)
 
    if p.tok.kind == TkLbracket:
@@ -1753,7 +1753,7 @@ proc parse_specparam_declaration(p: var Parser): PNode =
 
 
 proc parse_generate_region(p: var Parser): PNode =
-   result = new_node(p, NtGenerateRegion)
+   result = new_node(p, NkGenerateRegion)
    get_token(p)
 
    while true:
@@ -1789,7 +1789,7 @@ proc parse_specify_item(p: var Parser): PNode =
 
 
 proc parse_specify_block(p: var Parser): PNode =
-   result = new_node(p, NtSpecifyBlock)
+   result = new_node(p, NkSpecifyBlock)
    get_token(p)
    add(result.sons, new_error_node(p, SpecifyBlockNotSupported))
 
@@ -1805,13 +1805,13 @@ proc parse_specify_block(p: var Parser): PNode =
 
 proc parse_generate_block(p: var Parser): PNode =
    if p.tok.kind == TkBegin:
-      result = new_node(p, NtGenerateBlock)
+      result = new_node(p, NkGenerateBlock)
       get_token(p)
       if p.tok.kind == TkColon:
          get_token(p)
          expect_token(p, result, TkSymbol)
          # TODO: Dedicated node type for block identifiers?
-         add(result.sons, new_identifier_node(p, NtIdentifier))
+         add(result.sons, new_identifier_node(p, NkIdentifier))
          get_token(p)
       while true:
          # TODO: This is also opt-out parsing.
@@ -1829,14 +1829,14 @@ proc parse_generate_block(p: var Parser): PNode =
 proc parse_generate_block_or_null(p: var Parser): PNode =
    if p.tok.kind == TkSemicolon:
       # TODO: Better node type?
-      result = new_node(p, NtEmpty)
+      result = new_node(p, NkEmpty)
       get_token(p)
    else:
       result = parse_generate_block(p)
 
 
 proc parse_loop_generate_construct(p: var Parser): PNode =
-   result = new_node(p, NtLoopGenerate)
+   result = new_node(p, NkLoopGenerate)
    get_token(p)
    expect_token(p, result, TkLparen)
    get_token(p)
@@ -1857,9 +1857,9 @@ proc parse_loop_generate_construct(p: var Parser): PNode =
 
 
 proc parse_case_generate_item(p: var Parser): PNode =
-   result = new_node(p, NtCaseGenerateItem)
+   result = new_node(p, NkCaseGenerateItem)
    if p.tok.kind == TkDefault:
-      add(result.sons, new_identifier_node(p, NtIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       # FIXME: The ':' is optional for the default case label. How to indicate
       #        the presence/absence in the AST.
       get_token(p)
@@ -1879,7 +1879,7 @@ proc parse_case_generate_item(p: var Parser): PNode =
 
 
 proc parse_case_generate_construct(p: var Parser): PNode =
-   result = new_node(p, NtCaseGenerate)
+   result = new_node(p, NkCaseGenerate)
    get_token(p)
 
    # Parse the expression.
@@ -1902,7 +1902,7 @@ proc parse_case_generate_construct(p: var Parser): PNode =
 proc parse_conditional_generate_construct(p: var Parser): PNode =
    case p.tok.kind
    of TkIf:
-      result = new_node(p, NtIfGenerate)
+      result = new_node(p, NkIfGenerate)
       get_token(p)
       expect_token(p, TkLparen)
       get_token(p)
@@ -1915,17 +1915,17 @@ proc parse_conditional_generate_construct(p: var Parser): PNode =
          add(result.sons, parse_generate_block_or_null(p))
       else:
          # Empty node to symbolize a missing else branch.
-         add(result.sons, new_node(p, NtEmpty))
+         add(result.sons, new_node(p, NkEmpty))
    of TkCase:
       result = parse_case_generate_construct(p)
    else:
       # FIXME: Custom error type?
-      result = new_node(p, NtIfGenerate)
+      result = new_node(p, NkIfGenerate)
       unexpected_token(p, result)
 
 
 proc parse_parameter_value_assignment(p: var Parser): PNode =
-   result = new_node(p, NtParameterValueAssignment)
+   result = new_node(p, NkParameterValueAssignment)
    get_token(p)
    expect_token(p, result, TkLparen)
    get_token(p)
@@ -1934,9 +1934,9 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
       while true:
          expect_token(p, result, TkDot)
          get_token(p)
-         let n = new_node(p, NtAssignment)
+         let n = new_node(p, NkAssignment)
          expect_token(p, result, TkSymbol)
-         add(n.sons, new_identifier_node(p, NtIdentifier))
+         add(n.sons, new_identifier_node(p, NkIdentifier))
          get_token(p)
          expect_token(p, result, TkLparen)
          get_token(p)
@@ -1960,13 +1960,13 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
    get_token(p)
 
 proc parse_named_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
-   result = new_node(p, NtPortConnection)
+   result = new_node(p, NkPortConnection)
    expect_token(p, result, TkDot)
    get_token(p)
    if len(attributes) > 0:
       add(result.sons, attributes)
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
    expect_token(p, result, TkLparen)
    get_token(p)
@@ -1981,7 +1981,7 @@ proc parse_named_port_connection(p: var Parser): PNode =
 
 
 proc parse_ordered_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
-   result = new_node(p, NtPortConnection)
+   result = new_node(p, NkPortConnection)
    if len(attributes) > 0:
       add(result.sons, attributes)
    if p.tok.kind in ExpressionTokens:
@@ -2013,10 +2013,10 @@ proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
 
 
 proc parse_module_instance(p: var Parser): PNode =
-   result = new_node(p, NtModuleInstance)
+   result = new_node(p, NkModuleInstance)
    # Parse the name of module instance.
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
    if p.tok.kind == TkLbracket:
       add(result.sons, parse_range(p))
@@ -2029,9 +2029,9 @@ proc parse_module_instance(p: var Parser): PNode =
 
 
 proc parse_module_or_udp_instantiaton(p: var Parser): PNode =
-   result = new_node(p, NtModuleInstantiation)
+   result = new_node(p, NkModuleInstantiation)
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
 
    if p.tok.kind == TkHash:
@@ -2056,14 +2056,14 @@ proc parse_module_or_udp_instantiaton(p: var Parser): PNode =
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.kind
    of TkLocalparam:
-      result = new_node(p, NtLocalparamDecl)
+      result = new_node(p, NkLocalparamDecl)
       get_token(p)
       if p.tok.kind in {TkInteger, TkReal, TkRealtime, TkTime}:
-         add(result.sons, new_identifier_node(p, NtType))
+         add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
       else:
          if p.tok.kind == TkSigned:
-            add(result.sons, new_identifier_node(p, NtType))
+            add(result.sons, new_identifier_node(p, NkType))
             get_token(p)
          if p.tok.kind == TkLbracket:
             add(result.sons, parse_range(p))
@@ -2073,14 +2073,14 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       get_token(p)
 
    of TkDefparam:
-      result = new_node(p, NtDefparamDecl)
+      result = new_node(p, NkDefparamDecl)
       get_token(p)
       add(result.sons, parse_list_of_parameter_assignments(p))
       expect_token(p, result, TkSemicolon)
       get_token(p)
 
    of TkAssign:
-      result = new_node(p, NtContinuousAssignment)
+      result = new_node(p, NkContinuousAssignment)
       get_token(p)
       if look_ahead(p, TkLparen, DriveStrengthTokens):
          add(result.sons, parse_drive_strength(p))
@@ -2097,12 +2097,12 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       get_token(p)
 
    of TkInitial:
-      result = new_node(p, NtInitial)
+      result = new_node(p, NkInitial)
       get_token(p)
       add(result.sons, parse_statement(p))
 
    of TkAlways:
-      result = new_node(p, NtAlways)
+      result = new_node(p, NkAlways)
       get_token(p)
       add(result.sons, parse_statement(p))
 
@@ -2170,14 +2170,14 @@ proc parse_module_item(p: var Parser, attributes: seq[PNode]): PNode =
 
 
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
-   result = new_node(p, NtModuleDecl)
+   result = new_node(p, NkModuleDecl)
    get_token(p)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
    # Expect an idenfitier as the first token after the module keyword.
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NtModuleIdentifier))
+   add(result.sons, new_identifier_node(p, NkModuleIdentifier))
    get_token(p)
 
    # Parse the optional parameter port list.
@@ -2189,7 +2189,7 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    var parse_body = parse_non_port_module_item
    if p.tok.kind == TkLparen:
       let n = parse_list_of_ports_or_port_declarations(p)
-      if n.kind == NtListOfPorts:
+      if n.kind == NkListOfPorts:
          parse_body = parse_module_item
       add(result.sons, n)
 
@@ -2234,10 +2234,10 @@ proc assume_source_text(p: var Parser): PNode =
 
 proc parse_all*(p: var Parser): PNode =
    get_token(p)
-   result = new_node(p, NtSourceText) # FIXME: Proper init value
+   result = new_node(p, NkSourceText) # FIXME: Proper init value
    while p.tok.kind != TkEndOfFile:
       let n = assume_source_text(p)
-      if n.kind != NtEmpty:
+      if n.kind != NkEmpty:
          add(result.sons, n)
 
 
@@ -2252,28 +2252,28 @@ proc parse_string*(s: string, cache: IdentifierCache,
 
 # Procedure used by the test framework to parse subsets of the grammar.
 proc parse_specific_grammar*(s: string, cache: IdentifierCache,
-                             kind: NodeType, filename: string = ""): PNode =
+                             kind: NodeKind, filename: string = ""): PNode =
    var p: Parser
    var ss = new_string_stream(s)
    open_parser(p, cache, filename, ss)
 
    var parse_proc: proc (p: var Parser): PNode
    case kind
-   of NtListOfPorts, NtListOfPortDeclarations:
+   of NkListOfPorts, NkListOfPortDeclarations:
       parse_proc = parse_list_of_ports_or_port_declarations
-   of NtModuleParameterPortList:
+   of NkModuleParameterPortList:
       parse_proc = parse_parameter_port_list
-   of NtConstantExpression:
+   of NkConstantExpression:
       parse_proc = parse_constant_expression
-   of NtRegDecl, NtIntegerDecl, NtRealDecl, NtRealtimeDecl, NtTimeDecl:
+   of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl:
       parse_proc = parse_variable_declaration
-   of NtEventDecl:
+   of NkEventDecl:
       parse_proc = parse_event_declaration
-   of NtNetDecl:
+   of NkNetDecl:
       parse_proc = parse_net_declaration
-   of NtTaskDecl, NtFunctionDecl:
+   of NkTaskDecl, NkFunctionDecl:
       parse_proc = parse_task_or_function_declaration
-   of NtBlockingAssignment, NtNonblockingAssignment:
+   of NkBlockingAssignment, NkNonblockingAssignment:
       parse_proc = parse_blocking_or_nonblocking_assignment
    else:
       parse_proc = nil

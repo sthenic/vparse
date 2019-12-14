@@ -16,7 +16,7 @@ var
 template run_test(title, stimuli: string, reference: PNode) =
    # var response: PNode
    cache = new_ident_cache()
-   let response = parse_specific_grammar(stimuli, cache, NtNetDecl)
+   let response = parse_specific_grammar(stimuli, cache, NkNetDecl)
 
    if response == reference:
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
@@ -33,26 +33,26 @@ proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
 
-template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
+template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
 run_test("Simple wire declaration", "wire foo;"):
-   new_node(NtNetDecl, li(1, 1), @[
-      new_identifier_node(NtType, li(1, 1), "wire"),
-      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   new_node(NkNetDecl, li(1, 1), @[
+      new_identifier_node(NkType, li(1, 1), "wire"),
+      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
    ])
 
 run_test("Simple wire declaration", "trireg (small) vectored [7:0] foo, bar[2:0], baz[5:MIN+2];"):
-   new_node(NtNetDecl, li(1, 1), @[
-      new_identifier_node(NtType, li(1, 1), "wire"),
-      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   new_node(NkNetDecl, li(1, 1), @[
+      new_identifier_node(NkType, li(1, 1), "wire"),
+      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
    ])
 
 run_test("Simple wire declaration", "wire a = 23, b = 2, c = 2;"):
-   new_node(NtNetDecl, li(1, 1), @[
-      new_identifier_node(NtType, li(1, 1), "wire"),
-      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   new_node(NkNetDecl, li(1, 1), @[
+      new_identifier_node(NkType, li(1, 1), "wire"),
+      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
    ])
 
 

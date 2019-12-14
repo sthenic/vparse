@@ -6,141 +6,141 @@ import ../lexer/identifier
 
 
 type
-   NodeType* = enum
-      NtInvalid, # An invalid node, indicates an error
-      NtError, # An error node
+   NodeKind* = enum
+      NkInvalid, # An invalid node, indicates an error
+      NkError, # An error node
       # Atoms
-      NtEmpty, # An empty node
-      NtIdentifier, # The node is an identifier
-      NtSymbol, # the node is a symbol
-      NtStrLit, # the node is a string literal
-      NtIntLit, # the node is an integer literal
-      NtUIntLit, # the node is an unsigned integer literal
-      NtAmbIntLit, # the node is an integer literal
-      NtAmbUIntLit, # the node is an unsigned integer literal
-      NtRealLit, # the node is a real value
-      NtType,
-      NtPrefix,
-      NtInfix,
-      NtParenthesis,
-      NtDirection,
-      NtWildcard, # Symbolizes a '*' in an event expression.
+      NkEmpty, # An empty node
+      NkIdentifier, # The node is an identifier
+      NkSymbol, # the node is a symbol
+      NkStrLit, # the node is a string literal
+      NkIntLit, # the node is an integer literal
+      NkUIntLit, # the node is an unsigned integer literal
+      NkAmbIntLit, # the node is an integer literal
+      NkAmbUIntLit, # the node is an unsigned integer literal
+      NkRealLit, # the node is a real value
+      NkType,
+      NkPrefix,
+      NkInfix,
+      NkParenthesis,
+      NkDirection,
+      NkWildcard, # Symbolizes a '*' in an event expression.
       # Custom node types
-      NtRangedIdentifier, # FIXME: Still useful? Same as NtArrayIdentifier?
-      NtArrayIdentifer,
-      NtAssignment,
+      NkRangedIdentifier, # FIXME: Still useful? Same as NkArrayIdentifier?
+      NkArrayIdentifer,
+      NkAssignment,
       # Modules A.1.3
-      NtSourceText,
-      NtModuleDecl,
-      NtModuleIdentifier,
+      NkSourceText,
+      NkModuleDecl,
+      NkModuleIdentifier,
       # Module parameters and ports A.1.4
-      NtModuleParameterPortList, NtListOfPorts, NtListOfPortDeclarations,
-      NtPort, NtPortExpression, NtPortReference, NtPortReferenceConcat,
-      NtPortIdentifier, NtPortDecl, NtVariablePort,
+      NkModuleParameterPortList, NkListOfPorts, NkListOfPortDeclarations,
+      NkPort, NkPortExpression, NkPortReference, NkPortReferenceConcat,
+      NkPortIdentifier, NkPortDecl, NkVariablePort,
       # Parameter declarations A.2.1.1
-      NtLocalparamDecl, NtDefparamDecl, NtParameterDecl, NtSpecparamDecl,
+      NkLocalparamDecl, NkDefparamDecl, NkParameterDecl, NkSpecparamDecl,
       # Port declarations A.2.1.2
-      NtInoutDecl, NtInputDecl, NtOutputDecl, # FIXME: Remove if unused
+      NkInoutDecl, NkInputDecl, NkOutputDecl, # FIXME: Remove if unused
       # Type declarations A.2.1.3
-      NtEventDecl, NtGenvarDecl, NtIntegerDecl, NtNetDecl, NtRealDecl,
-      NtRealtimeDecl, NtRegDecl, NtTimeDecl,
+      NkEventDecl, NkGenvarDecl, NkIntegerDecl, NkNetDecl, NkRealDecl,
+      NkRealtimeDecl, NkRegDecl, NkTimeDecl,
       # Net and variable types A.2.2.1
-      NtNetType,
+      NkNetType,
       # Drive strengths A.2.2.2
-      NtDriveStrength, NtChargeStrength,
+      NkDriveStrength, NkChargeStrength,
       # Delays A.2.2.3
-      NtDelay,
+      NkDelay,
       # Declaration assignments A.2.4
-      NtParamAssignment, NtNetDeclAssignment,
+      NkParamAssignment, NkNetDeclAssignment,
       # Declaration ranges A.2.5
-      NtRange,
+      NkRange,
       # Function declarations A.2.6
-      NtFunctionDecl,
+      NkFunctionDecl,
       # Task declarations A.2.7
-      NtTaskDecl,
+      NkTaskDecl,
       # Module instantiation A.4.1
-      NtModuleInstantiation, NtParameterValueAssignment, NtModuleInstance,
-      NtPortConnection,
+      NkModuleInstantiation, NkParameterValueAssignment, NkModuleInstance,
+      NkPortConnection,
       # Generate construct A.4.2
-      NtGenerateRegion, NtLoopGenerate, NtGenerateBlock, NtIfGenerate,
-      NtCaseGenerate, NtCaseGenerateItem,
+      NkGenerateRegion, NkLoopGenerate, NkGenerateBlock, NkIfGenerate,
+      NkCaseGenerate, NkCaseGenerateItem,
       # Procedural blocks and assignments A.6.2
-      NtContinuousAssignment, NtBlockingAssignment, NtNonblockingAssignment,
-      NtProceduralContinuousAssignment, NtInitial, NtAlways,
+      NkContinuousAssignment, NkBlockingAssignment, NkNonblockingAssignment,
+      NkProceduralContinuousAssignment, NkInitial, NkAlways,
       # Parallel and sequential blocks A.6.3
-      NtParBlock, NtSeqBlock,
+      NkParBlock, NkSeqBlock,
       # Statements A.6.4
-      NtTaskEnable, NtSystemTaskEnable,
+      NkTaskEnable, NkSystemTaskEnable,
       # Timing control statements A.6.5
-      NtEventControl, NtEventExpression, NtRepeat, NtWait,
-      NtProceduralTimingControl, NtEventTrigger, NtDisable,
+      NkEventControl, NkEventExpression, NkRepeat, NkWait,
+      NkProceduralTimingControl, NkEventTrigger, NkDisable,
       # Conditional statements A.6.6
-      NtIf,
+      NkIf,
       # Case statements A.6.7
-      NtCase, NtCasez, NtCasex, NtCaseItem,
+      NkCase, NkCasez, NkCasex, NkCaseItem,
       # Looping statements A.6.8
-      NtForever, NtWhile, NtFor,
+      NkForever, NkWhile, NkFor,
       # Specify section A.7.1
-      NtSpecifyBlock,
+      NkSpecifyBlock,
       # Concatenations A.8.1
-      NtConstantConcat, NtConstantMultipleConcat,
+      NkConstantConcat, NkConstantMultipleConcat,
       # Function calls A.8.2
-      NtConstantFunctionCall,
-      NtConstantSystemFunctionCall,
+      NkConstantFunctionCall,
+      NkConstantSystemFunctionCall,
       # Expressions A.8.3
-      NtConstantExpression, NtConstantMinTypMaxExpression,
-      NtConstantConditionalExpression, NtConstantRangeExpression,
+      NkConstantExpression, NkConstantMinTypMaxExpression,
+      NkConstantConditionalExpression, NkConstantRangeExpression,
       # Primaries A.8.4
-      NtConstantPrimary,
+      NkConstantPrimary,
       # Expression left-side values A.8.5
-      NtVariableLvalue,
-      NtVariableLvalueConcat,
+      NkVariableLvalue,
+      NkVariableLvalueConcat,
       # Operators A.8.6
-      NtUnaryOperator, NtBinaryOperator,
+      NkUnaryOperator, NkBinaryOperator,
       # Attributes A.9.1
-      NtAttributeInst, NtAttributeSpec, NtAttributeName,
+      NkAttributeInst, NkAttributeSpec, NkAttributeName,
       # Identifiers A.9.3
-      NtParameterIdentifier, NtSpecparamIdentifier, NtFunctionIdentifier,
-      NtGenvarIdentifier,
+      NkParameterIdentifier, NkSpecparamIdentifier, NkFunctionIdentifier,
+      NkGenvarIdentifier,
 
-   NodeTypes* = set[NodeType]
+   NodeKinds* = set[NodeKind]
 
 
 const
    IdentifierTypes =
-      {NtIdentifier, NtAttributeName, NtModuleIdentifier, NtPortIdentifier,
-       NtParameterIdentifier, NtSpecparamIdentifier, NtType,
-       NtFunctionIdentifier, NtGenvarIdentifier, NtDirection, NtNetType,
-       NtAttributeName}
+      {NkIdentifier, NkAttributeName, NkModuleIdentifier, NkPortIdentifier,
+       NkParameterIdentifier, NkSpecparamIdentifier, NkType,
+       NkFunctionIdentifier, NkGenvarIdentifier, NkDirection, NkNetType,
+       NkAttributeName}
    IntegerTypes =
-      {NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit}
+      {NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit}
 
-   OperatorTypes = {NtUnaryOperator, NtBinaryOperator}
+   OperatorTypes = {NkUnaryOperator, NkBinaryOperator}
 
 type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
    TNode = object of RootObj
       info*: TLineInfo
-      case kind*: NodeType
-      of NtStrLit:
+      case kind*: NodeKind
+      of NkStrLit:
          s*: string
-      of NtIntLit, NtUIntLit, NtAmbIntLit, NtAmbUIntLit:
+      of NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit:
          inumber*: BiggestInt
          iraw*: string
          base*: NumericalBase
          size*: int
-      of NtRealLit:
+      of NkRealLit:
          fnumber*: BiggestFloat
          fraw*: string
       of IdentifierTypes:
          identifier*: PIdentifier
-      of NtError:
-         msg*: string # TODO: Combine w/ NtStrLit?
+      of NkError:
+         msg*: string # TODO: Combine w/ NkStrLit?
       of OperatorTypes:
          # FIXME: Unused right now
          op*: string
-      of NtWildcard:
+      of NkWildcard:
          discard
       else:
          sons*: TNodeSeq
@@ -161,16 +161,16 @@ proc pretty*(n: PNode, indent: int = 0): string =
    of IntegerTypes:
       add(result, format(": $1 (raw: '$2', base: $3, size: $4)\n",
                          n.inumber, n.iraw, n.base, n.size))
-   of NtRealLit:
+   of NkRealLit:
       add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
    of OperatorTypes:
       # FIXME: Unused right now
       add(result, format(": $1\n", n.op))
-   of NtError:
+   of NkError:
       add(result, format(": $1\n", n.msg))
-   of NtStrLit:
+   of NkStrLit:
       add(result, format(": $1\n", n.s))
-   of NtWildcard:
+   of NkWildcard:
       add(result, "\n")
    else:
       add(result, "\n")
@@ -197,14 +197,14 @@ proc `==`*(x, y: PNode): bool =
    of IntegerTypes:
       result = x.inumber == y.inumber and x.iraw == y.iraw and
                x.base == y.base and x.size == y.size
-   of NtRealLit:
+   of NkRealLit:
       result = x.fnumber == y.fnumber
    of OperatorTypes:
       # FIXME: Unused right now
       result = x.op == y.op
-   of NtStrLit:
+   of NkStrLit:
       result = x.s == y.s
-   of NtError, NtWildcard:
+   of NkError, NkWildcard:
       return true
    else:
       if len(x.sons) != len(y.sons):
@@ -238,8 +238,8 @@ proc detailed_compare*(x, y: PNode) =
       return
 
    case x.kind
-   of IdentifierTypes, IntegerTypes, NtRealLit, OperatorTypes, NtError,
-      NtStrLit, NtWildcard:
+   of IdentifierTypes, IntegerTypes, NkRealLit, OperatorTypes, NkError,
+      NkStrLit, NkWildcard:
       if x != y:
          echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
          return
@@ -259,22 +259,22 @@ proc new_line_info*(line: uint16, col: int16): TLineInfo =
    result.col = col
 
 
-proc new_node*(kind: NodeType, info: TLineInfo): PNode =
+proc new_node*(kind: NodeKind, info: TLineInfo): PNode =
    result = PNode(kind: kind, info: info)
 
 
-proc new_node*(kind: NodeType, info: TLineInfo, sons: seq[PNode]): PNode =
+proc new_node*(kind: NodeKind, info: TLineInfo, sons: seq[PNode]): PNode =
    result = new_node(kind, info)
    result.sons = sons
 
 
-proc new_identifier_node*(kind: NodeType, info: TLineInfo,
+proc new_identifier_node*(kind: NodeKind, info: TLineInfo,
                           identifier: PIdentifier): PNode =
    result = new_node(kind, info)
    result.identifier = identifier
 
 
-proc new_inumber_node*(kind: NodeType, info: TLineInfo, inumber: BiggestInt,
+proc new_inumber_node*(kind: NodeKind, info: TLineInfo, inumber: BiggestInt,
                        raw: string, base: NumericalBase, size: int): PNode =
    result = new_node(kind, info)
    result.inumber = inumber
@@ -283,7 +283,7 @@ proc new_inumber_node*(kind: NodeType, info: TLineInfo, inumber: BiggestInt,
    result.size = size
 
 
-proc new_fnumber_node*(kind: NodeType, info: TLineInfo, fnumber: BiggestFloat,
+proc new_fnumber_node*(kind: NodeKind, info: TLineInfo, fnumber: BiggestFloat,
                        raw: string): PNode =
    result = new_node(kind, info)
    result.fnumber = fnumber
@@ -291,11 +291,11 @@ proc new_fnumber_node*(kind: NodeType, info: TLineInfo, fnumber: BiggestFloat,
 
 
 proc new_str_lit_node*(info: TLineInfo, s: string): PNode =
-   result = new_node(NtStrLit, info)
+   result = new_node(NkStrLit, info)
    result.s = s
 
 
 proc new_error_node*(info: TLineInfo, msg: string,
                      args: varargs[string, `$`]): PNode =
-   result = new_node(NtError, info)
+   result = new_node(NkError, info)
    result.msg = format(msg, args)

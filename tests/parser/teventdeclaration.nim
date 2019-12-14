@@ -16,7 +16,7 @@ var
 template run_test(title, stimuli: string, reference: PNode) =
    # var response: PNode
    cache = new_ident_cache()
-   let response = parse_specific_grammar(stimuli, cache, NtEventDecl)
+   let response = parse_specific_grammar(stimuli, cache, NkEventDecl)
 
    if response == reference:
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
@@ -33,43 +33,43 @@ proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
 
-template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
+template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
 run_test("Event declaration, single identifier", "event foo;"):
-   new_node(NtEventDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 7), "foo"),
+   new_node(NkEventDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 7), "foo"),
    ])
 
 run_test("Event declaration, multiple identifiers", "event foo, bar;"):
-   new_node(NtEventDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 7), "foo"),
-      new_identifier_node(NtIdentifier, li(1, 12), "bar"),
+   new_node(NkEventDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 7), "foo"),
+      new_identifier_node(NkIdentifier, li(1, 12), "bar"),
    ])
 
 run_test("Event declaration, dimension", "event foo[7:0];"):
-   new_node(NtEventDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 7), @[
-         new_identifier_node(NtIdentifier, li(1, 7), "foo"),
-         new_node(NtRange, li(1, 10), @[
-            new_inumber_node(NtIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1)
+   new_node(NkEventDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 7), @[
+         new_identifier_node(NkIdentifier, li(1, 7), "foo"),
+         new_node(NkRange, li(1, 10), @[
+            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
          ])
       ])
    ])
 
 run_test("Event declaration, multiple dimensions", "event foo[7:0][3:0];"):
-   new_node(NtEventDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 7), @[
-         new_identifier_node(NtIdentifier, li(1, 7), "foo"),
-         new_node(NtRange, li(1, 10), @[
-            new_inumber_node(NtIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1)
+   new_node(NkEventDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 7), @[
+         new_identifier_node(NkIdentifier, li(1, 7), "foo"),
+         new_node(NkRange, li(1, 10), @[
+            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
          ]),
-         new_node(NtRange, li(1, 15), @[
-            new_inumber_node(NtIntLit, li(1, 16), 3, "3", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 18), 0, "0", Base10, -1)
+         new_node(NkRange, li(1, 15), @[
+            new_inumber_node(NkIntLit, li(1, 16), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 18), 0, "0", Base10, -1)
          ])
       ])
    ])

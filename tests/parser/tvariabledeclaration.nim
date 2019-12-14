@@ -16,7 +16,7 @@ var
 template run_test(title, stimuli: string, reference: PNode) =
    # var response: PNode
    cache = new_ident_cache()
-   let response = parse_specific_grammar(stimuli, cache, NtRegDecl)
+   let response = parse_specific_grammar(stimuli, cache, NkRegDecl)
 
    if response == reference:
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
@@ -33,71 +33,71 @@ proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
 
-template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
+template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
 run_test("Simple reg declaration", "reg foo;"):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 5), "foo"),
+   new_node(NkRegDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 5), "foo"),
    ])
 
 
 run_test("Signed reg declaration", """
 reg signed signed_reg;
 """):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_identifier_node(NtType, li(1, 5), "signed"),
-      new_identifier_node(NtIdentifier, li(1, 12), "signed_reg"),
+   new_node(NkRegDecl, li(1, 1), @[
+      new_identifier_node(NkType, li(1, 5), "signed"),
+      new_identifier_node(NkIdentifier, li(1, 12), "signed_reg"),
    ])
 
 
 run_test("Ranged reg declaration", """
 reg [7:0] ranged_reg;
 """):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_node(NtRange, li(1, 5), @[
-         new_inumber_node(NtIntLit, li(1, 6), 7, "7", Base10, -1),
-         new_inumber_node(NtIntLit, li(1, 8), 0, "0", Base10, -1)
+   new_node(NkRegDecl, li(1, 1), @[
+      new_node(NkRange, li(1, 5), @[
+         new_inumber_node(NkIntLit, li(1, 6), 7, "7", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 8), 0, "0", Base10, -1)
       ]),
-      new_identifier_node(NtIdentifier, li(1, 11), "ranged_reg")
+      new_identifier_node(NkIdentifier, li(1, 11), "ranged_reg")
    ])
 
 
 run_test("Signed, ranged reg declaration", """
 reg signed [ADDR-1:0] full_reg;
 """):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_identifier_node(NtType, li(1, 5), "signed"),
-      new_node(NtRange, li(1, 12), @[
-         new_node(NtInfix, li(1, 17), @[
-            new_identifier_node(NtIdentifier, li(1, 17), "-"),
-            new_identifier_node(NtIdentifier, li(1, 13), "ADDR"),
-            new_inumber_node(NtIntLit, li(1, 18), 1, "1", Base10, -1)
+   new_node(NkRegDecl, li(1, 1), @[
+      new_identifier_node(NkType, li(1, 5), "signed"),
+      new_node(NkRange, li(1, 12), @[
+         new_node(NkInfix, li(1, 17), @[
+            new_identifier_node(NkIdentifier, li(1, 17), "-"),
+            new_identifier_node(NkIdentifier, li(1, 13), "ADDR"),
+            new_inumber_node(NkIntLit, li(1, 18), 1, "1", Base10, -1)
          ]),
-         new_inumber_node(NtIntLit, li(1, 20), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 20), 0, "0", Base10, -1)
       ]),
-      new_identifier_node(NtIdentifier, li(1, 23), "full_reg")
+      new_identifier_node(NkIdentifier, li(1, 23), "full_reg")
    ])
 
 
 run_test("Multiple registers in one declaration", """
 reg foo, bar, baz;
 """):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 5), "foo"),
-      new_identifier_node(NtIdentifier, li(1, 10), "bar"),
-      new_identifier_node(NtIdentifier, li(1, 15), "baz")
+   new_node(NkRegDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 5), "foo"),
+      new_identifier_node(NkIdentifier, li(1, 10), "bar"),
+      new_identifier_node(NkIdentifier, li(1, 15), "baz")
    ])
 
 
 run_test("Variable types: assignment (default value)", """
 reg with_default = 1'b0;
 """):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 5), @[
-         new_identifier_node(NtIdentifier, li(1, 5), "with_default"),
-         new_inumber_node(NtUIntLit, li(1, 20), 0, "0", Base2, 1)
+   new_node(NkRegDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 5), @[
+         new_identifier_node(NkIdentifier, li(1, 5), "with_default"),
+         new_inumber_node(NkUIntLit, li(1, 20), 0, "0", Base2, 1)
       ]),
    ])
 
@@ -105,16 +105,16 @@ reg with_default = 1'b0;
 run_test("Variable types: dimension (array)", """
 reg array[7:0][2:0];
 """):
-   new_node(NtRegDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 5), @[
-         new_identifier_node(NtIdentifier, li(1, 5), "array"),
-         new_node(NtRange, li(1, 10), @[
-            new_inumber_node(NtIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1)
+   new_node(NkRegDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 5), @[
+         new_identifier_node(NkIdentifier, li(1, 5), "array"),
+         new_node(NkRange, li(1, 10), @[
+            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
          ]),
-         new_node(NtRange, li(1, 15), @[
-            new_inumber_node(NtIntLit, li(1, 16), 2, "2", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 18), 0, "0", Base10, -1)
+         new_node(NkRange, li(1, 15), @[
+            new_inumber_node(NkIntLit, li(1, 16), 2, "2", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 18), 0, "0", Base10, -1)
          ]),
       ]),
    ])
@@ -122,58 +122,58 @@ reg array[7:0][2:0];
 
 # Integer declarations
 run_test("Integer declaration, single identifier", "integer foo;"):
-   new_node(NtIntegerDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 9), "foo"),
+   new_node(NkIntegerDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 9), "foo"),
    ])
 
 
 run_test("Integer declaration, multiple identifiers", "integer FOO, BAR;"):
-   new_node(NtIntegerDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 9), "FOO"),
-      new_identifier_node(NtIdentifier, li(1, 14), "BAR")
+   new_node(NkIntegerDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 9), "FOO"),
+      new_identifier_node(NkIdentifier, li(1, 14), "BAR")
    ])
 
 
 run_test("Integer declaration, assignment", "integer foo = 8 + 8;"):
-   new_node(NtIntegerDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 9), @[
-         new_identifier_node(NtIdentifier, li(1, 9), "foo"),
-         new_node(NtInfix, li(1, 17), @[
-            new_identifier_node(NtIdentifier, li(1, 17), "+"),
-            new_inumber_node(NtIntLit, li(1, 15), 8, "8", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 19), 8, "8", Base10, -1)
+   new_node(NkIntegerDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 9), @[
+         new_identifier_node(NkIdentifier, li(1, 9), "foo"),
+         new_node(NkInfix, li(1, 17), @[
+            new_identifier_node(NkIdentifier, li(1, 17), "+"),
+            new_inumber_node(NkIntLit, li(1, 15), 8, "8", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 19), 8, "8", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Integer declaration, dimension", "integer i_ranged[7:0];"):
-   new_node(NtIntegerDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 9), @[
-         new_identifier_node(NtIdentifier, li(1, 9), "i_ranged"),
-         new_node(NtRange, li(1, 17), @[
-            new_inumber_node(NtIntLit, li(1, 18), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 20), 0, "0", Base10, -1)
+   new_node(NkIntegerDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 9), @[
+         new_identifier_node(NkIdentifier, li(1, 9), "i_ranged"),
+         new_node(NkRange, li(1, 17), @[
+            new_inumber_node(NkIntLit, li(1, 18), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 20), 0, "0", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Integer declaration, hybrid", "integer i = 0, j[7:0][3:0];"):
-   new_node(NtIntegerDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 9), @[
-         new_identifier_node(NtIdentifier, li(1, 9), "i"),
-         new_inumber_node(NtIntLit, li(1, 13), 0, "0", Base10, -1),
+   new_node(NkIntegerDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 9), @[
+         new_identifier_node(NkIdentifier, li(1, 9), "i"),
+         new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1),
       ]),
-      new_node(NtArrayIdentifer, li(1, 16), @[
-         new_identifier_node(NtIdentifier, li(1, 16), "j"),
-         new_node(NtRange, li(1, 17), @[
-            new_inumber_node(NtIntLit, li(1, 18), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 20), 0, "0", Base10, -1)
+      new_node(NkArrayIdentifer, li(1, 16), @[
+         new_identifier_node(NkIdentifier, li(1, 16), "j"),
+         new_node(NkRange, li(1, 17), @[
+            new_inumber_node(NkIntLit, li(1, 18), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 20), 0, "0", Base10, -1)
          ]),
-         new_node(NtRange, li(1, 22), @[
-            new_inumber_node(NtIntLit, li(1, 23), 3, "3", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 25), 0, "0", Base10, -1)
+         new_node(NkRange, li(1, 22), @[
+            new_inumber_node(NkIntLit, li(1, 23), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 25), 0, "0", Base10, -1)
          ])
       ])
    ])
@@ -181,58 +181,58 @@ run_test("Integer declaration, hybrid", "integer i = 0, j[7:0][3:0];"):
 
 # Real declarations
 run_test("Real declaration, single identifier", "real foo;"):
-   new_node(NtRealDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   new_node(NkRealDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
    ])
 
 
 run_test("Real declaration, multiple identifiers", "real FOO, BAR;"):
-   new_node(NtRealDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 6), "FOO"),
-      new_identifier_node(NtIdentifier, li(1, 11), "BAR")
+   new_node(NkRealDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 6), "FOO"),
+      new_identifier_node(NkIdentifier, li(1, 11), "BAR")
    ])
 
 
 run_test("Real declaration, assignment", "real foo = 8 + 8;"):
-   new_node(NtRealDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 6), @[
-         new_identifier_node(NtIdentifier, li(1, 6), "foo"),
-         new_node(NtInfix, li(1, 14), @[
-            new_identifier_node(NtIdentifier, li(1, 14), "+"),
-            new_inumber_node(NtIntLit, li(1, 12), 8, "8", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 16), 8, "8", Base10, -1)
+   new_node(NkRealDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 6), @[
+         new_identifier_node(NkIdentifier, li(1, 6), "foo"),
+         new_node(NkInfix, li(1, 14), @[
+            new_identifier_node(NkIdentifier, li(1, 14), "+"),
+            new_inumber_node(NkIntLit, li(1, 12), 8, "8", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 16), 8, "8", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Real declaration, dimension", "real i_ranged[7:0];"):
-   new_node(NtRealDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 6), @[
-         new_identifier_node(NtIdentifier, li(1, 6), "i_ranged"),
-         new_node(NtRange, li(1, 14), @[
-            new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 17), 0, "0", Base10, -1)
+   new_node(NkRealDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 6), @[
+         new_identifier_node(NkIdentifier, li(1, 6), "i_ranged"),
+         new_node(NkRange, li(1, 14), @[
+            new_inumber_node(NkIntLit, li(1, 15), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 17), 0, "0", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Real declaration, hybrid", "real i = 0, j[7:0][3:0];"):
-   new_node(NtRealDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 6), @[
-         new_identifier_node(NtIdentifier, li(1, 6), "i"),
-         new_inumber_node(NtIntLit, li(1, 10), 0, "0", Base10, -1),
+   new_node(NkRealDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 6), @[
+         new_identifier_node(NkIdentifier, li(1, 6), "i"),
+         new_inumber_node(NkIntLit, li(1, 10), 0, "0", Base10, -1),
       ]),
-      new_node(NtArrayIdentifer, li(1, 13), @[
-         new_identifier_node(NtIdentifier, li(1, 13), "j"),
-         new_node(NtRange, li(1, 14), @[
-            new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 17), 0, "0", Base10, -1)
+      new_node(NkArrayIdentifer, li(1, 13), @[
+         new_identifier_node(NkIdentifier, li(1, 13), "j"),
+         new_node(NkRange, li(1, 14), @[
+            new_inumber_node(NkIntLit, li(1, 15), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 17), 0, "0", Base10, -1)
          ]),
-         new_node(NtRange, li(1, 19), @[
-            new_inumber_node(NtIntLit, li(1, 20), 3, "3", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 22), 0, "0", Base10, -1)
+         new_node(NkRange, li(1, 19), @[
+            new_inumber_node(NkIntLit, li(1, 20), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 22), 0, "0", Base10, -1)
          ])
       ])
    ])
@@ -240,58 +240,58 @@ run_test("Real declaration, hybrid", "real i = 0, j[7:0][3:0];"):
 
 # Realtime declarations
 run_test("Realtime declaration, single identifier", "realtime foo;"):
-   new_node(NtRealtimeDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 10), "foo"),
+   new_node(NkRealtimeDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 10), "foo"),
    ])
 
 
 run_test("Realtime declaration, multiple identifiers", "realtime FOO, BAR;"):
-   new_node(NtRealtimeDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 10), "FOO"),
-      new_identifier_node(NtIdentifier, li(1, 15), "BAR")
+   new_node(NkRealtimeDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 10), "FOO"),
+      new_identifier_node(NkIdentifier, li(1, 15), "BAR")
    ])
 
 
 run_test("Realtime declaration, assignment", "realtime foo = 8 + 8;"):
-   new_node(NtRealtimeDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 10), @[
-         new_identifier_node(NtIdentifier, li(1, 10), "foo"),
-         new_node(NtInfix, li(1, 18), @[
-            new_identifier_node(NtIdentifier, li(1, 18), "+"),
-            new_inumber_node(NtIntLit, li(1, 16), 8, "8", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 20), 8, "8", Base10, -1)
+   new_node(NkRealtimeDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 10), @[
+         new_identifier_node(NkIdentifier, li(1, 10), "foo"),
+         new_node(NkInfix, li(1, 18), @[
+            new_identifier_node(NkIdentifier, li(1, 18), "+"),
+            new_inumber_node(NkIntLit, li(1, 16), 8, "8", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 20), 8, "8", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Realtime declaration, dimension", "realtime i_ranged[7:0];"):
-   new_node(NtRealtimeDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 10), @[
-         new_identifier_node(NtIdentifier, li(1, 10), "i_ranged"),
-         new_node(NtRange, li(1, 18), @[
-            new_inumber_node(NtIntLit, li(1, 19), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 21), 0, "0", Base10, -1)
+   new_node(NkRealtimeDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 10), @[
+         new_identifier_node(NkIdentifier, li(1, 10), "i_ranged"),
+         new_node(NkRange, li(1, 18), @[
+            new_inumber_node(NkIntLit, li(1, 19), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 21), 0, "0", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Realtime declaration, hybrid", "realtime i = 0, j[7:0][3:0];"):
-   new_node(NtRealtimeDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 10), @[
-         new_identifier_node(NtIdentifier, li(1, 10), "i"),
-         new_inumber_node(NtIntLit, li(1, 14), 0, "0", Base10, -1),
+   new_node(NkRealtimeDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 10), @[
+         new_identifier_node(NkIdentifier, li(1, 10), "i"),
+         new_inumber_node(NkIntLit, li(1, 14), 0, "0", Base10, -1),
       ]),
-      new_node(NtArrayIdentifer, li(1, 17), @[
-         new_identifier_node(NtIdentifier, li(1, 17), "j"),
-         new_node(NtRange, li(1, 18), @[
-            new_inumber_node(NtIntLit, li(1, 19), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 21), 0, "0", Base10, -1)
+      new_node(NkArrayIdentifer, li(1, 17), @[
+         new_identifier_node(NkIdentifier, li(1, 17), "j"),
+         new_node(NkRange, li(1, 18), @[
+            new_inumber_node(NkIntLit, li(1, 19), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 21), 0, "0", Base10, -1)
          ]),
-         new_node(NtRange, li(1, 23), @[
-            new_inumber_node(NtIntLit, li(1, 24), 3, "3", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 26), 0, "0", Base10, -1)
+         new_node(NkRange, li(1, 23), @[
+            new_inumber_node(NkIntLit, li(1, 24), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 26), 0, "0", Base10, -1)
          ])
       ])
    ])
@@ -299,58 +299,58 @@ run_test("Realtime declaration, hybrid", "realtime i = 0, j[7:0][3:0];"):
 
 # Time declarations
 run_test("Time declaration, single identifier", "time foo;"):
-   new_node(NtTimeDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   new_node(NkTimeDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
    ])
 
 
 run_test("Time declaration, multiple identifiers", "time FOO, BAR;"):
-   new_node(NtTimeDecl, li(1, 1), @[
-      new_identifier_node(NtIdentifier, li(1, 6), "FOO"),
-      new_identifier_node(NtIdentifier, li(1, 11), "BAR")
+   new_node(NkTimeDecl, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 6), "FOO"),
+      new_identifier_node(NkIdentifier, li(1, 11), "BAR")
    ])
 
 
 run_test("Time declaration, assignment", "time foo = 8 + 8;"):
-   new_node(NtTimeDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 6), @[
-         new_identifier_node(NtIdentifier, li(1, 6), "foo"),
-         new_node(NtInfix, li(1, 14), @[
-            new_identifier_node(NtIdentifier, li(1, 14), "+"),
-            new_inumber_node(NtIntLit, li(1, 12), 8, "8", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 16), 8, "8", Base10, -1)
+   new_node(NkTimeDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 6), @[
+         new_identifier_node(NkIdentifier, li(1, 6), "foo"),
+         new_node(NkInfix, li(1, 14), @[
+            new_identifier_node(NkIdentifier, li(1, 14), "+"),
+            new_inumber_node(NkIntLit, li(1, 12), 8, "8", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 16), 8, "8", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Time declaration, dimension", "time i_ranged[7:0];"):
-   new_node(NtTimeDecl, li(1, 1), @[
-      new_node(NtArrayIdentifer, li(1, 6), @[
-         new_identifier_node(NtIdentifier, li(1, 6), "i_ranged"),
-         new_node(NtRange, li(1, 14), @[
-            new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 17), 0, "0", Base10, -1)
+   new_node(NkTimeDecl, li(1, 1), @[
+      new_node(NkArrayIdentifer, li(1, 6), @[
+         new_identifier_node(NkIdentifier, li(1, 6), "i_ranged"),
+         new_node(NkRange, li(1, 14), @[
+            new_inumber_node(NkIntLit, li(1, 15), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 17), 0, "0", Base10, -1)
          ])
       ])
    ])
 
 
 run_test("Time declaration, hybrid", "time i = 0, j[7:0][3:0];"):
-   new_node(NtTimeDecl, li(1, 1), @[
-      new_node(NtAssignment, li(1, 6), @[
-         new_identifier_node(NtIdentifier, li(1, 6), "i"),
-         new_inumber_node(NtIntLit, li(1, 10), 0, "0", Base10, -1),
+   new_node(NkTimeDecl, li(1, 1), @[
+      new_node(NkAssignment, li(1, 6), @[
+         new_identifier_node(NkIdentifier, li(1, 6), "i"),
+         new_inumber_node(NkIntLit, li(1, 10), 0, "0", Base10, -1),
       ]),
-      new_node(NtArrayIdentifer, li(1, 13), @[
-         new_identifier_node(NtIdentifier, li(1, 13), "j"),
-         new_node(NtRange, li(1, 14), @[
-            new_inumber_node(NtIntLit, li(1, 15), 7, "7", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 17), 0, "0", Base10, -1)
+      new_node(NkArrayIdentifer, li(1, 13), @[
+         new_identifier_node(NkIdentifier, li(1, 13), "j"),
+         new_node(NkRange, li(1, 14), @[
+            new_inumber_node(NkIntLit, li(1, 15), 7, "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 17), 0, "0", Base10, -1)
          ]),
-         new_node(NtRange, li(1, 19), @[
-            new_inumber_node(NtIntLit, li(1, 20), 3, "3", Base10, -1),
-            new_inumber_node(NtIntLit, li(1, 22), 0, "0", Base10, -1)
+         new_node(NkRange, li(1, 19), @[
+            new_inumber_node(NkIntLit, li(1, 20), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 22), 0, "0", Base10, -1)
          ])
       ])
    ])

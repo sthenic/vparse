@@ -33,7 +33,7 @@ proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
 
-template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
+template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
@@ -616,7 +616,7 @@ run_test("test_0", """module axi_ad9361_cmos_if #(
   endgenerate
 
 endmodule"""):
-   new_node(NtSourceText, li(1, 1), @[])
+   new_node(NkSourceText, li(1, 1), @[])
 
 
 # Print summary

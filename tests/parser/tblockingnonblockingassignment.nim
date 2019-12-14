@@ -16,7 +16,7 @@ var
 template run_test(title, stimuli: string, reference: PNode) =
    # var response: PNode
    cache = new_ident_cache()
-   let response = parse_specific_grammar(stimuli, cache, NtBlockingAssignment)
+   let response = parse_specific_grammar(stimuli, cache, NkBlockingAssignment)
 
    if response == reference:
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
@@ -33,256 +33,256 @@ proc li(line: uint16, col: int16): TLineInfo =
    result = new_line_info(line, col - 1)
 
 
-template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): untyped =
+template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
 run_test("Simple blocking assignment", "foo = 3"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_inumber_node(NtIntLit, li(1, 7), 3, "3", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 7), 3, "3", Base10, -1)
    ])
 
 run_test("Simple nonblocking assignment", "baar <= baz"):
-   new_node(NtNonblockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "baar")
+   new_node(NkNonblockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "baar")
       ]),
-      new_identifier_node(NtIdentifier, li(1, 9), "baz")
+      new_identifier_node(NkIdentifier, li(1, 9), "baz")
    ])
 
 run_test("Concatenated blocking assignment", "{wire0, wire1} = big_wire"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalueConcat, li(1, 1), @[
-         new_node(NtVariableLvalue, li(1, 2), @[
-            new_identifier_node(NtIdentifier, li(1, 2), "wire0"),
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalueConcat, li(1, 1), @[
+         new_node(NkVariableLvalue, li(1, 2), @[
+            new_identifier_node(NkIdentifier, li(1, 2), "wire0"),
          ]),
-         new_node(NtVariableLvalue, li(1, 9), @[
-            new_identifier_node(NtIdentifier, li(1, 9), "wire1")
+         new_node(NkVariableLvalue, li(1, 9), @[
+            new_identifier_node(NkIdentifier, li(1, 9), "wire1")
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 18), "big_wire")
+      new_identifier_node(NkIdentifier, li(1, 18), "big_wire")
    ])
 
 run_test("Concatenated nonblocking assignment", "{wire0, wire1} <= big_wire"):
-   new_node(NtNonblockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalueConcat, li(1, 1), @[
-         new_node(NtVariableLvalue, li(1, 2), @[
-            new_identifier_node(NtIdentifier, li(1, 2), "wire0"),
+   new_node(NkNonblockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalueConcat, li(1, 1), @[
+         new_node(NkVariableLvalue, li(1, 2), @[
+            new_identifier_node(NkIdentifier, li(1, 2), "wire0"),
          ]),
-         new_node(NtVariableLvalue, li(1, 9), @[
-            new_identifier_node(NtIdentifier, li(1, 9), "wire1")
+         new_node(NkVariableLvalue, li(1, 9), @[
+            new_identifier_node(NkIdentifier, li(1, 9), "wire1")
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 19), "big_wire")
+      new_identifier_node(NkIdentifier, li(1, 19), "big_wire")
    ])
 
 run_test("Blocking assignment: delay control, integer", "foo = #2 FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtDelay, li(1, 7), @[
-         new_inumber_node(NtIntLit, li(1, 8), 2, "2", Base10, -1)
+      new_node(NkDelay, li(1, 7), @[
+         new_inumber_node(NkIntLit, li(1, 8), 2, "2", Base10, -1)
       ]),
-      new_identifier_node(NtIdentifier, li(1, 10), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 10), "FOO")
    ])
 
 run_test("Blocking assignment: delay control, real", "foo = #4.21 FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtDelay, li(1, 7), @[
-         new_fnumber_node(NtRealLit, li(1, 8), 4.21, "4.21")
+      new_node(NkDelay, li(1, 7), @[
+         new_fnumber_node(NkRealLit, li(1, 8), 4.21, "4.21")
       ]),
-      new_identifier_node(NtIdentifier, li(1, 13), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 13), "FOO")
    ])
 
 run_test("Blocking assignment: delay control, identifier", "foo = #BAR FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtDelay, li(1, 7), @[
-         new_identifier_node(NtIdentifier, li(1, 8), "BAR")
+      new_node(NkDelay, li(1, 7), @[
+         new_identifier_node(NkIdentifier, li(1, 8), "BAR")
       ]),
-      new_identifier_node(NtIdentifier, li(1, 12), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 12), "FOO")
    ])
 
 run_test("Blocking assignment: delay control, mintypmax", "foo = #(2:3:5) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtDelay, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtConstantMinTypMaxExpression, li(1, 9), @[
-               new_inumber_node(NtIntLit, li(1, 9), 2, "2", Base10, -1),
-               new_inumber_node(NtIntLit, li(1, 11), 3, "3", Base10, -1),
-               new_inumber_node(NtIntLit, li(1, 13), 5, "5", Base10, -1)
+      new_node(NkDelay, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkConstantMinTypMaxExpression, li(1, 9), @[
+               new_inumber_node(NkIntLit, li(1, 9), 2, "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 11), 3, "3", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 13), 5, "5", Base10, -1)
             ]),
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 16), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 16), "FOO")
    ])
 
 run_test("Blocking assignment: delay control, error", "foo = #begin FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtDelay, li(1, 7), @[
+      new_node(NkDelay, li(1, 7), @[
          new_error_node(li(1, 8), "")
       ]),
       new_error_node(li(1, 8), "")
    ])
 
 run_test("Blocking assignment: event control, identifier", "foo = @some_event FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_identifier_node(NtIdentifier, li(1, 8), "some_event")
+      new_node(NkEventControl, li(1, 7), @[
+         new_identifier_node(NkIdentifier, li(1, 8), "some_event")
       ]),
-      new_identifier_node(NtIdentifier, li(1, 19), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 19), "FOO")
    ])
 
 run_test("Blocking assignment: event control, wildcard w/o parentheses", "foo = @* FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtWildcard, li(1, 8))
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkWildcard, li(1, 8))
       ]),
-      new_identifier_node(NtIdentifier, li(1, 10), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 10), "FOO")
    ])
 
 run_test("Blocking assignment: event control, wildcard w/ parentheses", "foo = @(*) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtWildcard, li(1, 9))
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkWildcard, li(1, 9))
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 12), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 12), "FOO")
    ])
 
 run_test("Blocking assignment: event control, wildcard w/ parentheses, spaced out", "foo = @( * ) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtWildcard, li(1, 10))
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkWildcard, li(1, 10))
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 14), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 14), "FOO")
    ])
 
 run_test("Blocking assignment: event control, event expression, posedge", "foo = @(posedge clk) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtEventExpression, li(1, 9), @[
-               new_identifier_node(NtType, li(1, 9), "posedge"),
-               new_identifier_node(NtIdentifier, li(1, 17), "clk")
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkEventExpression, li(1, 9), @[
+               new_identifier_node(NkType, li(1, 9), "posedge"),
+               new_identifier_node(NkIdentifier, li(1, 17), "clk")
             ]),
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 22), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 22), "FOO")
    ])
 
 run_test("Blocking assignment: event control, event expression, negedge", "foo = @(negedge clk) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtEventExpression, li(1, 9), @[
-               new_identifier_node(NtType, li(1, 9), "negedge"),
-               new_identifier_node(NtIdentifier, li(1, 17), "clk")
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkEventExpression, li(1, 9), @[
+               new_identifier_node(NkType, li(1, 9), "negedge"),
+               new_identifier_node(NkIdentifier, li(1, 17), "clk")
             ]),
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 22), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 22), "FOO")
    ])
 
 run_test("Blocking assignment: event control, event expression, expression", "foo = @(A_SYMBOL + 3) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtEventExpression, li(1, 9), @[
-               new_node(NtInfix, li(1, 18), @[
-                  new_identifier_node(NtIdentifier, li(1, 18), "+"),
-                  new_identifier_node(NtIdentifier, li(1, 9), "A_SYMBOL"),
-                  new_inumber_node(NtIntLit, li(1, 20), 3, "3", Base10, -1)
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkEventExpression, li(1, 9), @[
+               new_node(NkInfix, li(1, 18), @[
+                  new_identifier_node(NkIdentifier, li(1, 18), "+"),
+                  new_identifier_node(NkIdentifier, li(1, 9), "A_SYMBOL"),
+                  new_inumber_node(NkIntLit, li(1, 20), 3, "3", Base10, -1)
                ]),
             ]),
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 23), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 23), "FOO")
    ])
 
 run_test("Blocking assignment: event control, multiple event expressions", "foo = @(posedge clk or negedge rst_n or random_signal) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtEventControl, li(1, 7), @[
-         new_node(NtParenthesis, li(1, 8), @[
-            new_node(NtEventExpression, li(1, 9), @[
-               new_identifier_node(NtType, li(1, 9), "posedge"),
-               new_identifier_node(NtIdentifier, li(1, 17), "clk")
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkEventExpression, li(1, 9), @[
+               new_identifier_node(NkType, li(1, 9), "posedge"),
+               new_identifier_node(NkIdentifier, li(1, 17), "clk")
             ]),
-            new_node(NtEventExpression, li(1, 24), @[
-               new_identifier_node(NtType, li(1, 24), "negedge"),
-               new_identifier_node(NtIdentifier, li(1, 32), "rst_n")
+            new_node(NkEventExpression, li(1, 24), @[
+               new_identifier_node(NkType, li(1, 24), "negedge"),
+               new_identifier_node(NkIdentifier, li(1, 32), "rst_n")
             ]),
-            new_node(NtEventExpression, li(1, 41), @[
-               new_identifier_node(NtIdentifier, li(1, 41), "random_signal")
+            new_node(NkEventExpression, li(1, 41), @[
+               new_identifier_node(NkIdentifier, li(1, 41), "random_signal")
             ]),
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 56), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 56), "FOO")
    ])
 
 run_test("Blocking assignment: event control, repeat", "foo = repeat (3) @(posedge clk) FOO"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
-      new_node(NtVariableLvalue, li(1, 1), @[
-         new_identifier_node(NtIdentifier, li(1, 1), "foo")
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_node(NtRepeat, li(1, 7), @[
-         new_inumber_node(NtIntLit, li(1, 15), 3, "3", Base10, -1),
-         new_node(NtEventControl, li(1, 18), @[
-            new_node(NtParenthesis, li(1, 19), @[
-               new_node(NtEventExpression, li(1, 20), @[
-                  new_identifier_node(NtType, li(1, 20), "posedge"),
-                  new_identifier_node(NtIdentifier, li(1, 28), "clk")
+      new_node(NkRepeat, li(1, 7), @[
+         new_inumber_node(NkIntLit, li(1, 15), 3, "3", Base10, -1),
+         new_node(NkEventControl, li(1, 18), @[
+            new_node(NkParenthesis, li(1, 19), @[
+               new_node(NkEventExpression, li(1, 20), @[
+                  new_identifier_node(NkType, li(1, 20), "posedge"),
+                  new_identifier_node(NkIdentifier, li(1, 28), "clk")
                ])
             ]),
          ]),
       ]),
-      new_identifier_node(NtIdentifier, li(1, 33), "FOO")
+      new_identifier_node(NkIdentifier, li(1, 33), "FOO")
    ])
 
 run_test("Blocking assignment: error", "foo A"):
-   new_node(NtBlockingAssignment, li(1, 1), @[
+   new_node(NkBlockingAssignment, li(1, 1), @[
       new_error_node(li(1, 5), "")
    ])
 
