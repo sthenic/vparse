@@ -8,8 +8,8 @@ skip_dirs = @["tests"]
 requires "nim >= 1.0.0"
 
 task tests, "Run the test suite":
-   exec("nim lexertests")
-   exec("nim parsertests")
+   exec("nimble lexertests")
+   exec("nimble parsertests")
 
 task lexertests, "Run the lexer test suite":
    withDir("tests/lexer"):
