@@ -60,6 +60,7 @@ type
       NtTaskDecl,
       # Module instantiation A.4.1
       NtModuleInstantiation, NtParameterValueAssignment, NtModuleInstance,
+      NtPortConnection,
       # Generate construct A.4.2
       NtGenerateRegion, NtLoopGenerate, NtGenerateBlock, NtIfGenerate,
       NtCaseGenerate, NtCaseGenerateItem,

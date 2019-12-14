@@ -1727,12 +1727,18 @@ proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
 # Forward declaration
 proc parse_module_or_generate_item(p: var Parser): PNode
 
+
 proc parse_specparam_declaration(p: var Parser): PNode =
-   # FIXME: Implement
+   result = new_node(p, NtSpecparamDecl)
    get_token(p)
 
+   if p.tok.type == TkLbracket:
+      add(result.sons, parse_range(p))
+
    while true:
-      if p.tok.type in {TkSemicolon, TkEndOfFile}:
+      # TODO: We have no support for the PATHPULSE$ syntax.
+      add(result.sons, parse_identifier_assignment(p))
+      if p.tok.type != TkComma:
          break
       get_token(p)
 
