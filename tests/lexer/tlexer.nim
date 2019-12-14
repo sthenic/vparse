@@ -2,7 +2,7 @@ import streams
 import terminal
 import strformat
 
-include ../../src/lexer/lexer
+include ../../vparse/lexer/lexer
 
 var
    response: seq[string] = @[]

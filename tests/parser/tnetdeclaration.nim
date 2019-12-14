@@ -2,10 +2,10 @@ import terminal
 import strformat
 import strutils
 
-import ../../src/parser/parser
-import ../../src/parser/ast
-import ../../src/lexer/identifier
-import ../../src/lexer/lexer
+import ../../vparse/parser/parser
+import ../../vparse/parser/ast
+import ../../vparse/lexer/identifier
+import ../../vparse/lexer/lexer
 
 var
    nof_passed = 0
@@ -38,6 +38,18 @@ template new_identifier_node(kind: NodeType, info: TLineInfo, str: string): unty
 
 
 run_test("Simple wire declaration", "wire foo;"):
+   new_node(NtNetDecl, li(1, 1), @[
+      new_identifier_node(NtType, li(1, 1), "wire"),
+      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   ])
+
+run_test("Simple wire declaration", "trireg (small) vectored [7:0] foo, bar[2:0], baz[5:MIN+2];"):
+   new_node(NtNetDecl, li(1, 1), @[
+      new_identifier_node(NtType, li(1, 1), "wire"),
+      new_identifier_node(NtIdentifier, li(1, 6), "foo"),
+   ])
+
+run_test("Simple wire declaration", "wire a = 23, b = 2, c = 2;"):
    new_node(NtNetDecl, li(1, 1), @[
       new_identifier_node(NtType, li(1, 1), "wire"),
       new_identifier_node(NtIdentifier, li(1, 6), "foo"),

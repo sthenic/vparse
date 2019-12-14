@@ -1,14 +1,23 @@
+version = "0.1.0"
+author = "Marcus Eriksson"
+description = "A Verilog IEEE 1364-2005 lexer and parser."
+license = "MIT"
+
+skip_files = @["todo.markdown"]
+skip_dirs = @["tests"]
+
+requires "nim >= 1.0.0"
+
+
 task tests, "Run the test suite":
    exec("nim lexertests")
    exec("nim parsertests")
-   setCommand "nop"
 
 
 task lexertests, "Run the lexer test suite":
    withDir("tests/lexer"):
       exec("nim c -r tidentifier")
       exec("nim c -r tlexer")
-   setCommand "nop"
 
 
 task parsertests, "Run the parser test suite":
@@ -21,4 +30,3 @@ task parsertests, "Run the parser test suite":
       exec("nim c -r teventdeclaration")
       exec("nim c -r tblockingnonblockingassignment")
       exec("nim c -r tnetdeclaration")
-   setCommand "nop"
