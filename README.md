@@ -2,7 +2,8 @@
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 # vparse
-This tool is a Verilog IEEE 1364-2005 lexer and parser written in [Nim](https://nim-lang.org).
+This tool is a Verilog IEEE 1364-2005 lexer and parser written in [Nim](https://nim-lang.org). The output is an abstract syntax tree (AST) intended to be used
+by other tools to process source files written in Verilog.
 
 ## Documentation
 Coming soon.
