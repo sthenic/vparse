@@ -1547,7 +1547,6 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       get_token(p)
    of TkLbrace:
       result = parse_blocking_or_nonblocking_assignment(p)
-      get_token(p)
       expect_token(p, result, TkSemicolon)
       get_token(p)
    else:
