@@ -882,12 +882,18 @@ proc parse_delay(p: var Parser, nof_expressions: int): PNode =
    case p.tok.kind
    of TkLparen:
       # Expect a min:typ:max expression. There should be at least one and at
-      # most nof_expressions.
+      # most nof_expressions. However, the parenthesis we just discovered is
+      # part of the syntax and not the min-typ-max expression.
+      let n = new_node(p, NkParenthesis)
+      get_token(p)
       for i in 0..<nof_expressions:
-         add(result.sons, parse_mintypmax_expression(p))
+         add(n.sons, parse_mintypmax_expression(p))
          if p.tok.kind != TkComma:
             break
          get_token(p)
+      add(result.sons, n)
+      expect_token(p, result, TkRparen)
+      get_token(p)
    of TkSymbol:
       add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
