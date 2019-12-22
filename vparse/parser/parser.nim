@@ -19,13 +19,14 @@ type
 
 
 const
-   UnexpectedToken = "Unexpected token $1."
+   UnexpectedToken = "Unexpected token '$1'."
    AttributesNotAllowed = "Attributes are not allowed here."
-   ExpectedToken = "Expected token $1, got $2."
-   ExpectedTokens = "Expected one of the tokens $1, got $2."
+   ExpectedToken = "Expected token '$1', got '$2'."
+   ExpectedTokens = "Expected one of the tokens '$1', got '$2'."
    GateInstantiationNotSupported = "Gate instantiatiation is currently not supported."
    UdpInstantiationNotSupported = "UDP instantiatiation is currently not supported."
    SpecifyBlockNotSupported = "Specify blocks are currently not supported."
+   Resynchronized = "Resynchronized at '$1'."
 
 
 proc get_token(p: var Parser) =
@@ -99,51 +100,63 @@ proc new_str_lit_node(p: Parser): PNode =
    result.s = p.tok.literal
 
 
-proc new_error_node(p: Parser, msg: string, args: varargs[string, `$`]): PNode =
-   result = new_node(p, NkError)
+proc new_error_node(p: Parser, kind: NodeKind, msg: string,
+                    args: varargs[string, `$`]): PNode =
+   result = new_node(p, kind)
    result.msg = format(msg, args)
+   result.eraw = raw(p.tok)
 
 
 template expect_token(p: Parser, expected: set[TokenKind]): untyped =
    if p.tok.kind notin expected:
-      return new_error_node(p, ExpectedTokens, expected, p.tok)
+      let meta_error = new_node(p, NkExpectError)
+      while p.tok.kind notin expected:
+         add(meta_error.sons, new_error_node(p, NkTokenError, ExpectedTokens, expected, p.tok))
+         if p.tok.kind == TkEndOfFile:
+            break
+         get_token(p)
+      return meta_error
 
 
 template expect_token(p: Parser, expected: TokenKind): untyped =
-   if p.tok.kind != expected:
-      return new_error_node(p, ExpectedToken, expected, p.tok)
-
-
-template expect_token(p: Parser, result: PNode, expected: set[TokenKind]): untyped =
-   if p.tok.kind notin expected:
-      add(result.sons, new_error_node(p, ExpectedTokens, expected, p.tok))
-      return
-
-
-template expect_token(p: Parser, result: PNode, expected: TokenKind): untyped =
-   if p.tok.kind != expected:
-      add(result.sons, new_error_node(p, ExpectedToken, expected, p.tok))
-      return
+   expect_token(p, {expected})
 
 
 template expect_token(p: Parser, result: seq[PNode], expected: set[TokenKind]): untyped =
    if p.tok.kind notin expected:
-      add(result, new_error_node(p, ExpectedTokens, expected, p.tok))
-      return
+      let meta_error = new_node(p, NkExpectError)
+      while p.tok.kind notin expected:
+         add(meta_error.sons, new_error_node(p, NkTokenError, ExpectedTokens, expected, p.tok))
+         if p.tok.kind == TkEndOfFile:
+            add(result, meta_error)
+            return
+         get_token(p)
+      add(meta_error.sons, new_error_node(p, NkTokenErrorSync, Resynchronized, p.tok))
+      add(result, meta_error)
+
+
+template expect_token(p: Parser, result: PNode, expected: set[TokenKind]): untyped =
+   expect_token(p, result.sons, expected)
+
+
+template expect_token(p: Parser, result: PNode, expected: TokenKind): untyped =
+   expect_token(p, result, {expected})
 
 
 template expect_token(p: Parser, result: seq[PNode], expected: TokenKind): untyped =
-   if p.tok.kind != expected:
-      add(result, new_error_node(p, ExpectedToken, expected, p.tok))
-      return
+   expect_token(p, result, {expected})
 
 
 template unexpected_token(p: Parser): PNode =
-   new_error_node(p, UnexpectedToken, p.tok)
+   # TODO: We can't include a 'return' in this template.
+   let tmp = new_error_node(p, NkTokenError, UnexpectedToken, p.tok)
+   get_token(p)
+   tmp
 
 
 template unexpected_token(p: Parser, result: PNode): untyped =
-   add(result.sons, new_error_node(p, UnexpectedToken, p.tok))
+   add(result.sons, new_error_node(p, NkTokenError, UnexpectedToken, p.tok))
+   get_token(p)
    return
 
 
@@ -259,7 +272,7 @@ proc parse_number(p: var Parser): PNode =
    of TkRealLit:
       result = new_fnumber_node(p, NkRealLit, t.fnumber, t.literal)
    else:
-      return new_error_node(p, "Expected a number, got '$1'.", p.tok)
+      return new_error_node(p, NkTokenError, "Expected a number, got '$1'.", p.tok)
 
    get_token(p)
 
@@ -1284,7 +1297,7 @@ proc parse_block(p: var Parser): PNode =
 
    # It's a parse error if the loop was broken with unprocessed attributes.
    if len(attributes) > 0:
-      let n = new_error_node(p, "Unexpected attribute instance.")
+      let n = new_error_node(p, NkCritical, AttributesNotAllowed)
       n.info = attributes[0].info
       add(result.sons, n)
       return
@@ -1726,7 +1739,6 @@ proc parse_module_or_generate_item_declaration(p: var Parser): PNode =
       result = parse_task_or_function_declaration(p)
    else:
       result = unexpected_token(p)
-      get_token(p)
       return
 
 # Forward declaration
@@ -1790,7 +1802,7 @@ proc parse_specify_item(p: var Parser): PNode =
 proc parse_specify_block(p: var Parser): PNode =
    result = new_node(p, NkSpecifyBlock)
    get_token(p)
-   add(result.sons, new_error_node(p, SpecifyBlockNotSupported))
+   add(result.sons, new_error_node(p, NkCritical, SpecifyBlockNotSupported))
 
    # FIXME: Implement
    while true:
@@ -1958,6 +1970,7 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
    expect_token(p, result, TkRparen)
    get_token(p)
 
+
 proc parse_named_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
    result = new_node(p, NkPortConnection)
    expect_token(p, result, TkDot)
@@ -1993,6 +2006,7 @@ proc parse_ordered_port_connection(p: var Parser): PNode =
 
 proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
    let attributes = parse_attribute_instances(p)
+   expect_token(p, result, {TkDot, TkRparen} + ExpressionTokens)
    if p.tok.kind == TkDot:
       # Named port connections, expect at least one.
       add(result, parse_named_port_connection(p, attributes))
@@ -2039,7 +2053,7 @@ proc parse_module_or_udp_instantiaton(p: var Parser): PNode =
    # Try to detect the UDP syntax.
    # TODO: Implement UDP.
    if p.tok.kind in DriveStrengthTokens + {TkHash}:
-      result = new_error_node(p, UdpInstantiationNotSupported)
+      result = new_error_node(p, NkCritical, UdpInstantiationNotSupported)
       return
 
    # Parse the name of module instance.
@@ -2092,7 +2106,7 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
       get_token(p)
 
    of GateSwitchTypeTokens:
-      result = new_error_node(p, GateInstantiationNotSupported)
+      result = new_error_node(p, NkCritical, GateInstantiationNotSupported)
       get_token(p)
 
    of TkInitial:
@@ -2132,13 +2146,13 @@ proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.kind
    of TkGenerate:
       if len(attributes) > 0:
-         result = new_error_node(p, AttributesNotAllowed)
+         result = new_error_node(p, NkCritical, AttributesNotAllowed)
          result.info = attributes[0].info
       else:
          result = parse_generate_region(p)
    of TkSpecify:
       if len(attributes) > 0:
-         result = new_error_node(p, AttributesNotAllowed)
+         result = new_error_node(p, NkCritical, AttributesNotAllowed)
          result.info = attributes[0].info
       else:
          result = parse_specify_block(p)
@@ -2225,10 +2239,8 @@ proc assume_source_text(p: var Parser): PNode =
       result = parse_module_declaration(p, attributes)
    of TkPrimitive:
       result = unexpected_token(p) # FIXME: Actually unsupported for now
-      get_token(p)
    else:
       result = unexpected_token(p)
-      get_token(p)
 
 
 proc parse_all*(p: var Parser): PNode =
@@ -2282,7 +2294,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       get_token(p)
       result = parse_proc(p)
    else:
-      result = new_error_node(p, "Unsupported specific grammar '$1'.", $kind)
+      result = new_error_node(p, NkCritical, "Unsupported specific grammar '$1'.", $kind)
 
    close_parser(p)
 
