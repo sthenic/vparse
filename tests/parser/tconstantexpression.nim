@@ -88,7 +88,7 @@ run_test("Constant primary: numbers, decimal positive (unary)", "+3"):
    ]))
 
 run_test("Constant primary: numbers, invalid decimal", "'dAF"):
-   cprim(new_node(NkError, li(1, 1)))
+   cprim(new_node(NkTokenError, li(1, 1)))
 
 run_test("Constant primary: numbers, simple real", "3.14159"):
    cprim(new_fnumber_node(NkRealLit, li(1, 1), 3.14159, "3.14159"))

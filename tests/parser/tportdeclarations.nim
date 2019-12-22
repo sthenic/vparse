@@ -127,7 +127,11 @@ run_test("Multilple ports, missing comma", """(
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkPortIdentifier, li(2, 10), "clk_i"),
       ]),
-      new_error_node(li(3, 4), "")
+      new_node(NkExpectError, li(3, 4), @[
+         new_error_node(NkTokenError, li(3, 4), "", ""),
+         new_error_node(NkTokenError, li(3, 10), "", ""),
+         new_error_node(NkTokenErrorSync, li(4, 1), "", "")
+      ]),
    ])
 
 
