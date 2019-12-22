@@ -36,23 +36,69 @@ proc li(line: uint16, col: int16): TLineInfo =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+for net_type in NetTypeTokens:
+   let raw = TokenKindToStr[net_type]
+   run_test(format("Simple net declaration, $1", raw), format("""$1
+foo;""", raw)):
+      new_node(NkNetDecl, li(1, 1), @[
+         new_identifier_node(NkType, li(1, 1), raw),
+         new_identifier_node(NkIdentifier, li(2, 1), "foo"),
+      ])
 
-run_test("Simple wire declaration", "wire foo;"):
+
+run_test("Signed net declaration", "wire signed mywire;"):
    new_node(NkNetDecl, li(1, 1), @[
       new_identifier_node(NkType, li(1, 1), "wire"),
-      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
+      new_identifier_node(NkType, li(1, 6), "signed"),
+      new_identifier_node(NkIdentifier, li(1, 13), "mywire"),
    ])
 
-run_test("Simple wire declaration", "trireg (small) vectored [7:0] foo, bar[2:0], baz[5:MIN+2];"):
+
+run_test("Net declaration with delay", "wire #3 mywire;"):
    new_node(NkNetDecl, li(1, 1), @[
       new_identifier_node(NkType, li(1, 1), "wire"),
-      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
+      new_node(NkDelay, li(1, 6), @[
+         new_inumber_node(NkIntLit, li(1, 7), 3, "3", Base10, -1)
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 9), "mywire"),
    ])
 
-run_test("Simple wire declaration", "wire a = 23, b = 2, c = 2;"):
+
+run_test("Net declaration with delay (three typ expressions)",
+   "wire #(3, 4, 5) mywire;"
+):
    new_node(NkNetDecl, li(1, 1), @[
       new_identifier_node(NkType, li(1, 1), "wire"),
-      new_identifier_node(NkIdentifier, li(1, 6), "foo"),
+      new_node(NkDelay, li(1, 6), @[
+         new_node(NkParenthesis, li(1, 7), @[
+            new_inumber_node(NkIntLit, li(1, 8), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 11), 4, "4", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 14), 5, "5", Base10, -1)
+         ]),
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 17), "mywire"),
+   ])
+
+
+run_test("Net declaration with delay (three min-typ-max expressions)",
+   "wire #(0, (1:2:3), 5) mywire;"
+):
+   new_node(NkNetDecl, li(1, 1), @[
+      new_identifier_node(NkType, li(1, 1), "wire"),
+      new_node(NkDelay, li(1, 6), @[
+         new_node(NkParenthesis, li(1, 7), @[
+            new_inumber_node(NkIntLit, li(1, 8), 0, "0", Base10, -1),
+            new_node(NkParenthesis, li(1, 11), @[
+               new_node(NkConstantMinTypMaxExpression, li(1, 12), @[
+                  new_inumber_node(NkIntLit, li(1, 12), 1, "1", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 14), 2, "2", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 16), 3, "3", Base10, -1),
+               ]),
+            ]),
+            new_inumber_node(NkIntLit, li(1, 20), 5, "5", Base10, -1)
+         ]),
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 23), "mywire"),
    ])
 
 
