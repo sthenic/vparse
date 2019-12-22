@@ -161,15 +161,36 @@ const
       "timescale", "unconnected_drive", "undef"
    ]
 
+
 proc `$`*(t: Token): string =
-   if t.kind in {TkSymbol, TkOperator}:
-      result = "'" & t.identifier.s & "'"
+   case t.kind
+   of TkSymbol, TkOperator, TkDirective:
+      result = t.identifier.s
+   of IntegerTokens:
+      result = $t.inumber
+   of TkStrLit:
+      result = $t.literal
    else:
-      result = "'" & TokenKindToStr[t.kind] & "'"
+      result = TokenKindToStr[t.kind]
+
+
+proc raw*(t: Token): string =
+   ## Convert the token into its source code representation.
+   case t.kind
+   of TkSymbol, TkOperator:
+      result = t.identifier.s
+   of TkDirective:
+      result = "`" & t.identifier.s
+   of IntegerTokens:
+      result = t.literal
+   of TkStrLit:
+      result = '"' & $t.literal & '"'
+   else:
+      result = TokenKindToStr[t.kind]
 
 
 proc `$`*(kind: TokenKind): string =
-   result = "'" & TokenKindToStr[kind] & "'"
+   result = TokenKindToStr[kind]
 
 
 proc `$`*(kinds: set[TokenKind]): string =
