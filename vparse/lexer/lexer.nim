@@ -154,6 +154,12 @@ const
       "TkDirective", "TkDollar", "TkComment", "[EOF]"
    ]
 
+   Directives = [
+      "begin_keywords", "celldefine", "default_nettype", "define", "else",
+      "elsif", "end_keywords", "endcelldefine", "endif", "ifdef", "ifndef",
+      "include", "line", "nounconnected_drive", "pragma", "resetall",
+      "timescale", "unconnected_drive", "undef"
+   ]
 
 proc `$`*(t: Token): string =
    if t.kind in {TkSymbol, TkOperator}:
@@ -659,6 +665,69 @@ proc handle_number(l: var Lexer, tok: var Token) =
       handle_real_and_decimal(l, tok)
 
 
+proc eat_directive_line(l: var Lexer, tok: var Token) =
+   var pos = l.bufpos
+   while l.buf[pos] notin lexbase.Newlines + {lexbase.EndOfFile}:
+      add(tok.literal, l.buf[pos])
+      inc(pos)
+   l.bufpos = pos
+
+
+proc eat_directive_arguments(l: var Lexer, tok: var Token) =
+   # We stop if either of these conditions are met:
+   #   - we encounter EOF; or
+   #   - we encounter a closing parenthesis and the count is zero.
+   var count = 0
+   while true:
+      case l.buf[l.bufpos]
+      of lexbase.EndOfFile:
+         break
+      of lexbase.NewLines:
+         l.bufpos = handle_crlf(l, l.bufpos)
+      of ')':
+         add(tok.literal, ')')
+         dec(count)
+         inc(l.bufpos)
+         if count == 0:
+            break
+      of '(':
+         add(tok.literal, '(')
+         inc(count)
+         inc(l.bufpos)
+      else:
+         add(tok.literal, l.buf[l.bufpos])
+         inc(l.bufpos)
+
+
+proc handle_directive(l: var Lexer, tok: var Token) =
+   # While this is not a preprocessor and we don't expect to encounter
+   # directives, if we do we need to grab all the characters that 'belongs' to
+   # the directive and remove them from the character stream. We do this to
+   # avoid interpreting the directive text as regular Verilog and to let the
+   # parser handle these tokens as an atomic block.
+   #
+   # There are a number of compiler directives defined by the standard. For
+   # these, we eat all characters until the next newline. We continue with the
+   # next line if the newline character is escaped (as is allowed for `define).
+   # However, if we don't recognize the directive, we just grab the first word
+   # and optionally a comma-separated list of arguments enclosed in parenthesis.
+   # The assumption is that this is a text macro usage.
+   tok.kind = TkDirective
+   inc(l.bufpos)
+   handle_identifier(l, tok, SymChars)
+
+   if tok.identifier.s in Directives:
+      eat_directive_line(l, tok)
+      while tok.literal.ends_with('\\') and l.buf[l.bufpos] in lexbase.NewLines:
+         l.bufpos = handle_crlf(l, l.bufpos)
+         add(tok.literal, '\n')
+         eat_directive_line(l, tok)
+   else:
+      l.bufpos = skip(l, l.bufpos)
+      if l.buf[l.bufpos] == '(':
+         eat_directive_arguments(l, tok)
+
+
 proc get_token*(l: var Lexer, tok: var Token) =
    # Skip until there is a token in the buffer.
    l.bufpos = skip(l, l.bufpos)
@@ -742,9 +811,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.kind = TkRbrace
       inc(l.bufpos)
    of '`':
-      tok.kind = TkDirective
-      inc(l.bufpos)
-      handle_identifier(l, tok, SymChars)
+      handle_directive(l, tok)
    else:
       if c in OpChars:
          handle_operator(l, tok)
