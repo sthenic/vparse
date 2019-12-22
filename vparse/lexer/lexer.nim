@@ -147,11 +147,11 @@ const
       "xnor", "xor",
       "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}",
       "(*", "*)", "+:", "-:", "->", "=",
-      "TkSymbol", "TkOperator", "TkStrLit",
-      "TkIntLit", "TkUIntLit",
-      "TkAmbIntLit", "TkAmbUIntLit",
-      "TkRealLit",
-      "TkDirective", "TkDollar", "TkComment", "[EOF]"
+      "Symbol", "Operator", "StrLit",
+      "IntLit", "UIntLit",
+      "AmbIntLit", "AmbUIntLit",
+      "RealLit",
+      "Directive", "Dollar", "Comment", "[EOF]"
    ]
 
    Directives = [
@@ -162,16 +162,20 @@ const
    ]
 
 
-proc `$`*(t: Token): string =
-   case t.kind
-   of TkSymbol, TkOperator, TkDirective:
-      result = t.identifier.s
-   of IntegerTokens:
-      result = $t.inumber
-   of TkStrLit:
-      result = $t.literal
+proc `$`*(kind: TokenKind): string =
+   if ord(kind) < ord(TkSymbol):
+      result = "'" & TokenKindToStr[kind] & "'"
    else:
-      result = TokenKindToStr[t.kind]
+      result = TokenKindToStr[kind]
+
+
+proc `$`*(kinds: set[TokenKind]): string =
+   var i = 0
+   for kind in kinds:
+      if i > 0:
+         add(result, ", ")
+      add(result, $kind)
+      inc(i)
 
 
 proc raw*(t: Token): string =
@@ -189,17 +193,8 @@ proc raw*(t: Token): string =
       result = TokenKindToStr[t.kind]
 
 
-proc `$`*(kind: TokenKind): string =
-   result = TokenKindToStr[kind]
-
-
-proc `$`*(kinds: set[TokenKind]): string =
-   var i = 0
-   for kind in kinds:
-      if i > 0:
-         add(result, ", ")
-      add(result, "'" & TokenKindToStr[kind] & "'")
-      inc(i)
+proc `$`*(t: Token): string =
+   result = "'" & raw(t) & "'"
 
 
 proc to_int*(base: NumericalBase): int =

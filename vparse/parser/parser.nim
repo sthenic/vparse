@@ -19,14 +19,13 @@ type
 
 
 const
-   UnexpectedToken = "Unexpected token '$1'."
+   UnexpectedToken = "Unexpected token $1."
    AttributesNotAllowed = "Attributes are not allowed here."
-   ExpectedToken = "Expected token '$1', got '$2'."
-   ExpectedTokens = "Expected one of the tokens '$1', got '$2'."
+   ExpectedToken = "Expected token $1, got $2."
    GateInstantiationNotSupported = "Gate instantiatiation is currently not supported."
    UdpInstantiationNotSupported = "UDP instantiatiation is currently not supported."
    SpecifyBlockNotSupported = "Specify blocks are currently not supported."
-   Resynchronized = "Resynchronized at '$1'."
+   Resynchronized = "Resynchronized at $1."
 
 
 proc get_token(p: var Parser) =
@@ -111,7 +110,7 @@ template expect_token(p: Parser, expected: set[TokenKind]): untyped =
    if p.tok.kind notin expected:
       let meta_error = new_node(p, NkExpectError)
       while p.tok.kind notin expected:
-         add(meta_error.sons, new_error_node(p, NkTokenError, ExpectedTokens, expected, p.tok))
+         add(meta_error.sons, new_error_node(p, NkTokenError, ExpectedToken, expected, p.tok))
          if p.tok.kind == TkEndOfFile:
             break
          get_token(p)
@@ -126,7 +125,7 @@ template expect_token(p: Parser, result: seq[PNode], expected: set[TokenKind]): 
    if p.tok.kind notin expected:
       let meta_error = new_node(p, NkExpectError)
       while p.tok.kind notin expected:
-         add(meta_error.sons, new_error_node(p, NkTokenError, ExpectedTokens, expected, p.tok))
+         add(meta_error.sons, new_error_node(p, NkTokenError, ExpectedToken, expected, p.tok))
          if p.tok.kind == TkEndOfFile:
             add(result, meta_error)
             return

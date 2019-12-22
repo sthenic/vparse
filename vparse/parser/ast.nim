@@ -16,7 +16,6 @@ type
       # Atoms
       NkEmpty, # An empty node
       NkIdentifier, # The node is an identifier
-      NkSymbol, # the node is a symbol
       NkStrLit, # the node is a string literal
       NkIntLit, # the node is an integer literal
       NkUIntLit, # the node is an unsigned integer literal
@@ -175,7 +174,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
       # FIXME: Unused right now
       add(result, format(": $1\n", n.op))
    of ErrorTypes:
-      add(result, format(": $1 ($2)\n", n.msg, n.eraw))
+      add(result, format(": $1\n", n.msg))
    of NkStrLit:
       add(result, format(": $1\n", n.s))
    of NkWildcard:
