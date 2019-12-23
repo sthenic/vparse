@@ -945,14 +945,18 @@ proc parse_net_declaration(p: var Parser): PNode =
          add(result.sons, parse_drive_strength(p))
          has_drive_strength = true
 
+      var expect_range = false
       if p.tok.kind in {TkVectored, TkScalared}:
          add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
+         expect_range = true
 
       if p.tok.kind == TkSigned:
          add(result.sons, new_identifier_node(p, NkType))
          get_token(p)
 
+      if expect_range:
+         expect_token(p, result, TkLbracket)
       if p.tok.kind == TkLbracket:
          add(result.sons, parse_range(p))
 
