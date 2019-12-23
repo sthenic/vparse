@@ -1,11 +1,11 @@
 import streams
 import strutils
 
-import ../lexer/lexer
-import ../lexer/identifier
-
+import ./lexer
+import ./identifier
 import ./ast
 
+export ast, identifier
 
 type
    Parser* = object

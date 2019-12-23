@@ -2,9 +2,8 @@
 import strutils
 import json
 
-import ../lexer/lexer
-import ../lexer/identifier
-
+import ./lexer
+import ./identifier
 
 type
    NodeKind* = enum

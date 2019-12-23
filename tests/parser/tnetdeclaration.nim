@@ -2,10 +2,10 @@ import terminal
 import strformat
 import strutils
 
-import ../../vparse/parser/parser
-import ../../vparse/parser/ast
-import ../../vparse/lexer/identifier
-import ../../vparse/lexer/lexer
+import ../../src/vparsepkg/parser
+import ../../src/vparsepkg/ast
+import ../../src/vparsepkg/identifier
+import ../../src/vparsepkg/lexer
 
 var
    nof_passed = 0

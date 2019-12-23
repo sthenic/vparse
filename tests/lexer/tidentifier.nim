@@ -1,8 +1,8 @@
 import terminal
 import strformat
 
-include ../../vparse/lexer/identifier
-include ../../vparse/lexer/special_words
+include ../../src/vparsepkg/identifier
+include ../../src/vparsepkg/special_words
 
 var
    passed = false
