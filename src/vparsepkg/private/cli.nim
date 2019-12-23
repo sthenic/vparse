@@ -14,6 +14,7 @@ type
       print_help*: bool
       print_version*: bool
       json*: bool
+      pretty*: bool
       stdout*: bool
       input_files*: seq[string]
       output_file*: string
@@ -48,6 +49,8 @@ proc parse_cli*(): CLIState =
             if val == "":
                log.abort(CLIValueError, "Option --output/-o expects a filename.")
             result.output_file = val
+         of "pretty":
+            result.pretty = true
          of "stdout":
             result.stdout = true
          of "json":

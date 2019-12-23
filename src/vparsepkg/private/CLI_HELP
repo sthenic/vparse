@@ -21,5 +21,7 @@ options:
 
   --json                    The output AST is JSON-formatted.
 
+  --pretty                  Prettify the JSON output.
+
   --stdout                  Write the output to stdout.
 

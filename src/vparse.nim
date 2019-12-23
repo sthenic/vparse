@@ -74,13 +74,19 @@ for filename in cli_state.input_files:
 
    if ofs != nil:
       if cli_state.json:
-         ofs.write(%root_node)
+         if cli_state.pretty:
+            ofs.write(pretty(%root_node))
+         else:
+            ofs.write($(%root_node))
       else:
          ofs.write(pretty(root_node))
 
    if cli_state.stdout:
       if cli_state.json:
-         echo %root_node
+         if cli_state.pretty:
+            echo pretty(%root_node)
+         else:
+            echo $(%root_node)
       else:
          echo pretty(root_node)
 
