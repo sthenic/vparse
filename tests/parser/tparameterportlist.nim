@@ -41,7 +41,14 @@ template cprim(n: PNode): PNode =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
 
+Test suite: parameter port list
+-------------------------------""")
+
+# Run tests
 run_test("Single parameter", """#(
    parameter MYPARAM = 0
 )"""):
@@ -192,7 +199,13 @@ run_test("Invalid syntax, missing comma between parameter declarations", """#(
             new_inumber_node(NkIntLit, li(2, 20), 0, "0", Base10, -1)
          ])
       ]),
-      new_error_node(li(3, 4), "")
+      new_node(NkExpectError, li(3, 4), @[
+         new_error_node(NkTokenError, li(3, 4), "", ""),
+         new_error_node(NkTokenError, li(3, 14), "", ""),
+         new_error_node(NkTokenError, li(3, 18), "", ""),
+         new_error_node(NkTokenError, li(3, 20), "", ""),
+         new_error_node(NkTokenErrorSync, li(4, 1), "", "")
+      ]),
    ])
 
 
@@ -207,7 +220,12 @@ run_test("Invalid syntax, missing comma between parameter assignments", """#(
             new_inumber_node(NkIntLit, li(2, 20), 0, "0", Base10, -1)
          ])
       ]),
-      new_error_node(li(3, 14), "")
+      new_node(NkExpectError, li(3, 14), @[
+         new_error_node(NkTokenError, li(3, 14), "", ""),
+         new_error_node(NkTokenError, li(3, 18), "", ""),
+         new_error_node(NkTokenError, li(3, 20), "", ""),
+         new_error_node(NkTokenErrorSync, li(4, 1), "", "")
+      ]),
    ])
 
 

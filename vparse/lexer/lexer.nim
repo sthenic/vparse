@@ -147,11 +147,11 @@ const
       "xnor", "xor",
       "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}",
       "(*", "*)", "+:", "-:", "->", "=",
-      "TkSymbol", "TkOperator", "TkStrLit",
-      "TkIntLit", "TkUIntLit",
-      "TkAmbIntLit", "TkAmbUIntLit",
-      "TkRealLit",
-      "TkDirective", "TkDollar", "TkComment", "[EOF]"
+      "Symbol", "Operator", "StrLit",
+      "IntLit", "UIntLit",
+      "AmbIntLit", "AmbUIntLit",
+      "RealLit",
+      "Directive", "Dollar", "Comment", "[EOF]"
    ]
 
    Directives = [
@@ -161,15 +161,12 @@ const
       "timescale", "unconnected_drive", "undef"
    ]
 
-proc `$`*(t: Token): string =
-   if t.kind in {TkSymbol, TkOperator}:
-      result = "'" & t.identifier.s & "'"
-   else:
-      result = "'" & TokenKindToStr[t.kind] & "'"
-
 
 proc `$`*(kind: TokenKind): string =
-   result = "'" & TokenKindToStr[kind] & "'"
+   if ord(kind) < ord(TkSymbol):
+      result = "'" & TokenKindToStr[kind] & "'"
+   else:
+      result = TokenKindToStr[kind]
 
 
 proc `$`*(kinds: set[TokenKind]): string =
@@ -177,8 +174,27 @@ proc `$`*(kinds: set[TokenKind]): string =
    for kind in kinds:
       if i > 0:
          add(result, ", ")
-      add(result, "'" & TokenKindToStr[kind] & "'")
+      add(result, $kind)
       inc(i)
+
+
+proc raw*(t: Token): string =
+   ## Convert the token into its source code representation.
+   case t.kind
+   of TkSymbol, TkOperator:
+      result = t.identifier.s
+   of TkDirective:
+      result = "`" & t.identifier.s
+   of IntegerTokens:
+      result = t.literal
+   of TkStrLit:
+      result = '"' & $t.literal & '"'
+   else:
+      result = TokenKindToStr[t.kind]
+
+
+proc `$`*(t: Token): string =
+   result = "'" & raw(t) & "'"
 
 
 proc to_int*(base: NumericalBase): int =

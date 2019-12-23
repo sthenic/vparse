@@ -42,6 +42,12 @@ template run_test(title: string, new_cache: bool, body: untyped) =
          echo "    " & msg
       nof_failed += 1
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: Identifiers
+-----------------------""")
 
 # Run testcases
 run_test("Initialize cache", true):

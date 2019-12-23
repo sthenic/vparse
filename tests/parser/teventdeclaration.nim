@@ -36,7 +36,14 @@ proc li(line: uint16, col: int16): TLineInfo =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
 
+Test suite: event declaration
+-----------------------------""")
+
+# Run tests
 run_test("Event declaration, single identifier", "event foo;"):
    new_node(NkEventDecl, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 7), "foo"),

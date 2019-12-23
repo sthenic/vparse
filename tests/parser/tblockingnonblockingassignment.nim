@@ -36,7 +36,14 @@ proc li(line: uint16, col: int16): TLineInfo =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
 
+Test suite: blocking & nonblocking assignment
+---------------------------------------------""")
+
+# Run tests
 run_test("Simple blocking assignment", "foo = 3"):
    new_node(NkBlockingAssignment, li(1, 1), @[
       new_node(NkVariableLvalue, li(1, 1), @[
@@ -135,9 +142,9 @@ run_test("Blocking assignment: delay control, error", "foo = #begin FOO"):
          new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
       new_node(NkDelay, li(1, 7), @[
-         new_error_node(li(1, 8), "")
+         new_error_node(NkTokenError, li(1, 8), "", "")
       ]),
-      new_error_node(li(1, 8), "")
+      new_identifier_node(NkIdentifier, li(1, 14), "FOO")
    ])
 
 run_test("Blocking assignment: event control, identifier", "foo = @some_event FOO"):
@@ -283,7 +290,7 @@ run_test("Blocking assignment: event control, repeat", "foo = repeat (3) @(posed
 
 run_test("Blocking assignment: error", "foo A"):
    new_node(NkBlockingAssignment, li(1, 1), @[
-      new_error_node(li(1, 5), "")
+      new_error_node(NkTokenError, li(1, 5), "", "")
    ])
 
 # Print summary

@@ -41,7 +41,14 @@ template cprim(n: PNode): PNode =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
 
+Test suite: constant expression
+-------------------------------""")
+
+# Run tests
 run_test("Constant primary: numbers, decimal signed", "1234567890"):
    cprim(new_inumber_node(NkIntLit, li(1, 1), 1234567890, "1234567890", Base10, -1))
 
@@ -88,7 +95,7 @@ run_test("Constant primary: numbers, decimal positive (unary)", "+3"):
    ]))
 
 run_test("Constant primary: numbers, invalid decimal", "'dAF"):
-   cprim(new_node(NkError, li(1, 1)))
+   cprim(new_node(NkTokenError, li(1, 1)))
 
 run_test("Constant primary: numbers, simple real", "3.14159"):
    cprim(new_fnumber_node(NkRealLit, li(1, 1), 3.14159, "3.14159"))

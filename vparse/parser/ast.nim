@@ -9,11 +9,13 @@ import ../lexer/identifier
 type
    NodeKind* = enum
       NkInvalid, # An invalid node, indicates an error
-      NkError, # An error node
+      NkCritical, # A critical error, e.g. an unsupported syntax tree
+      NkTokenError, # A token error node, e.g. an unexpected token
+      NkTokenErrorSync, # Indicates that the token stream was resynchronized
+      NkExpectError,
       # Atoms
       NkEmpty, # An empty node
       NkIdentifier, # The node is an identifier
-      NkSymbol, # the node is a symbol
       NkStrLit, # the node is a string literal
       NkIntLit, # the node is an integer literal
       NkUIntLit, # the node is an unsigned integer literal
@@ -119,6 +121,8 @@ const
    # FIXME: Unused right now
    OperatorTypes = {NkUnaryOperator, NkBinaryOperator}
 
+   ErrorTypes = {NkTokenError, NkTokenErrorSync, NkCritical}
+
 type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
@@ -137,8 +141,9 @@ type
          fraw*: string
       of IdentifierTypes:
          identifier*: PIdentifier
-      of NkError:
+      of ErrorTypes:
          msg*: string # TODO: Combine w/ NkStrLit?
+         eraw*: string
       of OperatorTypes:
          # FIXME: Unused right now
          op*: string
@@ -168,7 +173,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
    of OperatorTypes:
       # FIXME: Unused right now
       add(result, format(": $1\n", n.op))
-   of NkError:
+   of ErrorTypes:
       add(result, format(": $1\n", n.msg))
    of NkStrLit:
       add(result, format(": $1\n", n.s))
@@ -215,11 +220,12 @@ proc `%`*(n: PNode): JsonNode =
          "kind": $n.kind,
          "operator": n.identifier.s
       }
-   of NkError:
+   of ErrorTypes:
       result = %*{
          "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
-         "message": n.msg
+         "message": n.msg,
+         "raw": n.eraw
       }
    of NkStrLit:
       result = %*{
@@ -263,7 +269,7 @@ proc `==`*(x, y: PNode): bool =
       result = x.op == y.op
    of NkStrLit:
       result = x.s == y.s
-   of NkError, NkWildcard:
+   of ErrorTypes, NkWildcard:
       return true
    else:
       if len(x.sons) != len(y.sons):
@@ -297,7 +303,7 @@ proc detailed_compare*(x, y: PNode) =
       return
 
    case x.kind
-   of IdentifierTypes, IntegerTypes, NkRealLit, OperatorTypes, NkError,
+   of IdentifierTypes, IntegerTypes, NkRealLit, OperatorTypes, ErrorTypes,
       NkStrLit, NkWildcard:
       if x != y:
          echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
@@ -354,7 +360,8 @@ proc new_str_lit_node*(info: TLineInfo, s: string): PNode =
    result.s = s
 
 
-proc new_error_node*(info: TLineInfo, msg: string,
+proc new_error_node*(kind: NodeKind, info: TLineInfo, raw, msg: string,
                      args: varargs[string, `$`]): PNode =
-   result = new_node(NkError, info)
+   result = new_node(kind, info)
    result.msg = format(msg, args)
+   result.eraw = raw
