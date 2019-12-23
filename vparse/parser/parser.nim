@@ -638,11 +638,11 @@ proc parse_port_declaration(p: var Parser, attributes: seq[PNode]): PNode =
 
 
 proc parse_list_of_port_declarations(p: var Parser): PNode =
-   # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NkListOfPortDeclarations)
+   expect_token(p, result, TkLparen)
+   get_token(p)
 
    while true:
-      # FIXME: May be removed? Token is checked twice.
       var attributes: seq[PNode] = @[]
       if p.tok.kind == TkLparenStar:
          add(attributes, parse_attribute_instances(p))
@@ -652,6 +652,9 @@ proc parse_list_of_port_declarations(p: var Parser): PNode =
       if p.tok.kind != TkComma:
          break
       get_token(p)
+
+   expect_token(p, result, TkRparen)
+   get_token(p)
 
 
 proc parse_constant_range_expression(p: var Parser): PNode =
@@ -742,8 +745,9 @@ proc parse_port(p: var Parser): PNode =
 
 
 proc parse_list_of_ports(p: var Parser): PNode =
-   # The enclosing parenthesis will be removed by the calling procedure.
    result = new_node(p, NkListOfPorts)
+   expect_token(p, result, TkLparen)
+   get_token(p)
 
    while true:
       add(result.sons, parse_port(p))
@@ -751,25 +755,22 @@ proc parse_list_of_ports(p: var Parser): PNode =
          break
       get_token(p)
 
-
-proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
-   expect_token(p, TkLparen)
+   expect_token(p, result, TkRparen)
    get_token(p)
 
-   # TODO: The enclosing parenthesis could be removed in the respective
-   #       functions w/ the new look ahead support.
-   if p.tok.kind == TkRparen:
+
+proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
+   if look_ahead(p, TkLparen, TkRparen):
       # The node should be an empty list of port declarations.
       result = new_node(p, NkListOfPortDeclarations)
-   elif p.tok.kind in {TkInout, TkInput, TkOutput, TkLparenStar}:
+      get_token(p)
+      get_token(p)
+   elif look_ahead(p, TkLparen, {TkInout, TkInput, TkOutput, TkLparenStar}):
       # Assume a list of port declarations.
       result = parse_list_of_port_declarations(p)
    else:
       # Assume a list of ports.
       result = parse_list_of_ports(p)
-
-   expect_token(p, result, TkRparen)
-   get_token(p)
 
 
 proc parse_array_identifier(p: var Parser, identifier: PNode): PNode =

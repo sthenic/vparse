@@ -50,7 +50,7 @@ Test suite: port declaration
 run_test("Single port (input)", """(
    input clk_i
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkPortIdentifier, li(2, 10), "clk_i"),
@@ -61,7 +61,7 @@ run_test("Single port (input)", """(
 run_test("Single port (inout)", """(
    inout data_io
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "inout"),
          new_identifier_node(NkPortIdentifier, li(2, 10), "data_io"),
@@ -72,7 +72,7 @@ run_test("Single port (inout)", """(
 run_test("Single port (output)", """(
    output data_o
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "output"),
          new_identifier_node(NkPortIdentifier, li(2, 11), "data_o"),
@@ -83,7 +83,7 @@ run_test("Single port (output)", """(
 run_test("Single port (attribute instances)", """(
    (* mark_debug = true, my_attr *) (* attr = val *) output data_o
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 54), @[
          new_node(NkAttributeInst, li(2, 4), @[
             new_identifier_node(NkAttributeName, li(2, 7), "mark_debug"),
@@ -101,7 +101,7 @@ run_test("Single port (attribute instances)", """(
 
 
 run_test("Empty list", "()"):
-   new_node(NkListOfPortDeclarations, li(1, 2))
+   new_node(NkListOfPortDeclarations, li(1, 1))
 
 
 run_test("Multilple ports, mixed direction", """(
@@ -109,7 +109,7 @@ run_test("Multilple ports, mixed direction", """(
    inout data_io,
    output data_o
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkPortIdentifier, li(2, 10), "clk_i"),
@@ -129,7 +129,7 @@ run_test("Multilple ports, missing comma", """(
    input clk_i
    inout data_io
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkPortIdentifier, li(2, 10), "clk_i"),
@@ -151,7 +151,7 @@ run_test("Multilple ports, same type", """(
    output data_o,
           another_port_o
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkPortIdentifier, li(2, 10), "clk_i"),
@@ -178,7 +178,7 @@ for direction in [TkInput, TkInout, TkOutput]:
    $2
    my_port
 )""", TokenKindToStr[direction], TokenKindToStr[net_type])):
-         new_node(NkListOfPortDeclarations, li(2, 4), @[
+         new_node(NkListOfPortDeclarations, li(1, 1), @[
             new_node(NkPortDecl, li(2, 4), @[
                new_identifier_node(NkDirection, li(2, 4), TokenKindToStr[direction]),
                new_identifier_node(NkNetType, li(3, 4), TokenKindToStr[net_type]),
@@ -195,7 +195,7 @@ run_test("Signed ports", """(
    inout wire signed signed_inout_wire,
    output wire signed signed_output_wire
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkType, li(2, 10), "signed"),
@@ -240,7 +240,7 @@ run_test("Ranged ports", """(
    inout wire [7:0] ranged_inout_wire,
    output wire [0:0] ranged_output_wire
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_node(NkRange, li(2, 10), @[
@@ -306,7 +306,7 @@ run_test("Output reg ports", """(
    output reg data_o,
               port_o = 8'hEA
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "output"),
          new_identifier_node(NkNetType, li(2, 11), "reg"),
@@ -322,7 +322,7 @@ run_test("Output reg ports", """(
 run_test("Full output reg port", """(
    output reg signed [7:0] data_o
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "output"),
          new_identifier_node(NkNetType, li(2, 11), "reg"),
@@ -340,7 +340,7 @@ run_test("Variable output port", """(
    output integer int_o = 64,
    output time time_o = 3.4
 )"""):
-   new_node(NkListOfPortDeclarations, li(2, 4), @[
+   new_node(NkListOfPortDeclarations, li(1, 1), @[
       new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "output"),
          new_identifier_node(NkNetType, li(2, 11), "integer"),
