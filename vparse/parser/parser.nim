@@ -747,11 +747,9 @@ proc parse_list_of_ports(p: var Parser): PNode =
 
    while true:
       add(result.sons, parse_port(p))
-      case p.tok.kind
-      of TkComma:
-         get_token(p)
-      else:
-         break # FIXME: Error?
+      if p.tok.kind != TkComma:
+         break
+      get_token(p)
 
 
 proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
