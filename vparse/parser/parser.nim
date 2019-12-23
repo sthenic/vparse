@@ -468,30 +468,30 @@ proc parse_list_of_parameter_assignments(p: var Parser): seq[PNode] =
       get_token(p)
 
 
-proc parse_parameter_declaration(p: var Parser): PNode =
-   result = new_node(p, NkParameterDecl)
-   expect_token(p, result, TkParameter)
-   get_token(p)
-
-   # Check for type and range specifiers.
-   case p.tok.kind
-   of TkInteger, TkReal, TkRealtime, TkTime:
+template parse_parameter_or_localparam_declaration_tree(p: var Parser, result: PNode) =
+   if p.tok.kind in {TkInteger, TkReal, TkRealtime, TkTime}:
       add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
-   of TkSigned:
-      add(result.sons, new_identifier_node(p, NkType))
-      get_token(p)
+   else:
+      if p.tok.kind == TkSigned:
+         add(result.sons, new_identifier_node(p, NkType))
+         get_token(p)
       if p.tok.kind == TkLbracket:
          add(result.sons, parse_range(p))
-   of TkLbracket:
-      add(result.sons, parse_range(p))
-   of TkSymbol:
-      discard
-   else:
-      unexpected_token(p, result)
 
-   # Parse a list of parameter assignments, there should be at least one.
    add(result.sons, parse_list_of_parameter_assignments(p))
+
+
+proc parse_localparam_declaration(p: var Parser): PNode =
+   result = new_node(p, NkLocalparamDecl)
+   get_token(p)
+   parse_parameter_or_localparam_declaration_tree(p, result)
+
+
+proc parse_parameter_declaration(p: var Parser): PNode =
+   result = new_node(p, NkParameterDecl)
+   get_token(p)
+   parse_parameter_or_localparam_declaration_tree(p, result)
 
 
 proc parse_parameter_port_list(p: var Parser): PNode =
@@ -1088,8 +1088,7 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
    of TkEvent:
       result = parse_event_declaration(p)
    of TkLocalparam:
-      # FIXME: localparam
-      get_token(p)
+      result = parse_localparam_declaration(p)
       expect_token(p, result, TkSemicolon)
       get_token(p)
    of TkParameter:
@@ -2077,19 +2076,7 @@ proc parse_module_or_udp_instantiaton(p: var Parser): PNode =
 proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode =
    case p.tok.kind
    of TkLocalparam:
-      result = new_node(p, NkLocalparamDecl)
-      get_token(p)
-      if p.tok.kind in {TkInteger, TkReal, TkRealtime, TkTime}:
-         add(result.sons, new_identifier_node(p, NkType))
-         get_token(p)
-      else:
-         if p.tok.kind == TkSigned:
-            add(result.sons, new_identifier_node(p, NkType))
-            get_token(p)
-         if p.tok.kind == TkLbracket:
-            add(result.sons, parse_range(p))
-
-      add(result.sons, parse_list_of_parameter_assignments(p))
+      result = parse_localparam_declaration(p)
       expect_token(p, result, TkSemicolon)
       get_token(p)
 
