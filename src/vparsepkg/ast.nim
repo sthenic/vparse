@@ -187,20 +187,24 @@ proc pretty*(n: PNode, indent: int = 0): string =
       add(result, sons_str)
 
 
+proc `%`*(info: TLineInfo): JsonNode =
+   return %*{"line": info.line, "col": info.col + 1}
+
+
 proc `%`*(n: PNode): JsonNode =
    if n == nil:
       return
    case n.kind
    of IdentifierTypes:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "identifier": n.identifier.s
       }
    of IntegerTypes:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "number": n.inumber,
          "raw": n.iraw,
          "base": to_int(n.base),
@@ -208,39 +212,39 @@ proc `%`*(n: PNode): JsonNode =
       }
    of NkRealLit:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "number": n.fnumber,
          "raw": n.fraw
       }
    of OperatorTypes:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "operator": n.identifier.s
       }
    of ErrorTypes:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "message": n.msg,
          "raw": n.eraw
       }
    of NkStrLit:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "string": n.s
       }
    of NkWildcard:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
-         "kind": $n.kind
+         "kind": $n.kind,
+         "pos": n.info
       }
    else:
       result = %*{
-         "pos": {"line": n.info.line, "col": n.info.col + 1},
          "kind": $n.kind,
+         "pos": n.info,
          "sons": %n.sons
       }
 
