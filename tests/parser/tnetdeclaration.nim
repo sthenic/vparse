@@ -36,6 +36,14 @@ proc li(line: uint16, col: int16): TLineInfo =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: net declaration
+---------------------------""")
+
+# Run tests
 for net_type in NetTypeTokens:
    let raw = TokenKindToStr[net_type]
    run_test(format("Simple net declaration, $1", raw), format("""$1

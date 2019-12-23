@@ -41,7 +41,14 @@ template cprim(n: PNode): PNode =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
 
+Test suite: parameter port list
+-------------------------------""")
+
+# Run tests
 run_test("Single parameter", """#(
    parameter MYPARAM = 0
 )"""):

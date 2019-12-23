@@ -112,6 +112,12 @@ proc new_identifier(t: typedesc[Token], kind: TokenKind, line, col: int,
    result = Token.new_identifier(kind, line, col, identifier)
    result.literal = literal
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: Lexer
+-----------------""")
 
 # Run test cases
 run_test("One line comment", """

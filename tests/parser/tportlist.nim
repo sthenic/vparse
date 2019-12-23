@@ -42,6 +42,14 @@ template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): unty
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: port list
+---------------------""")
+
+# Run tests
 run_test("Port w/o connection", """(
    .clk_i()
 )"""):

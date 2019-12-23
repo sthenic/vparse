@@ -37,6 +37,14 @@ template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): unty
    new_identifier_node(kind, info, get_identifier(cache, str))
 
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: variable declaration
+--------------------------------""")
+
+# Run tests
 run_test("Simple reg declaration", "reg foo;"):
    new_node(NkRegDecl, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 5), "foo"),

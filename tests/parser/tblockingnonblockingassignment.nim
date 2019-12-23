@@ -36,7 +36,14 @@ proc li(line: uint16, col: int16): TLineInfo =
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
    new_identifier_node(kind, info, get_identifier(cache, str))
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
 
+Test suite: blocking & nonblocking assignment
+---------------------------------------------""")
+
+# Run tests
 run_test("Simple blocking assignment", "foo = 3"):
    new_node(NkBlockingAssignment, li(1, 1), @[
       new_node(NkVariableLvalue, li(1, 1), @[
