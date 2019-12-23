@@ -1440,7 +1440,7 @@ proc parse_case_item(p: var Parser): PNode =
       get_token(p)
       if p.tok.kind == TkColon:
          get_token(p)
-      add(result.sons, parse_statement(p))
+      add(result.sons, parse_statement_or_null(p))
    else:
       # Assume it's one or several expressions.
       while true:
@@ -1450,7 +1450,7 @@ proc parse_case_item(p: var Parser): PNode =
          get_token(p)
       expect_token(p, result, TkColon)
       get_token(p)
-      add(result.sons, parse_statement(p))
+      add(result.sons, parse_statement_or_null(p))
 
 
 proc parse_case_statement(p: var Parser): PNode =
