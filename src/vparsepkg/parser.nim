@@ -236,6 +236,7 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
 
    case p.tok.kind
    of TkLbrace:
+      # FIXME: Test case?
       # We're parsing a constant multiple concatenation.
       result = new_node(p, NkConstantMultipleConcat)
       result.info = brace_pos
@@ -252,9 +253,12 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p).sons)
    of TkRbrace:
+      # FIXME: Add test case
       # A constant concatenation that only contains the entry we parsed earlier.
       result = new_node(p, NkConstantConcat)
+      result.info = brace_pos
       add(result.sons, first)
+      get_token(p)
    else:
       result = unexpected_token(p)
 
@@ -313,7 +317,16 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
          result = new_node(p, NkRangedIdentifier)
          result.info = identifier.info
          add(result.sons, identifier)
-         add(result.sons, parse_constant_range_expression(p))
+         # The identifier may be followed by any number of bracketed expressions.
+         # However, it's only the last one that's allowed to be a range expression.
+         # TODO: Fix this parsing since we're allowing everything to be a range
+         #       expression. We should probably have NkBrackets like we do for
+         #       parentheses.
+         # FIXME: Add test case for this [3][5][6:0]
+         while true:
+            if p.tok.kind != TkLbracket:
+               break
+            add(result.sons, parse_constant_range_expression(p))
       else:
          result = identifier
 
