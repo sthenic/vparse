@@ -5,7 +5,6 @@ import os
 
 import ./log
 
-
 type
    CLIValueError* = object of Exception
    CLIState* = object
@@ -15,6 +14,7 @@ type
       print_help*: bool
       print_version*: bool
       json*: bool
+      stdout*: bool
       input_files*: seq[string]
       output_file*: string
 
@@ -48,6 +48,8 @@ proc parse_cli*(): CLIState =
             if val == "":
                log.abort(CLIValueError, "Option --output/-o expects a filename.")
             result.output_file = val
+         of "stdout":
+            result.stdout = true
          of "json":
             result.json = true
          else:

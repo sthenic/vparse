@@ -1,1 +1,25 @@
-Hello world!
+usage:
+  vparse [OPTIONS] ARGUMENTS
+
+
+arguments:
+  file [file [file ...]]    Input file(s) to parse. To parse several files,
+                            separate them by whitespace.
+
+                            Pattern matching is supported but the extent of this
+                            support is OS-dependent. The "*.ext" notation is
+                            always supported. The glob call is used on POSIX
+                            systems.
+
+
+options:
+  -h, --help                Print this help message and exit.
+  -v, --version             Print the version information and exit.
+
+  -o=FILE, --output=FILE    If this option is present, the output AST is written
+                            to FILE.
+
+  --json                    The output AST is JSON-formatted.
+
+  --stdout                  Write the output to stdout.
+
