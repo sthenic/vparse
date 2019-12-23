@@ -1,4 +1,3 @@
-# import algorithm
 import terminal
 import strformat
 

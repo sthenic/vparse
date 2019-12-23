@@ -1,6 +1,5 @@
 import terminal
 import strformat
-import strutils
 
 import ../../vparse/parser/parser
 import ../../vparse/parser/ast

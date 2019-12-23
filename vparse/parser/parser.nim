@@ -23,8 +23,11 @@ const
    AttributesNotAllowed = "Attributes are not allowed here."
    ExpectedToken = "Expected token $1, got $2."
    GateInstantiationNotSupported = "Gate instantiatiation is currently not supported."
+   UdpDeclarationNotSupported = "UDP declarations are currently not supported."
    UdpInstantiationNotSupported = "UDP instantiatiation is currently not supported."
    SpecifyBlockNotSupported = "Specify blocks are currently not supported."
+   ConfigDeclarationNotSupported = "Configuration declarations are currently not supported."
+   GrammarNotSupported = "Unsupported specific grammar '$1'."
    Resynchronized = "Resynchronized at $1."
 
 
@@ -1583,8 +1586,7 @@ proc parse_statement(p: var Parser): PNode =
 
 proc parse_statement_or_null(p: var Parser, attributes: seq[PNode]): PNode =
    if p.tok.kind == TkSemicolon:
-      # Null statement.
-      # FIXME: use a better node type?
+      # A null statement.
       result = new_node(p, NkEmpty)
       get_token(p)
       add(result.sons, attributes)
@@ -1662,7 +1664,6 @@ proc parse_task_or_function_declaration(p: var Parser): PNode =
    get_token(p)
 
    if p.tok.kind == TkAutomatic:
-      # FIXME: Is NkType the best option?
       add(result.sons, new_identifier_node(p, NkType))
       get_token(p)
 
@@ -1791,13 +1792,13 @@ proc parse_specify_item(p: var Parser): PNode =
    of TkSpecparam:
       result = parse_specparam_declaration(p)
    of TkPulsestyleOndetect, TkPulsestyleOnevent:
-      # FIXME: Implement
+      # TODO: Implement
       get_token(p)
    of TkShowCancelled, TkNoshowCancelled:
-      # FIXME: Implement
+      # TODO: Implement
       get_token(p)
    of TkLparen, TkIf, TkIfnone:
-      # FIXME: Implement path declarations
+      # TODO: Implement path declarations
       get_token(p)
    of TkDollar:
       get_token(p)
@@ -1811,7 +1812,7 @@ proc parse_specify_block(p: var Parser): PNode =
    get_token(p)
    add(result.sons, new_error_node(p, NkCritical, SpecifyBlockNotSupported))
 
-   # FIXME: Implement
+   # TODO: Implement
    while true:
       if p.tok.kind in {TkEndspecify, TkEndOfFile}:
          break
@@ -1846,7 +1847,7 @@ proc parse_generate_block(p: var Parser): PNode =
 
 proc parse_generate_block_or_null(p: var Parser): PNode =
    if p.tok.kind == TkSemicolon:
-      # TODO: Better node type?
+      # A null statement.
       result = new_node(p, NkEmpty)
       get_token(p)
    else:
@@ -2233,14 +2234,18 @@ proc assume_source_text(p: var Parser): PNode =
    of TkModule, TkMacromodule:
       result = parse_module_declaration(p, attributes)
    of TkPrimitive:
-      result = unexpected_token(p) # FIXME: Actually unsupported for now
+      # TODO: Implement
+      result = new_error_node(p, NkCritical, UdpDeclarationNotSupported)
+   of TkConfig:
+      # TODO: Implement
+      result = new_error_node(p, NkCritical, ConfigDeclarationNotSupported)
    else:
       result = unexpected_token(p)
 
 
 proc parse_all*(p: var Parser): PNode =
    get_token(p)
-   result = new_node(p, NkSourceText) # FIXME: Proper init value
+   result = new_node(p, NkSourceText)
    while p.tok.kind != TkEndOfFile:
       let n = assume_source_text(p)
       if n.kind != NkEmpty:
@@ -2289,7 +2294,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
       get_token(p)
       result = parse_proc(p)
    else:
-      result = new_error_node(p, NkCritical, "Unsupported specific grammar '$1'.", $kind)
+      result = new_error_node(p, NkCritical, GrammarNotSupported, $kind)
 
    close_parser(p)
 
