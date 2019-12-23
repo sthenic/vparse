@@ -13,16 +13,16 @@ task tests, "Run the test suite":
 
 task lexertests, "Run the lexer test suite":
    withDir("tests/lexer"):
-      exec("nim c -r tidentifier")
-      exec("nim c -r tlexer")
+      exec("nim c --hints:off -r tidentifier")
+      exec("nim c --hints:off -r tlexer")
 
 task parsertests, "Run the parser test suite":
    withDir("tests/parser"):
-      exec("nim c -r tconstantexpression")
-      exec("nim c -r tportlist")
-      exec("nim c -r tportdeclarations")
-      exec("nim c -r tparameterportlist")
-      exec("nim c -r tvariabledeclaration")
-      exec("nim c -r teventdeclaration")
-      exec("nim c -r tblockingnonblockingassignment")
-      exec("nim c -r tnetdeclaration")
+      exec("nim c --hints:off -r tconstantexpression")
+      exec("nim c --hints:off -r tportlist")
+      exec("nim c --hints:off -r tportdeclarations")
+      exec("nim c --hints:off -r tparameterportlist")
+      exec("nim c --hints:off -r tvariabledeclaration")
+      exec("nim c --hints:off -r teventdeclaration")
+      exec("nim c --hints:off -r tblockingnonblockingassignment")
+      exec("nim c --hints:off -r tnetdeclaration")
