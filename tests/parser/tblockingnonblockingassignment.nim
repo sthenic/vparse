@@ -245,27 +245,58 @@ run_test("Blocking assignment: event control, event expression, expression", "fo
       new_identifier_node(NkIdentifier, li(1, 23), "FOO")
    ])
 
-run_test("Blocking assignment: event control, multiple event expressions", "foo = @(posedge clk or negedge rst_n or random_signal) FOO"):
+run_test("Blocking assignment: event control, multiple event expressions (or)", "foo = @(posedge clk or negedge rst_n or random_signal) FOO"):
    new_node(NkBlockingAssignment, li(1, 1), @[
       new_node(NkVariableLvalue, li(1, 1), @[
          new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
       new_node(NkEventControl, li(1, 7), @[
          new_node(NkParenthesis, li(1, 8), @[
-            new_node(NkEventExpression, li(1, 9), @[
-               new_identifier_node(NkType, li(1, 9), "posedge"),
-               new_identifier_node(NkIdentifier, li(1, 17), "clk")
-            ]),
-            new_node(NkEventExpression, li(1, 24), @[
-               new_identifier_node(NkType, li(1, 24), "negedge"),
-               new_identifier_node(NkIdentifier, li(1, 32), "rst_n")
-            ]),
-            new_node(NkEventExpression, li(1, 41), @[
-               new_identifier_node(NkIdentifier, li(1, 41), "random_signal")
+            new_node(NkEventOr, li(1, 21), @[
+               new_node(NkEventExpression, li(1, 9), @[
+                  new_identifier_node(NkType, li(1, 9), "posedge"),
+                  new_identifier_node(NkIdentifier, li(1, 17), "clk")
+               ]),
+               new_node(NkEventOr, li(1, 38), @[
+                  new_node(NkEventExpression, li(1, 24), @[
+                     new_identifier_node(NkType, li(1, 24), "negedge"),
+                     new_identifier_node(NkIdentifier, li(1, 32), "rst_n")
+                  ]),
+                  new_node(NkEventExpression, li(1, 41), @[
+                     new_identifier_node(NkIdentifier, li(1, 41), "random_signal")
+                  ]),
+               ]),
             ]),
          ]),
       ]),
       new_identifier_node(NkIdentifier, li(1, 56), "FOO")
+   ])
+
+run_test("Blocking assignment: event control, multiple event expressions (mixed)", "foo = @(posedge clk, negedge rst_n or random_signal) FOO"):
+   new_node(NkBlockingAssignment, li(1, 1), @[
+      new_node(NkVariableLvalue, li(1, 1), @[
+         new_identifier_node(NkIdentifier, li(1, 1), "foo")
+      ]),
+      new_node(NkEventControl, li(1, 7), @[
+         new_node(NkParenthesis, li(1, 8), @[
+            new_node(NkEventComma, li(1, 20), @[
+               new_node(NkEventExpression, li(1, 9), @[
+                  new_identifier_node(NkType, li(1, 9), "posedge"),
+                  new_identifier_node(NkIdentifier, li(1, 17), "clk")
+               ]),
+               new_node(NkEventOr, li(1, 36), @[
+                  new_node(NkEventExpression, li(1, 22), @[
+                     new_identifier_node(NkType, li(1, 22), "negedge"),
+                     new_identifier_node(NkIdentifier, li(1, 30), "rst_n")
+                  ]),
+                  new_node(NkEventExpression, li(1, 39), @[
+                     new_identifier_node(NkIdentifier, li(1, 39), "random_signal")
+                  ]),
+               ]),
+            ]),
+         ]),
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 54), "FOO")
    ])
 
 run_test("Blocking assignment: event control, repeat", "foo = repeat (3) @(posedge clk) FOO"):

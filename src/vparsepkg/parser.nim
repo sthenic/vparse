@@ -1139,9 +1139,7 @@ proc parse_variable_lvalue(p: var Parser): PNode =
       return
 
 
-proc parse_event_expression(p: var Parser): seq[PNode] =
-   # This function returns a sequence of nodes since the syntax allows one event
-   # expression to consist of many chained expressions chained together w/ 'or'.
+proc parse_event_expression(p: var Parser): PNode =
    let n = new_node(p, NkEventExpression)
    if p.tok.kind in {TkPosedge, TkNegedge}:
       # FIXME: Improve node type?
@@ -1150,13 +1148,22 @@ proc parse_event_expression(p: var Parser): seq[PNode] =
       add(n.sons, parse_constant_expression(p))
    else:
       add(n.sons, parse_constant_expression(p))
-   add(result, n)
 
-   # Check if the expression is followed by 'or', in which case we expect
-   # another event expression to follow.
+   # Check if the expression is followed by 'or' or a comma, in which case we
+   # expect another event expression to follow. For those cases we create a
+   # dedicated infix node.
    if p.tok.kind == TkOr:
+      result = new_node(p, NkEventOr)
       get_token(p)
-      add(result, parse_event_expression(p))
+      add(result.sons, n)
+      add(result.sons, parse_event_expression(p))
+   elif p.tok.kind == TkComma:
+      result = new_node(p, NkEventComma)
+      get_token(p)
+      add(result.sons, n)
+      add(result.sons, parse_event_expression(p))
+   else:
+      result = n
 
 
 proc parse_event_control(p: var Parser): PNode =
