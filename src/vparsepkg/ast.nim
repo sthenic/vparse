@@ -74,8 +74,8 @@ type
       # Statements A.6.4
       NkTaskEnable, NkSystemTaskEnable,
       # Timing control statements A.6.5
-      NkEventControl, NkEventExpression, NkRepeat, NkWait,
-      NkProceduralTimingControl, NkEventTrigger, NkDisable,
+      NkEventControl, NkEventExpression, NkEventOr, NkEventComma, NkRepeat,
+      NkWait, NkProceduralTimingControl, NkEventTrigger, NkDisable,
       # Conditional statements A.6.6
       NkIf,
       # Case statements A.6.7
