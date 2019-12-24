@@ -730,7 +730,9 @@ proc handle_directive(l: var Lexer, tok: var Token) =
    # The assumption is that this is a text macro usage.
    tok.kind = TkDirective
    inc(l.bufpos)
-   handle_identifier(l, tok, SymChars)
+   # We include "'" as a symbol character when parsing the directive identifier
+   # to handle the case `WIDTH'b10110001 and grab this as an entire token.
+   handle_identifier(l, tok, SymChars + {'\''})
 
    if tok.identifier.s in Directives:
       eat_directive_line(l, tok)
