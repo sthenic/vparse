@@ -378,17 +378,17 @@ proc parse_constant_primary(p: var Parser): PNode =
       result = new_node(p, NkConstantSystemFunctionCall)
       add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
-      expect_token(p, result, TkLparen)
-      get_token(p)
-      while true:
-         add(result.sons, parse_constant_expression(p))
-         case p.tok.kind
-         of TkComma:
-            get_token(p)
-         else:
-            break
-      expect_token(p, result, TkRparen)
-      get_token(p)
+      if p.tok.kind == TkLparen:
+         get_token(p)
+         while true:
+            add(result.sons, parse_constant_expression(p))
+            case p.tok.kind
+            of TkComma:
+               get_token(p)
+            else:
+               break
+         expect_token(p, result, TkRparen)
+         get_token(p)
    of TkLparen:
       # Handle parenthesis, the token is required when constructing a
       # min-typ-max expression and optional when indicating expression

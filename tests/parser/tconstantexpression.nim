@@ -183,6 +183,11 @@ run_test("Constant primary: system function call", "$clog2(2, 3, MYCONST)"):
       cprim(new_identifier_node(NkIdentifier, li(1, 14), "MYCONST"))
    ]))
 
+run_test("Constant primary: system function call, no arguments", "$times"):
+   cprim(new_node(NkConstantSystemFunctionCall, li(1, 1), @[
+      new_identifier_node(NkIdentifier, li(1, 1), "times")
+   ]))
+
 run_test("Constant primary: mintypmax", "(2'b00:8'd32:MYMAX)"):
    new_node(NkParenthesis, li(1, 1), @[
       cprim(new_node(NkConstantMinTypMaxExpression, li(1, 2), @[
