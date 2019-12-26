@@ -184,7 +184,7 @@ proc raw*(t: Token): string =
    of TkSymbol, TkOperator:
       result = t.identifier.s
    of TkDirective:
-      result = "`" & t.identifier.s
+      result = "`" & t.identifier.s & t.literal
    of IntegerTokens:
       result = t.literal
    of TkStrLit:
