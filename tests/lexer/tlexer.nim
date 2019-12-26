@@ -73,8 +73,8 @@ proc new_token(t: typedesc[Token], kind: TokenKind, line, col: int): Token =
    init(result, kind, line, col)
 
 
-proc new_comment(t: typedesc[Token], line, col: int, comment: string): Token =
-   init(result, TkComment, line, col)
+proc new_comment(t: typedesc[Token], kind: TokenKind, line, col: int, comment: string): Token =
+   init(result, kind, line, col)
    result.literal = comment
 
 
@@ -123,7 +123,7 @@ Test suite: Lexer
 run_test("One line comment", """
 // ** This is a one line comment **
 """, @[
-   Token.new_comment(1, 0, "** This is a one line comment **")
+   Token.new_comment(TkComment, 1, 0, " ** This is a one line comment **")
 ])
 
 
@@ -132,7 +132,7 @@ run_test("Multi line comment", """
  * continuing over
  * here */
 """, @[
-   Token.new_comment(1, 0, """
+   Token.new_comment(TkBlockComment, 1, 0, """
 This is a multi line comment //
  * continuing over
  * here""")

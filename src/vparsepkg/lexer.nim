@@ -47,7 +47,7 @@ type
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
       TkRealLit,
-      TkDirective, TkDollar, TkComment, TkEndOfFile
+      TkDirective, TkDollar, TkComment, TkBlockComment, TkEndOfFile
 
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
@@ -151,7 +151,7 @@ const
       "IntLit", "UIntLit",
       "AmbIntLit", "AmbUIntLit",
       "RealLit",
-      "Directive", "Dollar", "Comment", "[EOF]"
+      "Directive", "Dollar", "One-line comment", "Block comment", "[EOF]"
    ]
 
    Directives = [
@@ -188,7 +188,9 @@ proc raw*(t: Token): string =
    of IntegerTokens:
       result = t.literal
    of TkStrLit:
-      result = '"' & $t.literal & '"'
+      result = '"' & t.literal & '"'
+   of TkComment, TkBlockComment:
+      result = t.literal
    else:
       result = TokenKindToStr[t.kind]
 
@@ -304,17 +306,15 @@ proc skip(l: var Lexer, pos: int): int =
 
 
 proc handle_comment(l: var Lexer, tok: var Token) =
-   # FIXME: Use different tokens for block comments and single line comments.
    # A comment begins w/ two characters: '//' or '/*'. We skip over the first
    # slash and use the other character to determine how we treat the buffer from
    # that point on.
    var pos = l.bufpos + 1
-   tok.kind = TkComment
    case l.buf[pos]
    of '/':
+      tok.kind = TkComment
       # Grab everything until the end of the line.
       inc(pos)
-      pos = skip(l, pos)
       update_token_position(l, tok)
 
       while l.buf[pos] notin lexbase.NewLines + {lexbase.EndOfFile}:
@@ -324,8 +324,8 @@ proc handle_comment(l: var Lexer, tok: var Token) =
    of '*':
       # Grab everything until '*/' is encountered, refilling the buffer
       # as we go.
+      tok.kind = TkBlockComment
       inc(pos)
-      pos = skip(l, pos)
       update_token_position(l, tok)
 
       while true:
