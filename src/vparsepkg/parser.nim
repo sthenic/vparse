@@ -40,7 +40,7 @@ proc get_token(p: var Parser) =
    p.tok = p.next_tok
    if p.next_tok.kind != TkEndOfFile:
       get_token(p.lex, p.next_tok)
-      while p.next_tok.kind == TkComment:
+      while p.next_tok.kind in {TkComment, TkBlockComment}:
          get_token(p.lex, p.next_tok)
 
 
