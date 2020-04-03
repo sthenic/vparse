@@ -24,6 +24,7 @@ type
 
    Preprocessor* = object of BaseLexer
       filename*: string
+      include_paths: seq[string]
       text: PreprocessedText
 
 
@@ -40,9 +41,12 @@ proc init(dir: var Directive) =
    set_len(dir.identifier, 0)
 
 
-proc open_preprocessor(p: var Preprocessor, filename: string, s: Stream) =
+proc open_preprocessor(p: var Preprocessor, filename: string,
+                       include_paths: openarray[string], s: Stream) =
    lexbase.open(p, s)
    p.filename = filename
+   set_len(p.include_paths, len(include_paths))
+   add(p.include_paths, include_paths)
    init(p.text)
 
 
@@ -152,7 +156,7 @@ proc get_directive(p: var Preprocessor, dir: var Directive) =
 
 proc preprocess*(p: var Preprocessor, filename: string,
                  include_paths: openarray[string], s: Stream): PreprocessedText =
-   open_preprocessor(p, filename, s)
+   open_preprocessor(p, filename, include_paths, s)
 
    while true:
       # Get the next directive and break if we encounter the end of the file
