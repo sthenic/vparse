@@ -33,6 +33,12 @@ proc init(t: var PreprocessedText) =
    t.defines = init_table[string, Define](32)
 
 
+proc init(def: var Define) =
+   set_len(def.name, 0)
+   set_len(def.parameters, 0)
+   set_len(def.text, 0)
+
+
 proc add(p: var PreprocessedText, s: string) =
    add(p.text, s)
 
@@ -65,6 +71,13 @@ proc handle_crlf(p: var Preprocessor, pos: int): int =
       result = pos
 
 
+proc skip(p: var Preprocessor, pos: int): int =
+   result = pos
+   while p.buf[pos] in SpaceChars:
+      add(p.text, $p.buf[pos])
+      inc(result)
+
+
 proc handle_text_replacement(p: var Preprocessor, def: Define) =
    # FIXME: Implement
    discard
@@ -76,8 +89,13 @@ proc handle_include(p: var Preprocessor) =
 
 
 proc handle_define(p: var Preprocessor) =
-   # FIXME: Implement
-   discard
+   var def: Define
+   init(def)
+
+   # If the next character is '(', this is a function like macro and we attempt
+   # to read the parameter list. Otherwise we read and store the replacement
+   # text until we find the first newline character not preceded by a backslash,
+   # or the end of the file.
 
 
 proc handle_ifdef(p: var Preprocessor) =
