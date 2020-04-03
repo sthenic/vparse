@@ -68,8 +68,6 @@ type
       filename*: string
       cache*: IdentifierCache
 
-   LexerError = object of Exception
-
 
 const
    DecimalChars*: set[char] = {'0'..'9'}
@@ -221,11 +219,6 @@ proc pretty*(t: Token): string =
    add(result, ", base: " & $t.base)
    add(result, ", size: " & $t.size)
    add(result, ")")
-
-
-proc new_lexer_error(msg: string, args: varargs[string, `$`]): ref LexerError =
-   new(result)
-   result.msg = format(msg, args)
 
 
 proc init*(t: var Token) =
