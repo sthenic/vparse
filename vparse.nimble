@@ -8,9 +8,9 @@ license = "MIT"
 
 skip_dirs = @["tests"]
 
-requires "nim >= 1.0.0"
+requires "nim >= 1.2.0"
 
-task tests, "Run the test suite":
+task test, "Run the test suite":
    exec("nimble lexertests")
    exec("nimble parsertests")
 
