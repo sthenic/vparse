@@ -11,9 +11,18 @@ import strutils
 import ./lexer
 
 type
+   Origin = object
+      filename*: string
+      line*, col*: int
+
+   SourceText = object
+      origin*: Origin
+      text*: string
+
    PreprocessedText* = object
       text*: string
       defines*: Table[string, Define]
+      origins*: OrderedTable[int, Origin]
 
    Define* = object
       name*: string
@@ -48,12 +57,38 @@ proc init(def: var Define) =
    set_len(def.text, 0)
 
 
+proc init(o: var Origin) =
+   set_len(o.filename, 0)
+   o.col = 0
+   o.line = 0
+
+
+proc init(s: var SourceText) =
+   set_len(s.text, 0)
+   init(s.origin)
+
+
+proc add(s: var SourceText, c: char) =
+   add(s.text, $c)
+
+
 proc add(p: var PreprocessedText, s: string) =
    add(p.text, s)
 
 
+proc add(p: var PreprocessedText, s: SourceText) =
+   p.origins[len(p.text)] = s.origin
+   add(p.text, s.text)
+
+
 proc init(dir: var Directive) =
    set_len(dir.identifier, 0)
+
+
+template update_source_text_origin(p: Preprocessor, s: var SourceText) =
+   s.origin.filename = p.filename
+   s.origin.line = p.line_number
+   s.origin.col = get_col_number(p, p.bufpos)
 
 
 proc open_preprocessor(p: var Preprocessor, filename: string,
@@ -80,15 +115,13 @@ proc handle_crlf(p: var Preprocessor, pos: int): int =
       result = pos
 
 
-proc skip(p: var Preprocessor, pos: int, add: bool = false): int =
+proc skip(p: var Preprocessor, pos: int): int =
    result = pos
    while p.buf[result] in SpaceChars:
-      if add:
-         add(p.text, $p.buf[pos])
       inc(result)
 
 
-proc skip_to_newline_or_eof(p: var Preprocessor, pos: int, add: bool = false): int =
+proc skip_to_newline_or_eof(p: var Preprocessor, pos: int): int =
    result = pos
    while p.buf[result] notin lexbase.NewLines + {lexbase.EndOfFile}:
       inc(result)
@@ -165,6 +198,8 @@ proc handle_define(p: var Preprocessor) =
          if include_newline:
             add(def.text, c)
             include_newline = false
+            p.bufpos = handle_crlf(p, p.bufpos)
+            continue
          else:
             break
       of lexbase.EndOfFile:
@@ -236,15 +271,17 @@ proc get_directive(p: var Preprocessor, dir: var Directive) =
    # Eat characters until we encounter the end of the file or the ` character,
    # marking the start of a compiler directive. We refill the buffer if we
    # encounter a newline character.
-   var text_block = ""
+   var source_text: SourceText
+   init(source_text)
+   update_source_text_origin(p, source_text)
    while p.buf[p.bufpos] notin {'`', lexbase.EndOfFile}:
       let c = p.buf[p.bufpos]
-      add(text_block, c)
+      add(source_text, c)
       if c in lexbase.NewLines:
          p.bufpos = handle_crlf(p, p.bufpos)
       else:
          inc(p.bufpos)
-   add(p.text, text_block)
+   add(p.text, source_text)
 
    # Skip the ` character and grab the directive identifier.
    inc(p.bufpos)
