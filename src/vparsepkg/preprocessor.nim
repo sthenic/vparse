@@ -11,7 +11,12 @@ import strutils
 import ./lexer
 
 type
+   OriginKind* = enum
+      OkSourceText,
+      OkMacroExpansion
+
    Origin = object
+      kind*: OriginKind
       filename*: string
       line*, col*: int
 
@@ -28,6 +33,7 @@ type
       name*: string
       parameters*: seq[string]
       text*: string
+      origin*: Origin
 
    Directive = object
       identifier: string
@@ -51,21 +57,23 @@ proc init(t: var PreprocessedText) =
    t.defines = init_table[string, Define](32)
 
 
-proc init(def: var Define) =
-   set_len(def.name, 0)
-   set_len(def.parameters, 0)
-   set_len(def.text, 0)
-
-
-proc init(o: var Origin) =
+proc init(o: var Origin, kind: OriginKind) =
    set_len(o.filename, 0)
+   o.kind = kind
    o.col = 0
    o.line = 0
 
 
+proc init(def: var Define) =
+   set_len(def.name, 0)
+   set_len(def.parameters, 0)
+   set_len(def.text, 0)
+   init(def.origin, OkMacroExpansion)
+
+
 proc init(s: var SourceText) =
    set_len(s.text, 0)
-   init(s.origin)
+   init(s.origin, OkSourceText)
 
 
 proc add(s: var SourceText, c: char) =
@@ -73,6 +81,11 @@ proc add(s: var SourceText, c: char) =
 
 
 proc add(p: var PreprocessedText, s: string) =
+   add(p.text, s)
+
+
+proc add(p: var PreprocessedText, s: string, o: Origin) =
+   p.origins[len(p.text)] = o
    add(p.text, s)
 
 
@@ -85,10 +98,10 @@ proc init(dir: var Directive) =
    set_len(dir.identifier, 0)
 
 
-template update_source_text_origin(p: Preprocessor, s: var SourceText) =
-   s.origin.filename = p.filename
-   s.origin.line = p.line_number
-   s.origin.col = get_col_number(p, p.bufpos)
+template update_origin(p: Preprocessor, o: var Origin) =
+   o.filename = p.filename
+   o.line = p.line_number
+   o.col = get_col_number(p, p.bufpos)
 
 
 proc open_preprocessor(p: var Preprocessor, filename: string,
@@ -139,8 +152,10 @@ proc get_identifier(p: var Preprocessor): string =
 
 
 proc handle_text_replacement(p: var Preprocessor, def: Define) =
-   # FIXME: Implement
-   discard
+   add(p.text, def.text, def.origin)
+   # var origin: Origin
+   # init(origin)
+   # origin.filename =
 
 
 proc handle_include(p: var Preprocessor) =
@@ -177,7 +192,8 @@ proc handle_define(p: var Preprocessor) =
    if p.buf[p.bufpos] in lexbase.NewLines + {lexbase.EndOfFile}:
       return
 
-   # Read the macro name from the buffer
+   # Read the macro name from the buffer and mark this as the origin.
+   update_origin(p, def.origin)
    def.name = get_identifier(p)
 
    # If the next character is '(', this is a function like macro and we attempt
@@ -185,6 +201,9 @@ proc handle_define(p: var Preprocessor) =
    var invalid_syntax = false
    if p.buf[p.bufpos] == '(':
       handle_parameter_list(p, def)
+
+   # Skip until the first non-whitespace character.
+   p.bufpos = skip(p, p.bufpos)
 
    # We read and store the replacement text until we find the first newline
    # character not preceded by a backslash, or the end of the file.
@@ -273,7 +292,7 @@ proc get_directive(p: var Preprocessor, dir: var Directive) =
    # encounter a newline character.
    var source_text: SourceText
    init(source_text)
-   update_source_text_origin(p, source_text)
+   update_origin(p, source_text.origin)
    while p.buf[p.bufpos] notin {'`', lexbase.EndOfFile}:
       let c = p.buf[p.bufpos]
       add(source_text, c)
