@@ -204,6 +204,11 @@ proc get_identifier(p: var Preprocessor): string =
 
 
 proc handle_text_replacement(p: var Preprocessor, def: Define) =
+   # If the define is function-like, we begin by attempting to collect arguments
+   # matching the parameter list.
+   # FIXME: This is broken w/o the parser since the argument is allowed to be
+   # any valid Verilog expression. We cannot correctly collect the arguments
+   # with a naive approach.
    add(p.text, def.text, def.origin)
 
 
