@@ -2,39 +2,44 @@ import streams
 import terminal
 import strformat
 
-include ../../src/vparsepkg/preprocessor
-
-var
-   nof_passed = 0
-   nof_failed = 0
+import ../../src/vparsepkg/preprocessor
 
 
-# template run_test(title, stimuli: string, reference: untyped) =
+var nof_passed = 0
+var nof_failed = 0
+var pp: Preprocessor
+var cache = new_ident_cache()
 
 
-#    try:
-#       for i in 0..<response.len:
-#          if debug:
-#             echo pretty(response[i])
-#             echo pretty(reference[i])
-#          do_assert(response[i] == reference[i], "'" & $response[i] & "'")
-#       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
-#                       fgWhite, "Test '",  title, "'")
-#       nof_passed += 1
-#    except AssertionError:
-#       styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
-#                       fgWhite, "Test '",  title, "'")
-#       nof_failed += 1
-#    except IndexError:
-#       styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
-#                       fgWhite, "Test '",  title, "'", #resetStyle,
-#                       " (missing reference data)")
-#       nof_failed += 1
+template run_test(title, stimuli: string, reference: openarray[Token]) =
+   var response: seq[Token] = @[]
+   var tok: Token
+   init(tok)
+   open_preprocessor(pp, cache, "test_default", [""], new_string_stream(stimuli))
+   while true:
+      get_token(pp, tok)
+      if tok.kind == TkEndOfFile:
+         break
+      add(response, tok)
+   close_preprocessor(pp)
+   detailed_compare(response, reference)
 
 
-var p: Preprocessor
-echo preprocess(p, "test_default", [""], new_string_stream("""
-Hello
-`define THING
-Hola
-"""))
+template init(t: Token, kind: TokenKind, line, col: int) =
+   init(t)
+   t.line = line
+   t.col = col
+   t.kind = kind
+
+
+proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token =
+   init(result, kind, line, col)
+   result.identifier = cache.get_identifier(identifier)
+
+
+run_test("Default", """
+HELLOz
+"""): [
+   new_identifier(TkSymbol, 1, 0, "HELLO")
+]
+
