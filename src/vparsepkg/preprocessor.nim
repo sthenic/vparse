@@ -25,6 +25,7 @@ type
       text*: string
 
    PreprocessedText* = object
+      filename*: string
       text*: string
       defines*: Table[string, Define]
       origins*: OrderedTable[int, Origin]
@@ -41,7 +42,7 @@ type
    PreprocessorError* = object of ValueError
 
    Preprocessor* = object of BaseLexer
-      filename*: string
+      filename: string
       include_paths: seq[string]
       text: PreprocessedText
 
@@ -52,9 +53,59 @@ proc new_preprocessor_error(msg: string, args: varargs[string, `$`]):
    result.msg = format(msg, args)
 
 
+proc `$`*(kind: OriginKind): string =
+   case kind
+   of OkSourceText:
+      result = "source"
+   of OkMacroExpansion:
+      result = "macro"
+
+
+proc pretty*(o: Origin): string =
+   result = format("($1) -- $2:$3:$4", o.kind, o.filename, o.line, o.col)
+
+
+proc pretty*(o: OrderedTable[int, Origin]): string =
+   for k, v in pairs(o):
+      add(result, format("$1 $2\n", k, pretty(v)))
+
+
+proc pretty*(d: Define): string =
+   result = format("$1 -- $2:$3:$4", d.name, d.origin.filename,
+                   d.origin.line, d.origin.col)
+   if len(d.parameters) > 0:
+      add(result, "\n   Parameters: ")
+      for i, p in d.parameters:
+         if i > 0:
+            add(result, ", ")
+         add(result, p)
+
+
+proc pretty*(d: Table[string, Define]): string =
+   for k, v in pairs(d):
+      add(result, pretty(v) & "\n")
+
+
+proc pretty*(t: PreprocessedText): string =
+   const INDENT = 3
+   result = """
+Filename: $1
+Length: $2
+Origins:
+$3
+Defines:
+$4
+"""
+   result = format(result, t.filename, len(t.text),
+                   indent(pretty(t.origins), INDENT),
+                   indent(pretty(t.defines), INDENT))
+
+
 proc init(t: var PreprocessedText) =
    set_len(t.text, 0)
+   set_len(t.filename, 0)
    t.defines = init_table[string, Define](32)
+   t.origins = init_ordered_table[int, Origin](128)
 
 
 proc init(o: var Origin, kind: OriginKind) =
@@ -111,6 +162,7 @@ proc open_preprocessor(p: var Preprocessor, filename: string,
    set_len(p.include_paths, len(include_paths))
    add(p.include_paths, include_paths)
    init(p.text)
+   p.text.filename = filename
 
 
 proc close_preprocessor(p: var Preprocessor) =
@@ -153,9 +205,6 @@ proc get_identifier(p: var Preprocessor): string =
 
 proc handle_text_replacement(p: var Preprocessor, def: Define) =
    add(p.text, def.text, def.origin)
-   # var origin: Origin
-   # init(origin)
-   # origin.filename =
 
 
 proc handle_include(p: var Preprocessor) =
