@@ -456,18 +456,37 @@ run_test("Special character: right attribute (end)", "*)", @[
 ])
 
 run_test("Compiler directive: default_nettype", "`default_nettype wire", @[
-   Token.new_identifier(TkDirective, 1, 0, "default_nettype", " wire"),
+   Token.new_identifier(TkDirective, 1, 0, "default_nettype"),
+   Token.new_identifier(TkWire, 1, 17, "wire"),
 ])
 
 run_test("Compiler directive: macro definition", "`define MyMacro(x) x * 2", @[
-   Token.new_identifier(TkDirective, 1, 0, "define", " MyMacro(x) x * 2"),
+   Token.new_identifier(TkDirective, 1, 0, "define"),
+   Token.new_identifier(TkSymbol, 1, 8, "MyMacro"),
+   Token.new_token(TkLparen, 1, 15),
+   Token.new_identifier(TkSymbol, 1, 16, "x"),
+   Token.new_token(TkRparen, 1, 17),
+   Token.new_identifier(TkSymbol, 1, 19, "x"),
+   Token.new_identifier(TkOperator, 1, 21, "*"),
+   Token.new_inumber(TkIntLit, 1, 23, 2, Base10, -1, "2"),
 ])
 
 run_test("Compiler directive: macro definition, multiple lines",
 """`define MyMacro(x, y) \
       x & 8'h7F + y""", @[
-   Token.new_identifier(TkDirective, 1, 0, "define", """ MyMacro(x, y) \
-      x & 8'h7F + y""")
+   Token.new_identifier(TkDirective, 1, 0, "define"),
+   Token.new_identifier(TkSymbol, 1, 8, "MyMacro"),
+   Token.new_token(TkLparen, 1, 15),
+   Token.new_identifier(TkSymbol, 1, 16, "x"),
+   Token.new_token(TkComma, 1, 17),
+   Token.new_identifier(TkSymbol, 1, 19, "y"),
+   Token.new_token(TkRparen, 1, 20),
+   Token.new_token(TkBackslash, 1, 22),
+   Token.new_identifier(TkSymbol, 2, 6, "x"),
+   Token.new_identifier(TkOperator, 2, 8, "&"),
+   Token.new_inumber(TkUIntLit, 2, 10, 127, Base16, 8, "7F"),
+   Token.new_identifier(TkOperator, 2, 16, "+"),
+   Token.new_identifier(TkSymbol, 2, 18, "y"),
 ])
 
 run_test("Compiler directive: macro usage (no arguments)",
@@ -483,7 +502,12 @@ run_test("Compiler directive: macro usage (with arguments)",
 """reg [`REGISTER_PAGE(1, 2)-1:0] bar;""", @[
    Token.new_identifier(TkReg, 1, 0, "reg"),
    Token.new_token(TkLbracket, 1, 4),
-   Token.new_identifier(TkDirective, 1, 5, "REGISTER_PAGE", "(1, 2)"),
+   Token.new_identifier(TkDirective, 1, 5, "REGISTER_PAGE"),
+   Token.new_token(TkLparen, 1, 19),
+   Token.new_inumber(TkIntLit, 1, 20, 1, Base10, -1, "1"),
+   Token.new_token(TkComma, 1, 21),
+   Token.new_inumber(TkIntLit, 1, 23, 2, Base10, -1, "2"),
+   Token.new_token(TkRparen, 1, 24),
    Token.new_identifier(TkOperator, 1, 25, "-"),
    Token.new_inumber(TkIntLit, 1, 26, 1, Base10, -1, "1"),
    Token.new_token(TkColon, 1, 27),
@@ -497,7 +521,16 @@ run_test("Compiler directive: macro usage (with arguments, nested parentheses)",
 """reg [`REGISTER_PAGE  ((1*`FOO), 2)-1:0] bar;""", @[
    Token.new_identifier(TkReg, 1, 0, "reg"),
    Token.new_token(TkLbracket, 1, 4),
-   Token.new_identifier(TkDirective, 1, 5, "REGISTER_PAGE", "((1*`FOO), 2)"),
+   Token.new_identifier(TkDirective, 1, 5, "REGISTER_PAGE"),
+   Token.new_token(TkLparen, 1, 21),
+   Token.new_token(TkLparen, 1, 22),
+   Token.new_inumber(TkIntLit, 1, 23, 1, Base10, -1, "1"),
+   Token.new_identifier(TkOperator, 1, 24, "*"),
+   Token.new_identifier(TkDirective, 1, 25, "FOO"),
+   Token.new_token(TkRparen, 1, 29),
+   Token.new_token(TkComma, 1, 30),
+   Token.new_inumber(TkIntLit, 1, 32, 2, Base10, -1, "2"),
+   Token.new_token(TkRparen, 1, 33),
    Token.new_identifier(TkOperator, 1, 34, "-"),
    Token.new_inumber(TkIntLit, 1, 35, 1, Base10, -1, "1"),
    Token.new_token(TkColon, 1, 36),
