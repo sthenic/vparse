@@ -2,10 +2,9 @@ import streams
 import strutils
 
 import ./lexer
-import ./identifier
 import ./ast
 
-export ast, identifier
+export ast, lexer
 
 type
    Parser* = object
@@ -44,8 +43,8 @@ proc get_token(p: var Parser) =
          get_token(p.lex, p.next_tok)
 
 
-proc open_parser*(p: var Parser, cache: IdentifierCache, filename:
-                  string, s: Stream) =
+proc open_parser*(p: var Parser, cache: IdentifierCache,
+                  filename: string, s: Stream) =
    init(p.tok)
    init(p.next_tok)
    open_lexer(p.lex, cache, filename, s)

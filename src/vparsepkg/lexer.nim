@@ -6,6 +6,8 @@ import macros
 
 import ./identifier
 
+export identifier
+
 type
    TokenKind* = enum
       TkInvalid, # begin keywords:
@@ -211,7 +213,7 @@ proc to_int*(base: NumericalBase): int =
 
 proc pretty*(t: Token): string =
    result = format("($1:$2: ", t.line, t.col)
-   add(result, "type: " & $t.kind)
+   add(result, "kind: " & $t.kind)
    add(result, ", identifier: " & $t.identifier)
    add(result, ", literal: \"" & t.literal & "\"")
    add(result, ", inumber: " & $t.inumber)
@@ -219,6 +221,23 @@ proc pretty*(t: Token): string =
    add(result, ", base: " & $t.base)
    add(result, ", size: " & $t.size)
    add(result, ")")
+
+
+proc detailed_compare*(x, y: Token) =
+   if x.kind != y.kind:
+      echo format("Kind differs:\n$1\n$2\n", pretty(x), pretty(y))
+
+   if x != y:
+      echo pretty(x) & "\n" & pretty(y)
+
+
+proc detailed_compare*(x, y: openarray[Token]) =
+   if len(x) != len(y):
+      echo format("Length differs: LHS($1) != RHS($2)", len(x), len(y))
+      return
+
+   for i in 0..<len(x):
+      detailed_compare(x[i], y[i])
 
 
 proc init*(t: var Token) =
