@@ -6,6 +6,7 @@
 import streams
 import lexbase
 import tables
+import strutils
 
 import ./lexer
 
@@ -22,10 +23,18 @@ type
    Directive = object
       identifier: string
 
+   PreprocessorError* = object of ValueError
+
    Preprocessor* = object of BaseLexer
       filename*: string
       include_paths: seq[string]
       text: PreprocessedText
+
+
+proc new_preprocessor_error(msg: string, args: varargs[string, `$`]):
+      ref PreprocessorError =
+   new result
+   result.msg = format(msg, args)
 
 
 proc init(t: var PreprocessedText) =
@@ -71,11 +80,29 @@ proc handle_crlf(p: var Preprocessor, pos: int): int =
       result = pos
 
 
-proc skip(p: var Preprocessor, pos: int): int =
+proc skip(p: var Preprocessor, pos: int, add: bool = false): int =
    result = pos
-   while p.buf[pos] in SpaceChars:
-      add(p.text, $p.buf[pos])
+   while p.buf[result] in SpaceChars:
+      if add:
+         add(p.text, $p.buf[pos])
       inc(result)
+
+
+proc skip_to_newline_or_eof(p: var Preprocessor, pos: int, add: bool = false): int =
+   result = pos
+   while p.buf[result] notin lexbase.NewLines + {lexbase.EndOfFile}:
+      inc(result)
+
+
+template expect_character(p: Preprocessor, expected: set[char]): untyped =
+   if p.buf[p.bufpos] notin expected:
+      raise new_preprocessor_error("Expected character $1, got $2.", expected, p.buf[p.bufpos])
+
+
+proc get_identifier(p: var Preprocessor): string =
+   while p.buf[p.bufpos] in SymChars:
+      add(result, p.buf[p.bufpos])
+      inc(p.bufpos)
 
 
 proc handle_text_replacement(p: var Preprocessor, def: Define) =
@@ -88,14 +115,68 @@ proc handle_include(p: var Preprocessor) =
    discard
 
 
+proc handle_parameter(p: var Preprocessor, def: var Define) =
+   p.bufpos = skip(p, p.bufpos)
+   expect_character(p, SymChars)
+   add(def.parameters, get_identifier(p))
+   p.bufpos = skip(p, p.bufpos)
+
+
+proc handle_parameter_list(p: var Preprocessor, def: var Define) =
+   # Skip over '(' and start grabbing identifiers until we encounter the closing
+   # parenthesis, a newline or the end of the file. The latter two are errors.
+   inc(p.bufpos)
+   while true:
+      handle_parameter(p, def)
+      expect_character(p, {')', ','})
+      let c = p.buf[p.bufpos]
+      inc(p.bufpos)
+      if c == ')':
+         break
+
+
 proc handle_define(p: var Preprocessor) =
    var def: Define
    init(def)
 
+   # Ignore whitespace (not newlines) leading up to the macro name.
+   p.bufpos = skip(p, p.bufpos)
+   if p.buf[p.bufpos] in lexbase.NewLines + {lexbase.EndOfFile}:
+      return
+
+   # Read the macro name from the buffer
+   def.name = get_identifier(p)
+
    # If the next character is '(', this is a function like macro and we attempt
-   # to read the parameter list. Otherwise we read and store the replacement
-   # text until we find the first newline character not preceded by a backslash,
-   # or the end of the file.
+   # to read the parameter list.
+   var invalid_syntax = false
+   if p.buf[p.bufpos] == '(':
+      handle_parameter_list(p, def)
+
+   # We read and store the replacement text until we find the first newline
+   # character not preceded by a backslash, or the end of the file.
+   var include_newline = false
+   while true:
+      let c = p.buf[p.bufpos]
+      case c
+      of '\\':
+         include_newline = true
+      of lexbase.NewLines:
+         if include_newline:
+            add(def.text, c)
+            include_newline = false
+         else:
+            break
+      of lexbase.EndOfFile:
+         break
+      else:
+         # FIXME: Need to skip comments '//'
+         add(def.text, c)
+      inc(p.bufpos)
+
+   # FIXME: Check for duplicates (should be replaced).
+   if not invalid_syntax:
+      p.text.defines[def.name] = def
 
 
 proc handle_ifdef(p: var Preprocessor) =
@@ -183,7 +264,15 @@ proc preprocess*(p: var Preprocessor, filename: string,
       get_directive(p, dir)
       if p.buf[p.bufpos] == lexbase.EndOfFile:
          break
-      handle_directive(p, dir)
+
+      # On encountering a preprocessor error when handling the directive we
+      # ignore the rest of the line.
+      # TODO: Probably communicate this to the caller.
+      try:
+         handle_directive(p, dir)
+      except PreprocessorError as e:
+         echo e.msg
+         p.bufpos = skip_to_newline_or_eof(p, p.bufpos)
 
    result = p.text
    close_preprocessor(p)
