@@ -3,6 +3,7 @@ import terminal
 import strformat
 
 import ../../src/vparsepkg/preprocessor
+import ../lexer/constructors
 
 
 var nof_passed = 0
@@ -25,21 +26,20 @@ template run_test(title, stimuli: string, reference: openarray[Token]) =
    detailed_compare(response, reference)
 
 
-template init(t: Token, kind: TokenKind, line, col: int) =
-   init(t)
-   t.line = line
-   t.col = col
-   t.kind = kind
-
-
 proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token =
-   init(result, kind, line, col)
-   result.identifier = cache.get_identifier(identifier)
+   # Wrap the call to the identifier constructor to avoid passing the global
+   # cache variable everywhere.
+   new_identifier(kind, line, col, identifier, cache)
 
 
 run_test("Default", """
-HELLOz
+HELLO
+`define() thing
 """): [
-   new_identifier(TkSymbol, 1, 0, "HELLO")
+   new_identifier(TkSymbol, 1, 0, "HELLO"),
+   new_identifier(TkDirective, 2, 0, "define"),
+   new_token(TkLparen, 2, 7),
+   new_token(TkRparen, 2, 8),
+   new_identifier(TkSymbol, 2, 10, "thing"),
 ]
 

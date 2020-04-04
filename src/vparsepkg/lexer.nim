@@ -224,11 +224,16 @@ proc pretty*(t: Token): string =
 
 
 proc detailed_compare*(x, y: Token) =
+   const INDENT = 2
    if x.kind != y.kind:
-      echo format("Kind differs:\n$1\n$2\n", pretty(x), pretty(y))
+      echo format("Kind differs:\n$1\n$2\n",
+                  indent(pretty(x), INDENT), indent(pretty(y), INDENT))
+      return
 
    if x != y:
-      echo pretty(x) & "\n" & pretty(y)
+      echo format("Contents differ:\n$1\n$2\n",
+                  indent(pretty(x), INDENT), indent(pretty(y), INDENT))
+      return
 
 
 proc detailed_compare*(x, y: openarray[Token]) =
@@ -841,7 +846,9 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.kind = TkRbrace
       inc(l.bufpos)
    of '`':
-      handle_directive(l, tok)
+      inc(l.bufpos)
+      tok.kind = TkDirective
+      handle_identifier(l, tok, SymChars)
    else:
       if c in OpChars:
          handle_operator(l, tok)
