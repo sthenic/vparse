@@ -20,6 +20,7 @@ type
       name*: Token
       origin*: Origin
       tokens*: seq[Token]
+      parameters*: seq[Token]
 
    Preprocessor* = object
       lex: Lexer
@@ -29,7 +30,8 @@ type
 
 
 proc get_token(pp: var Preprocessor) =
-   # Internal token consumer.
+   ## Internal token consumer. Reads a token from the lexer and stores the result
+   ## in the local ``tok`` variable.
    get_token(pp.lex, pp.tok)
 
 
@@ -42,6 +44,7 @@ template update_origin(pp: Preprocessor, o: var Origin) =
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         filename: string, include_paths: openarray[string],
                         s: Stream) =
+   ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
    open_lexer(pp.lex, cache, filename, s)
    pp.defines = init_table[string, Define](32)
@@ -51,10 +54,37 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
 
 
 proc close_preprocessor*(pp: var Preprocessor) =
+   ## Close the preprocessor.
    close_lexer(pp.lex)
 
 
+proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
+   ## Collect the parameter list of ``def`` from the source buffer. When this
+   ## proc returns, the closing parenthesis has been removed from the buffer.
+   # Skip over the opening parenthesis and collect a list of comma-separated
+   # identifiers.
+   get_token(pp)
+   while true:
+      if pp.tok.kind != TkSymbol:
+         break
+      add(def.parameters, pp.tok)
+      get_token(pp)
+      if (pp.tok.kind != TkComma):
+         break
+      get_token(pp)
+
+   # FIXME: Expect a closing parenthesis. Error if not present.
+   get_token(pp)
+
+
+proc immediately_follows(x, y: Token): bool =
+   ## Check if ``x`` immediately follows ``y`` in the source buffer.
+   assert(y.kind == TkSymbol)
+   return x.line == y.line and x.col == (y.col + len(y.identifier.s))
+
+
 proc handle_define(pp: var Preprocessor) =
+   ## Handle the ``define`` directive.
    var def: Define
    update_origin(pp, def.origin)
 
@@ -62,9 +92,16 @@ proc handle_define(pp: var Preprocessor) =
    get_token(pp)
    def.name = pp.tok
 
+   # If the next character is '(', and it follows the macro name w/o any
+   # whitespace, this is a function like macro and we attempt to read the
+   # parameter list.
+   get_token(pp)
+   if pp.tok.kind == TkLparen and immediately_follows(pp.tok, def.name):
+      echo "params"
+      handle_parameter_list(pp, def)
+
    var include_newline = false
    while true:
-      get_token(pp)
       case pp.tok.kind
       of TkEndOfFile:
          break
@@ -77,6 +114,7 @@ proc handle_define(pp: var Preprocessor) =
             break
          add(def.tokens, pp.tok)
          include_newline = false
+      get_token(pp)
 
    # Add the define object
    pp.defines[def.name.identifier.s] = def
@@ -145,9 +183,9 @@ proc handle_directive(pp: var Preprocessor) =
    of "endif":
       handle_endif(pp)
    else:
-      # If we don't recognize the directive, check if if it's one of the defines
-      # we've encountered so far. Otherwise, leave the token as it is. The
-      # parser will deal with the
+      # If we don't recognize the directive, check if it's a macro usage which
+      # has a matching entry in the macro table. Otherwise, leave the token as
+      # it is. The parser will deal with it.
       if pp.tok.identifier.s in pp.defines:
          handle_text_replacement(pp)
 
