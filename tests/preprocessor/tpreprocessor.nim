@@ -34,12 +34,28 @@ proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token 
 
 run_test("Default", """
 HELLO
-`define() thing
+`define aMAZing FOO
+`aMAZing
+`define MYMACRO ahs delightful `aMAZing \
+   test
+this is `MYMACRO
+`define aMAZing bar
+testing `MYMACRO
 """): [
    new_identifier(TkSymbol, 1, 0, "HELLO"),
-   new_identifier(TkDirective, 2, 0, "define"),
-   new_token(TkLparen, 2, 7),
-   new_token(TkRparen, 2, 8),
-   new_identifier(TkSymbol, 2, 10, "thing"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
 ]
 

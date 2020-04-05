@@ -8,7 +8,6 @@ import tables
 import strutils
 
 import ./lexer
-
 export lexer
 
 type
@@ -17,16 +16,22 @@ type
       line*, col*: int
 
    Define* = object
+      # FIXME: Bool to enable/disable the macro expansion? Like GCC does?
       name*: Token
       origin*: Origin
       tokens*: seq[Token]
       parameters*: seq[Token]
+
+   Context = object
+      tokens: seq[Token]
+      idx: int
 
    Preprocessor* = object
       lex: Lexer
       tok: Token
       defines: Table[string, Define]
       include_paths: seq[string]
+      context_stack: seq[Context]
 
 
 proc get_token(pp: var Preprocessor) =
@@ -50,6 +55,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    pp.defines = init_table[string, Define](32)
    pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
    add(pp.include_paths, include_paths)
+   pp.context_stack = new_seq_of_cap[Context](32)
    get_token(pp.lex, pp.tok)
 
 
@@ -97,7 +103,6 @@ proc handle_define(pp: var Preprocessor) =
    # parameter list.
    get_token(pp)
    if pp.tok.kind == TkLparen and immediately_follows(pp.tok, def.name):
-      echo "params"
       handle_parameter_list(pp, def)
 
    var include_newline = false
@@ -118,6 +123,7 @@ proc handle_define(pp: var Preprocessor) =
 
    # Add the define object
    pp.defines[def.name.identifier.s] = def
+   echo def
 
 
 proc handle_undef(pp: var Preprocessor) =
@@ -158,10 +164,11 @@ proc handle_endif(pp: var Preprocessor) =
    discard
 
 
-proc handle_text_replacement(pp: var Preprocessor) =
-   # The current token in pp.tok is a known define which should be expanded.
-   # FIXME: Implement
-   discard
+proc enter_macro_context(pp: var Preprocessor, def: Define) =
+   # This proc pushes a new macro context onto the context stack.
+   # FIXME: Handle nested expansion and whatnot.
+   let context = Context(tokens: def.tokens, idx: 0)
+   add(pp.context_stack, context)
 
 
 proc handle_directive(pp: var Preprocessor) =
@@ -187,12 +194,52 @@ proc handle_directive(pp: var Preprocessor) =
       # has a matching entry in the macro table. Otherwise, leave the token as
       # it is. The parser will deal with it.
       if pp.tok.identifier.s in pp.defines:
-         handle_text_replacement(pp)
+         enter_macro_context(pp, pp.defines[pp.tok.identifier.s])
+         get_token(pp)
 
 
-proc get_token*(pp: var Preprocessor, tok: var Token) =
+proc top_context_token(pp: Preprocessor): Token =
+   result = pp.context_stack[^1].tokens[pp.context_stack[^1].idx]
+
+
+proc get_context_token(pp: var Preprocessor, tok: var Token) =
+   let context = pp.context_stack[^1]
+   tok = context.tokens[context.idx]
+
+   # If we've just read the last token from the topmost context entry, we remove
+   # the entry from the stack. Otherwise, increment the entry's token cursor.
+   if (context.idx == high(context.tokens)):
+      discard pop(pp.context_stack)
+      # FIXME: After a pop, we have to reexamine the source buffer too see if
+      # we're pointing to a directive. In which case we handle it.
+      if len(pp.context_stack) == 0:
+         if pp.tok.kind == TkDirective:
+            handle_directive(pp)
+   else:
+      inc(pp.context_stack[^1].idx)
+      # FIXME: Here we need to check if the next token is a text macro usage.
+      # Prompting us to enter a new macro context.
+      let next_tok = top_context_token(pp)
+      if next_tok.kind == TkDirective and next_tok.identifier.s in pp.defines:
+         # FIXME: Protect against this being the last token so we're at high().
+         inc(pp.context_stack[^1].idx)
+         enter_macro_context(pp, pp.defines[next_tok.identifier.s])
+
+
+proc get_source_token(pp: var Preprocessor, tok: var Token) =
    tok = pp.tok
    if pp.tok.kind != TkEndOfFile:
       get_token(pp.lex, pp.tok)
-      if pp.tok.kind == TkDirective:
+      while pp.tok.kind == TkDirective and len(pp.context_stack) == 0:
          handle_directive(pp)
+
+
+proc get_token*(pp: var Preprocessor, tok: var Token) =
+   # If there's anything on the context stack, the caller will receive the next
+   # token from there. Otherwise, the next token is read directly from the
+   # source buffer.
+   echo pp.defines
+   if len(pp.context_stack) > 0:
+      get_context_token(pp, tok)
+   else:
+      get_source_token(pp, tok)
