@@ -123,7 +123,6 @@ proc handle_define(pp: var Preprocessor) =
 
    # Add the define object
    pp.defines[def.name.identifier.s] = def
-   echo def
 
 
 proc handle_undef(pp: var Preprocessor) =
@@ -202,28 +201,45 @@ proc top_context_token(pp: Preprocessor): Token =
    result = pp.context_stack[^1].tokens[pp.context_stack[^1].idx]
 
 
+proc is_last_context_token(pp: Preprocessor): bool =
+   return pp.context_stack[^1].idx == high(pp.context_stack[^1].tokens)
+
+
+proc inc_context_stack(pp: var Preprocessor)
+proc pop_context_stack(pp: var Preprocessor) =
+   discard pop(pp.context_stack)
+   # After a pop, we have to reexamine the source buffer too see if the current
+   # token is a directive, in which case we have to handle it. However, we only
+   # do this if the context stack is empty.
+   if len(pp.context_stack) == 0:
+      if pp.tok.kind == TkDirective:
+         handle_directive(pp)
+
+
+proc inc_context_stack(pp: var Preprocessor) =
+   inc(pp.context_stack[^1].idx)
+   # After incrementing the token cursor of the topmost entry of the context
+   # stack, we have to check if the token is a text macro usage. If it is, we
+   # enter a new macro context. We also have to handle the special case that
+   # this is the last token, in which case we pop the current macro context
+   # from the stack before entering the new one.
+   let next_tok = top_context_token(pp)
+   if next_tok.kind == TkDirective and next_tok.identifier.s in pp.defines:
+      if is_last_context_token(pp):
+         pop_context_stack(pp)
+      # FIXME: possibly all the directives? handle_directive()?
+      enter_macro_context(pp, pp.defines[next_tok.identifier.s])
+
+
 proc get_context_token(pp: var Preprocessor, tok: var Token) =
-   let context = pp.context_stack[^1]
-   tok = context.tokens[context.idx]
+   tok = top_context_token(pp)
 
    # If we've just read the last token from the topmost context entry, we remove
    # the entry from the stack. Otherwise, increment the entry's token cursor.
-   if (context.idx == high(context.tokens)):
-      discard pop(pp.context_stack)
-      # FIXME: After a pop, we have to reexamine the source buffer too see if
-      # we're pointing to a directive. In which case we handle it.
-      if len(pp.context_stack) == 0:
-         if pp.tok.kind == TkDirective:
-            handle_directive(pp)
+   if is_last_context_token(pp):
+      pop_context_stack(pp)
    else:
-      inc(pp.context_stack[^1].idx)
-      # FIXME: Here we need to check if the next token is a text macro usage.
-      # Prompting us to enter a new macro context.
-      let next_tok = top_context_token(pp)
-      if next_tok.kind == TkDirective and next_tok.identifier.s in pp.defines:
-         # FIXME: Protect against this being the last token so we're at high().
-         inc(pp.context_stack[^1].idx)
-         enter_macro_context(pp, pp.defines[next_tok.identifier.s])
+      inc_context_stack(pp)
 
 
 proc get_source_token(pp: var Preprocessor, tok: var Token) =
@@ -238,7 +254,11 @@ proc get_token*(pp: var Preprocessor, tok: var Token) =
    # If there's anything on the context stack, the caller will receive the next
    # token from there. Otherwise, the next token is read directly from the
    # source buffer.
-   echo pp.defines
+
+   # FIXME: Refactor this to do preprocessing instead of postprocessing like we
+   # do now where the token to return to the caller is processed since before.
+   # We should begin by reading and parsing the token, i.e. determining if we
+   # should push a context stack and return something from that etc.
    if len(pp.context_stack) > 0:
       get_context_token(pp, tok)
    else:
