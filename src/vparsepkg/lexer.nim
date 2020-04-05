@@ -230,6 +230,11 @@ proc detailed_compare*(x, y: Token) =
                   indent(pretty(x), INDENT), indent(pretty(y), INDENT))
       return
 
+   if x.line != y.line or x.col != y.col:
+      echo format("Line info differs:\n$1\n$2\n",
+                  indent(pretty(x), INDENT), indent(pretty(y), INDENT))
+      return
+
    if x != y:
       echo format("Contents differ:\n$1\n$2\n",
                   indent(pretty(x), INDENT), indent(pretty(y), INDENT))
@@ -237,12 +242,11 @@ proc detailed_compare*(x, y: Token) =
 
 
 proc detailed_compare*(x, y: openarray[Token]) =
+   for i in 0..<min(len(x), len(y)):
+      detailed_compare(x[i], y[i])
+
    if len(x) != len(y):
       echo format("Length differs: LHS($1) != RHS($2)", len(x), len(y))
-      return
-
-   for i in 0..<len(x):
-      detailed_compare(x[i], y[i])
 
 
 proc init*(t: var Token) =
