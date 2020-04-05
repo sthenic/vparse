@@ -37,7 +37,7 @@ HELLO
 `define aMAZing FOO
 `aMAZing
 `define MYMACRO ahs delightful `aMAZing \
-   test
+   `aMAZing
 this is `MYMACRO
 `define aMAZing bar
 testing `MYMACRO
