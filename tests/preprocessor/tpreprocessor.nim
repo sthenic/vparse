@@ -32,15 +32,38 @@ proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token 
    new_identifier(kind, line, col, identifier, cache)
 
 
-run_test("Default", """
-HELLO
-`define aMAZing FOO
-`aMAZing
-`define MYMACRO ahs delightful `aMAZing \
-   `aMAZing
-this is `MYMACRO
-`define aMAZing bar
-testing `MYMACRO
+# run_test("Default", """
+# HELLO
+# `define aMAZing FOO
+# `aMAZing
+# `define MYMACRO ahs delightful `aMAZing \
+#    `aMAZing
+# this is `MYMACRO
+# `define aMAZing bar
+# testing `MYMACRO
+# """): [
+#    new_identifier(TkSymbol, 1, 0, "HELLO"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+#    new_identifier(TkModule, 4, 0, "module"),
+# ]
+
+
+run_test("Args", """
+`define FOO(x, y) and x thing y
+this is `FOO((1, 2), (1 - 5) / 4)
+bar
 """): [
    new_identifier(TkSymbol, 1, 0, "HELLO"),
    new_identifier(TkModule, 4, 0, "module"),
@@ -58,4 +81,3 @@ testing `MYMACRO
    new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
 ]
-

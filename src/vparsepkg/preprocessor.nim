@@ -107,6 +107,8 @@ proc handle_define(pp: var Preprocessor) =
 
    var include_newline = false
    while true:
+      # FIXME: Check for recursive definitions. Not allowed according to the
+      #        standard.
       case pp.tok.kind
       of TkEndOfFile:
          break
@@ -163,9 +165,82 @@ proc handle_endif(pp: var Preprocessor) =
    discard
 
 
+# FIXME: Think about if this should return a table for ease of look-up? Probably
+# not tough.
+proc collect_arguments(pp: var Preprocessor, def: Define): seq[seq[Token]] =
+   ## Attempt to collect arguments for the macro invocation of ``def``. The
+   ## number of exepected arguments is the length of ``def.parameters``.
+   ## Fewer arguments is an error. This proc expects the opening parenthesis
+   ## as the first token in the stream.
+   let nof_arguments = len(def.parameters)
+   result = new_seq_of_cap[seq[Token]](nof_arguments)
+
+   # TODO: Enforce opening parenthesis.
+
+   # Although only valid Verilog expressions are allowed as arguments we don't
+   # implement any syntax-aware parsing of the tokens here. Instead, we track
+   # the delimiters we encounter in order to separate the arguments correctly.
+   # Whether or not the collected tokens constitute a valid Verilog expression
+   # is for the parser to decide.
+   var paren_count = 0
+   var brace_count = 0
+   var token_list: seq[Token] = @[]
+   while true:
+      get_token(pp)
+      case pp.tok.kind
+      of TkLbrace:
+         inc(brace_count)
+
+      of TkRbrace:
+         if brace_count > 0:
+            dec(brace_count)
+
+      of TkLparen:
+         inc(paren_count)
+
+      of TkRparen:
+         if paren_count > 0:
+            dec(paren_count)
+         else:
+            get_token(pp)
+            break
+
+      of TkComma:
+         if paren_count == 0 and brace_count == 0:
+            add(result, token_list)
+            set_len(token_list, 0)
+            continue
+      else:
+         discard
+
+      # If we haven't broken the control flow the token should be included in
+      # the token list.
+      add(token_list, pp.tok)
+
+   # Add the last token list.
+   add(result, token_list)
+   # FIXME: Propagate an error somehow.
+   if len(token_list) > nof_arguments:
+      discard
+
+
 proc enter_macro_context(pp: var Preprocessor, def: Define) =
-   # This proc pushes a new macro context onto the context stack.
+   ## Push a new macro context onto the context stack. This proc expects
+   ## ``pp.tok`` to hold the macro name at the time of invocation.
    # FIXME: Handle nested expansion and whatnot.
+   # Scan over the macro name.
+   get_token(pp)
+
+   # Expect arguments to follow a function-like macro. Once we've collected the
+   # arguments, we perform parameter substitution in the macro text.
+   var arguments: seq[seq[Token]]
+   if len(def.parameters) > 0:
+      arguments = collect_arguments(pp, def)
+      echo "Collected ", arguments
+
+      # Perform parameter substitution
+
+   # Add the context entry to the top of the stack.
    let context = Context(tokens: def.tokens, idx: 0)
    add(pp.context_stack, context)
 
@@ -194,7 +269,6 @@ proc handle_directive(pp: var Preprocessor) =
       # it is. The parser will deal with it.
       if pp.tok.identifier.s in pp.defines:
          enter_macro_context(pp, pp.defines[pp.tok.identifier.s])
-         get_token(pp)
 
 
 proc top_context_token(pp: Preprocessor): Token =
