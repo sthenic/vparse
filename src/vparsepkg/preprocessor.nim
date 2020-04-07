@@ -165,15 +165,13 @@ proc handle_endif(pp: var Preprocessor) =
    discard
 
 
-# FIXME: Think about if this should return a table for ease of look-up? Probably
-# not tough.
-proc collect_arguments(pp: var Preprocessor, def: Define): seq[seq[Token]] =
+proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Token]] =
    ## Attempt to collect arguments for the macro invocation of ``def``. The
    ## number of exepected arguments is the length of ``def.parameters``.
    ## Fewer arguments is an error. This proc expects the opening parenthesis
    ## as the first token in the stream.
    let nof_arguments = len(def.parameters)
-   result = new_seq_of_cap[seq[Token]](nof_arguments)
+   result = init_table[string, seq[Token]](nof_arguments)
 
    # TODO: Enforce opening parenthesis.
 
@@ -184,8 +182,10 @@ proc collect_arguments(pp: var Preprocessor, def: Define): seq[seq[Token]] =
    # is for the parser to decide.
    var paren_count = 0
    var brace_count = 0
+   var idx = 0
    var token_list: seq[Token] = @[]
    while true:
+      # FIXME: Should actually read tokens like the parser, i.e. via get_token(pp, tok)
       get_token(pp)
       case pp.tok.kind
       of TkLbrace:
@@ -202,14 +202,19 @@ proc collect_arguments(pp: var Preprocessor, def: Define): seq[seq[Token]] =
          if paren_count > 0:
             dec(paren_count)
          else:
+            result[def.parameters[idx].identifier.s] = token_list
             get_token(pp)
             break
 
       of TkComma:
          if paren_count == 0 and brace_count == 0:
-            add(result, token_list)
+            result[def.parameters[idx].identifier.s] = token_list
             set_len(token_list, 0)
-            continue
+            inc(idx)
+            if len(result) >= nof_arguments:
+               return
+            else:
+               continue
       else:
          discard
 
@@ -217,31 +222,38 @@ proc collect_arguments(pp: var Preprocessor, def: Define): seq[seq[Token]] =
       # the token list.
       add(token_list, pp.tok)
 
-   # Add the last token list.
-   add(result, token_list)
-   # FIXME: Propagate an error somehow.
-   if len(token_list) > nof_arguments:
-      discard
+
+proc substitute_parameters(def: Define, arguments: Table[string, seq[Token]]): seq[Token] =
+   assert len(def.parameters) == len(arguments)
+   for tok in def.tokens:
+      if tok.kind == TkSymbol and tok.identifier.s in arguments:
+         add(result, arguments[tok.identifier.s])
+      else:
+         add(result, tok)
 
 
 proc enter_macro_context(pp: var Preprocessor, def: Define) =
    ## Push a new macro context onto the context stack. This proc expects
    ## ``pp.tok`` to hold the macro name at the time of invocation.
-   # FIXME: Handle nested expansion and whatnot.
    # Scan over the macro name.
+   echo "Entering context for ", pp.tok
+   # FIXME: Should actually read tokens like the parser, i.e. via get_token(pp, tok)
    get_token(pp)
 
    # Expect arguments to follow a function-like macro. Once we've collected the
-   # arguments, we perform parameter substitution in the macro text.
-   var arguments: seq[seq[Token]]
+   # arguments, we perform parameter substitution in the macro's replacement list.
+   var arguments: Table[string, seq[Token]]
+   var replacement_list: seq[Token]
    if len(def.parameters) > 0:
+      # FIXME: Check for errors
       arguments = collect_arguments(pp, def)
-      echo "Collected ", arguments
-
-      # Perform parameter substitution
+      replacement_list = substitute_parameters(def, arguments)
+   else:
+      replacement_list = def.tokens
+   echo "replacement list is ", replacement_list
 
    # Add the context entry to the top of the stack.
-   let context = Context(tokens: def.tokens, idx: 0)
+   let context = Context(tokens: replacement_list, idx: 0)
    add(pp.context_stack, context)
 
 

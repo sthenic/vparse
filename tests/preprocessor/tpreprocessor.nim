@@ -61,11 +61,19 @@ proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token 
 
 
 run_test("Args", """
-`define FOO(x, y) and x thing y
-this is `FOO((1, 2), (1 - 5) / 4)
-bar
+`define bar(x) foo x
+//`define MYMACRO interesting `BAR
+//`define FOO(x, y) and x `MYMACRO thing y
+//this is `FOO((1, 2), (1 - 5) / 4)
+
+and `bar(2) (2)
 """): [
    new_identifier(TkSymbol, 1, 0, "HELLO"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
