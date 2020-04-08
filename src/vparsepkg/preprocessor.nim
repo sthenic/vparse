@@ -122,7 +122,8 @@ proc handle_define(pp: var Preprocessor) =
       else:
          # Check if the token is on a new line. If it is, we only collect it
          # into the replacement list if it was preceeded by a newline token.
-         if pp.tok.line != last_tok_line and not include_newline:
+         let line_delta = pp.tok.line - last_tok_line
+         if (line_delta > 1) or (line_delta == 1 and not include_newline):
             break
          add(def.tokens, pp.tok)
          last_tok_line = pp.tok.line

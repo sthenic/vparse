@@ -72,6 +72,19 @@ run_test("Object-like macro, multiline", """
 ]
 
 
+run_test("Object-like macro, multiline but next line is empty", """
+`define WIRE wire \
+
+   text
+`WIRE my_wire;
+"""): [
+   new_identifier(TkSymbol, 3, 3, "text"),
+   new_identifier(TkWire, 1, 13, "wire"),
+   new_identifier(TkSymbol, 4, 6, "my_wire"),
+   new_token(TkSemicolon, 4, 13),
+]
+
+
 run_test("Nested object-like macro", """
 `define HIGH 7
 `define WIRE wire [`HIGH:0]
