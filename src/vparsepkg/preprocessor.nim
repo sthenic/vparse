@@ -34,6 +34,10 @@ type
       context_stack: seq[Context]
 
 
+# Forward declaration of public interface.
+proc get_token*(pp: var Preprocessor, tok: var Token)
+
+
 proc get_token(pp: var Preprocessor) =
    ## Internal token consumer. Reads a token from the lexer and stores the result
    ## in the local ``tok`` variable.
@@ -174,20 +178,24 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
    result = init_table[string, seq[Token]](nof_arguments)
 
    # TODO: Enforce opening parenthesis.
+   var tok: Token
+   get_token(pp, tok)
 
    # Although only valid Verilog expressions are allowed as arguments we don't
    # implement any syntax-aware parsing of the tokens here. Instead, we track
    # the delimiters we encounter in order to separate the arguments correctly.
    # Whether or not the collected tokens constitute a valid Verilog expression
-   # is for the parser to decide.
+   # is for the parser to decide. Additionally, we have to use the public token
+   # consumption interface to read tokens since these may come from both the
+   # source file and the context stack. By doing this, we naturally expand any
+   # macros we come across.
    var paren_count = 0
    var brace_count = 0
    var idx = 0
    var token_list: seq[Token] = @[]
    while true:
-      # FIXME: Should actually read tokens like the parser, i.e. via get_token(pp, tok)
-      get_token(pp)
-      case pp.tok.kind
+      get_token(pp, tok)
+      case tok.kind
       of TkLbrace:
          inc(brace_count)
 
@@ -203,7 +211,6 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
             dec(paren_count)
          else:
             result[def.parameters[idx].identifier.s] = token_list
-            get_token(pp)
             break
 
       of TkComma:
@@ -215,12 +222,17 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
                return
             else:
                continue
+
+      of TkEndOfFile:
+         # FIXME: Error
+         break
+
       else:
          discard
 
       # If we haven't broken the control flow the token should be included in
       # the token list.
-      add(token_list, pp.tok)
+      add(token_list, tok)
 
 
 proc substitute_parameters(def: Define, arguments: Table[string, seq[Token]]): seq[Token] =
@@ -233,15 +245,12 @@ proc substitute_parameters(def: Define, arguments: Table[string, seq[Token]]): s
 
 
 proc enter_macro_context(pp: var Preprocessor, def: Define) =
-   ## Push a new macro context onto the context stack. This proc expects
-   ## ``pp.tok`` to hold the macro name at the time of invocation.
-   # Scan over the macro name.
-   echo "Entering context for ", pp.tok
-   # FIXME: Should actually read tokens like the parser, i.e. via get_token(pp, tok)
-   get_token(pp)
+   ## Push a new macro context onto the context stack. This proc expects that
+   ## the macro token (``def.name``) has been removed from the token stream.
 
    # Expect arguments to follow a function-like macro. Once we've collected the
-   # arguments, we perform parameter substitution in the macro's replacement list.
+   # arguments, we perform parameter substitution in the macro's replacement
+   # list.
    var arguments: Table[string, seq[Token]]
    var replacement_list: seq[Token]
    if len(def.parameters) > 0:
@@ -250,7 +259,6 @@ proc enter_macro_context(pp: var Preprocessor, def: Define) =
       replacement_list = substitute_parameters(def, arguments)
    else:
       replacement_list = def.tokens
-   echo "replacement list is ", replacement_list
 
    # Add the context entry to the top of the stack.
    let context = Context(tokens: replacement_list, idx: 0)
@@ -279,8 +287,10 @@ proc handle_directive(pp: var Preprocessor) =
       # If we don't recognize the directive, check if it's a macro usage which
       # has a matching entry in the macro table. Otherwise, leave the token as
       # it is. The parser will deal with it.
-      if pp.tok.identifier.s in pp.defines:
-         enter_macro_context(pp, pp.defines[pp.tok.identifier.s])
+      let macro_name = pp.tok.identifier.s
+      if macro_name in pp.defines:
+         get_token(pp)
+         enter_macro_context(pp, pp.defines[macro_name])
 
 
 proc top_context_token(pp: Preprocessor): Token =
