@@ -23,7 +23,16 @@ template run_test(title, stimuli: string, reference: openarray[Token]) =
          break
       add(response, tok)
    close_preprocessor(pp)
-   detailed_compare(response, reference)
+
+   if response == reference:
+      styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
+                      fgWhite, "Test '",  title, "'")
+      inc(nof_passed)
+   else:
+      styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
+                      fgWhite, "Test '",  title, "'")
+      inc(nof_failed)
+      detailed_compare(response, reference)
 
 
 proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token =
@@ -60,16 +69,12 @@ proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token 
 # ]
 
 
-run_test("Args", """
-`define bar(x) foo x
-//`define MYMACRO interesting `BAR
-//`define FOO(x, y) and x `MYMACRO thing y
-//this is `FOO((1, 2), (1 - 5) / 4)
-
-and `bar(2) (2)
+run_test("Nested arguments", """
+`define CONSTANT ABC
+`define bar(x, y) foo `CONSTANT x y
+`bar(`bar(3, `CONSTANT), bAz) (2)
 """): [
-   new_identifier(TkSymbol, 1, 0, "HELLO"),
-   new_identifier(TkModule, 4, 0, "module"),
+   new_identifier(TkSymbol, 3, 0, "foo"),
    new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
@@ -89,3 +94,26 @@ and `bar(2) (2)
    new_identifier(TkModule, 4, 0, "module"),
    new_identifier(TkModule, 4, 0, "module"),
 ]
+
+
+# Print summary
+styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
+var test_str = "test"
+if nof_passed == 1:
+   test_str.add(' ')
+else:
+   test_str.add('s')
+styledWriteLine(stdout, styleBright, &" {$nof_passed:<4} ", test_str,
+                fgGreen, " PASSED")
+
+test_str = "test"
+if nof_failed == 1:
+   test_str.add(' ')
+else:
+   test_str.add('s')
+styledWriteLine(stdout, styleBright, &" {$nof_failed:<4} ", test_str,
+                fgRed, " FAILED")
+
+styledWriteLine(stdout, styleBright, "-------------------")
+
+quit(nof_failed)
