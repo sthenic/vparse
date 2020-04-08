@@ -133,7 +133,7 @@ proc handle_define(pp: var Preprocessor) =
 
 proc handle_undef(pp: var Preprocessor) =
    # The del() proc does nothing if the key does not exist.
-   # FIXME: Expect an identifier (on the same line too)
+   # FIXME: Expect an identifier (on the same line too).
    get_token(pp)
    del(pp.defines, pp.tok.identifier.s)
    get_token(pp)
@@ -265,7 +265,8 @@ proc enter_macro_context(pp: var Preprocessor, def: Define) =
    add(pp.context_stack, context)
 
 
-proc handle_directive(pp: var Preprocessor) =
+proc handle_directive(pp: var Preprocessor): bool =
+   result = true
    case pp.tok.identifier.s
    of "define":
       handle_define(pp)
@@ -291,6 +292,8 @@ proc handle_directive(pp: var Preprocessor) =
       if macro_name in pp.defines:
          get_token(pp)
          enter_macro_context(pp, pp.defines[macro_name])
+      else:
+         result = false
 
 
 proc top_context_token(pp: Preprocessor): Token =
@@ -326,6 +329,10 @@ proc get_source_token(pp: var Preprocessor, tok: var Token) =
       get_token(pp.lex, pp.tok)
 
 
+proc is_defined_macro(pp: Preprocessor, tok: Token): bool =
+   return tok.kind == TkDirective and tok.identifier.s in pp.defines
+
+
 proc prepare_token(pp: var Preprocessor) =
    # When this proc returns, the preprocessor is in a position to return a token
    # from either the topmost context entry or the source buffer. We get to this
@@ -334,7 +341,7 @@ proc prepare_token(pp: var Preprocessor) =
    if len(pp.context_stack) > 0:
       while true:
          let next_tok = top_context_token(pp)
-         if next_tok.kind == TkDirective and next_tok.identifier.s in pp.defines:
+         if is_defined_macro(pp, next_tok):
             if is_last_context_token(pp):
                pop_context_stack(pp)
             else:
@@ -344,9 +351,20 @@ proc prepare_token(pp: var Preprocessor) =
          else:
             break
    else:
-      while pp.tok.kind == TkDirective and len(pp.context_stack) == 0:
-         handle_directive(pp)
+      while true:
+         # If by handling a directive the context stack is no longer empty, we
+         # perform a recursive call to run the code block above. A macro
+         # invocationmay be the first context token.
+         if len(pp.context_stack) != 0:
+            prepare_token(pp)
+            break
 
+         case pp.tok.kind
+         of TkDirective:
+            if not handle_directive(pp):
+               break
+         else:
+            break
 
 proc get_token*(pp: var Preprocessor, tok: var Token) =
    # If there's anything on the context stack, the caller will receive the next
