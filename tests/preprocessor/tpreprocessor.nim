@@ -224,10 +224,145 @@ run_test("Nested function- & object-like macros", """
    new_token(TkRparen, 3, 32),
 ]
 
+run_test("Complex macro (sv-parser case 4)", """
+`define disp(clk, exp, msg) \
+    always @(posedge clk) begin \
+        if (!(exp)) begin \
+            $display msg; \
+        end \
+    end \
 
-# TODO: Test `undef, expect error.
+module a ();
+
+`disp(
+    clk,
+    !(a[i] && c[i]),
+    ("xxx(()[]]{}}}", a[i], c[i])
+);
+endmodule
+"""): [
+   new_identifier(TkModule, 8, 0, "module"),
+   new_identifier(TkSymbol, 8, 7, "a"),
+   new_token(TkLparen, 8, 9),
+   new_token(TkRparen, 8, 10),
+   new_token(TkSemicolon, 8, 11),
+   new_identifier(TkAlways, 2, 4, "always"),
+   new_token(TkAt, 2, 11),
+   new_token(TkLparen, 2, 12),
+   new_identifier(TkPosedge, 2, 13, "posedge"),
+   new_identifier(TkSymbol, 11, 4, "clk"),
+   new_token(TkRparen, 2, 24),
+   new_identifier(TkBegin, 2, 26, "begin"),
+   new_identifier(TkIf, 3, 8, "if"),
+   new_token(TkLparen, 3, 11),
+   new_identifier(TkOperator, 3, 12, "!"),
+   new_token(TkLparen, 3, 13),
+   new_identifier(TkOperator, 12, 4, "!"),
+   new_token(TkLparen, 12, 5),
+   new_identifier(TkSymbol, 12, 6, "a"),
+   new_token(TkLbracket, 12, 7),
+   new_identifier(TkSymbol, 12, 8, "i"),
+   new_token(TkRbracket, 12, 9),
+   new_identifier(TkOperator, 12, 11, "&&"),
+   new_identifier(TkSymbol, 12, 14, "c"),
+   new_token(TkLbracket, 12, 15),
+   new_identifier(TkSymbol, 12, 16, "i"),
+   new_token(TkRbracket, 12, 17),
+   new_token(TkRparen, 12, 18),
+   new_token(TkRparen, 3, 17),
+   new_token(TkRparen, 3, 18),
+   new_identifier(TkBegin, 3, 20, "begin"),
+   new_identifier(TkDollar, 4, 12, "display"),
+   new_token(TkLparen, 13, 4),
+   new_string_literal(13, 5, "xxx(()[]]{}}}"),
+   new_token(TkComma, 13, 20),
+   new_identifier(TkSymbol, 13, 22, "a"),
+   new_token(TkLbracket, 13, 23),
+   new_identifier(TkSymbol, 13, 24, "i"),
+   new_token(TkRbracket, 13, 25),
+   new_token(TkComma, 13, 26),
+   new_identifier(TkSymbol, 13, 28, "c"),
+   new_token(TkLbracket, 13, 29),
+   new_identifier(TkSymbol, 13, 30, "i"),
+   new_token(TkRbracket, 13, 31),
+   new_token(TkRparen, 13, 32),
+   new_token(TkSemicolon, 4, 24),
+   new_identifier(TkEnd, 5, 8, "end"),
+   new_identifier(TkEnd, 6, 4, "end"),
+   new_token(TkSemicolon, 14, 1),
+   new_identifier(TkEndmodule, 15, 0, "endmodule"),
+]
+
+# run_test("sv-parser case 5", """
+# module a;
+# `define HI Hello
+# `define LO "`HI, world"
+# `define H(x) "Hello, x"
+# initial begin
+# $display("`HI, world");
+# $display(`LO);
+# $display(`H(world));
+# end
+# endmodule
+# """): [
+#    new_identifier(TkSymbol, 2, 18, "foo"),
+#    new_identifier(TkSymbol, 1, 17, "ABC"),
+#    new_identifier(TkSymbol, 2, 18, "foo"),
+#    new_identifier(TkSymbol, 1, 17, "ABC"),
+#    new_inumber(TkIntLit, 3, 10, 3, Base10, -1, "3"),
+#    new_identifier(TkSymbol, 1, 17, "ABC"),
+#    new_identifier(TkSymbol, 3, 25, "bAz"),
+#    new_token(TkLparen, 3, 30),
+#    new_inumber(TkIntLit, 3, 31, 2, Base10, -1, "2"),
+#    new_token(TkRparen, 3, 32),
+# ]
+
+
+# run_test("sv-parser case 6", """
+# `define msg(x,y) `"x: `\`"y`\`"`"
+
+# module a;
+# initial begin
+# $display(`msg(left side,right side));
+# end
+# endmodule
+# # """): [
+#    new_identifier(TkSymbol, 2, 18, "foo"),
+#    new_identifier(TkSymbol, 1, 17, "ABC"),
+#    new_identifier(TkSymbol, 2, 18, "foo"),
+#    new_identifier(TkSymbol, 1, 17, "ABC"),
+#    new_inumber(TkIntLit, 3, 10, 3, Base10, -1, "3"),
+#    new_identifier(TkSymbol, 1, 17, "ABC"),
+#    new_identifier(TkSymbol, 3, 25, "bAz"),
+#    new_token(TkLparen, 3, 30),
+#    new_inumber(TkIntLit, 3, 31, 2, Base10, -1, "2"),
+#    new_token(TkRparen, 3, 32),
+# ]
+
+
+# TODO: Test direct recursion: not allowed.
+# run_test("sv-parser case 7 (direct recursion)", """
+# `define a `a
+# // direct recursion
+# `a
+# # """): [
+# ]
+
+
+# TODO: Test indirect recursion: not allowed.
+# run_test("sv-parser case 8 (indirect recursion)", """
+# `define b `c
+# `define c `d
+# `define d `e
+# `define e `b
+# // indirect recursion
+# `b
+# # """): [
+# ]
+
+
 # TODO: Test number of arguments mismatch: fewer, more.
-# TODO: Test directive pass-through to parser.
+# TODO: Test ignoring comments.
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
