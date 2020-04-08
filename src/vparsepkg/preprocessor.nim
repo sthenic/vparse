@@ -110,6 +110,7 @@ proc handle_define(pp: var Preprocessor) =
       handle_parameter_list(pp, def)
 
    var include_newline = false
+   var last_tok_line = def.origin.line
    while true:
       # FIXME: Check for recursive definitions. Not allowed according to the
       #        standard.
@@ -120,10 +121,11 @@ proc handle_define(pp: var Preprocessor) =
          include_newline = true;
       else:
          # Check if the token is on a new line. If it is, we only collect it
-         # into the .
-         if pp.tok.line != def.origin.line and not include_newline:
+         # into the replacement list if it was preceeded by a newline token.
+         if pp.tok.line != last_tok_line and not include_newline:
             break
          add(def.tokens, pp.tok)
+         last_tok_line = pp.tok.line
          include_newline = false
       get_token(pp)
 

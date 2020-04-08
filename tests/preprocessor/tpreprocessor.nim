@@ -56,6 +56,22 @@ run_test("Object-like macro", """
 ]
 
 
+run_test("Object-like macro, multiline", """
+`define WIRE wire \
+   [7:0]
+`WIRE my_wire;
+"""): [
+   new_identifier(TkWire, 1, 13, "wire"),
+   new_token(TkLbracket, 2, 3),
+   new_inumber(TkIntLit, 2, 4, 7, Base10, -1, "7"),
+   new_token(TkColon, 2, 5),
+   new_inumber(TkIntLit, 2, 6, 0, Base10, -1, "0"),
+   new_token(TkRbracket, 2, 7),
+   new_identifier(TkSymbol, 3, 6, "my_wire"),
+   new_token(TkSemicolon, 3, 13),
+]
+
+
 run_test("Nested object-like macro", """
 `define HIGH 7
 `define WIRE wire [`HIGH:0]
