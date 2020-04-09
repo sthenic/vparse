@@ -55,7 +55,7 @@ run_test("Missing macro name -> error", """
 ]
 
 
-run_test("Macro name not on the same line as `define directive.", """
+run_test("Macro name not on the same line as the `define directive.", """
 `define
 FOO Hello
 """): [
@@ -190,6 +190,21 @@ run_test("`undef macro before usage", """
    new_identifier(TkDirective, 4, 0, "WIRE"),
    new_identifier(TkSymbol, 4, 6, "smaller_wire"),
    new_token(TkSemicolon, 4, 18),
+]
+
+
+run_test("Missing macro name for `undef -> error", """
+`undef
+"""): [
+   new_error_token(2, 0, "Invalid token given as macro name '[EOF]'."),
+]
+
+
+run_test("Macro name not on the same line as the `undef directive.", """
+`undef
+FOO
+"""): [
+   new_error_token(2, 0, "The macro name token 'FOO' is not on the same line as the `undef directive."),
 ]
 
 

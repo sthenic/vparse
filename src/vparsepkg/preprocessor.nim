@@ -39,7 +39,7 @@ type
 const
    RecursiveDefinition = "Recursive definition of $1."
    InvalidMacroName = "Invalid token given as macro name $1."
-   MacroNameLine = "The macro name token $1 is not on the same line as the `define directive."
+   MacroNameLine = "The macro name token $1 is not on the same line as the $2 directive."
 
 
 # Forward declaration of public interface.
@@ -116,7 +116,7 @@ proc handle_define(pp: var Preprocessor) =
       pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
       return
    elif pp.tok.line != def_line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, MacroNameLine, pp.tok)
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, MacroNameLine, pp.tok, "`define")
       return
    def.name = pp.tok
 
@@ -168,9 +168,17 @@ proc handle_define(pp: var Preprocessor) =
 
 
 proc handle_undef(pp: var Preprocessor) =
-   # The del() proc does nothing if the key does not exist.
-   # FIXME: Expect an identifier (on the same line too).
+   # Scan over `undef.
+   let undef_line = pp.tok.line
    get_token(pp)
+   # Expect the macro name on the same line as the `undef directive.
+   if pp.tok.kind != TkSymbol:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      return
+   elif pp.tok.line != undef_line:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, MacroNameLine, pp.tok, "`undef")
+      return
+   # The del() proc does nothing if the key does not exist.
    del(pp.defines, pp.tok.identifier.s)
    get_token(pp)
 
