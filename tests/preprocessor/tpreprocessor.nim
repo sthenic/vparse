@@ -381,6 +381,29 @@ run_test("Indirect recursion, longer replacement lists", """
 ]
 
 
+run_test("Ignoring one-line comment", """
+`define foo this \
+   spans \
+   // surprise!
+   multiple \
+   lines
+`foo"""): [
+   new_identifier(TkSymbol, 1, 12, "this"),
+   new_identifier(TkSymbol, 2, 3, "spans"),
+   new_identifier(TkSymbol, 4, 3, "multiple"),
+   new_identifier(TkSymbol, 5, 3, "lines"),
+]
+
+
+run_test("Ignoring one-line comment, next line is empty", """
+`define foo this \
+   // surprise!
+
+`foo"""): [
+   new_identifier(TkSymbol, 1, 12, "this"),
+]
+
+
 # TODO: Test number of arguments mismatch: fewer, more.
 # TODO: Test ignoring comments.
 
