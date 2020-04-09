@@ -420,6 +420,53 @@ run_test("Block comments -> end macro definition", """
 ]
 
 
+run_test("Example from the standard", """
+`define wordsize 8
+reg [1:`wordsize] data;
+
+//define a nand with variable delay
+`define var_nand(dly) nand #dly
+
+`var_nand(2) g121 (q21, n10, n11);
+`var_nand(5) g122 (q22, n10, n11);
+"""): [
+   new_identifier(TkReg, 2, 0, "reg"),
+   new_token(TkLbracket, 2, 4),
+   new_inumber(TkIntLit, 2, 5, 1, Base10, -1, "1"),
+   new_token(TkColon, 2, 6),
+   new_inumber(TkIntLit, 1, 17, 8, Base10, -1, "8"),
+   new_token(TkRbracket, 2, 16),
+   new_identifier(TkSymbol, 2, 18, "data"),
+   new_token(TkSemicolon, 2, 22),
+   new_comment(TkComment, 4, 0, "define a nand with variable delay"),
+
+   new_identifier(TkNand, 5, 22, "nand"),
+   new_token(TkHash, 5, 27),
+   new_inumber(TkIntLit, 7, 10, 2, Base10, -1, "2"),
+   new_identifier(TkSymbol, 7, 13, "g121"),
+   new_token(TkLparen, 7, 18),
+   new_identifier(TkSymbol, 7, 19, "q21"),
+   new_token(TkComma, 7, 22),
+   new_identifier(TkSymbol, 7, 24, "n10"),
+   new_token(TkComma, 7, 27),
+   new_identifier(TkSymbol, 7, 29, "n11"),
+   new_token(TkRparen, 7, 32),
+   new_token(TkSemicolon, 7, 33),
+
+   new_identifier(TkNand, 5, 22, "nand"),
+   new_token(TkHash, 5, 27),
+   new_inumber(TkIntLit, 8, 10, 5, Base10, -1, "5"),
+   new_identifier(TkSymbol, 8, 13, "g122"),
+   new_token(TkLparen, 8, 18),
+   new_identifier(TkSymbol, 8, 19, "q22"),
+   new_token(TkComma, 8, 22),
+   new_identifier(TkSymbol, 8, 24, "n10"),
+   new_token(TkComma, 8, 27),
+   new_identifier(TkSymbol, 8, 29, "n11"),
+   new_token(TkRparen, 8, 32),
+   new_token(TkSemicolon, 8, 33),
+]
+
 # TODO: Test number of arguments mismatch: fewer, more.
 
 # Print summary
