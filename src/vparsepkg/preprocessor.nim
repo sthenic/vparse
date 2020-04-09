@@ -121,7 +121,7 @@ proc handle_define(pp: var Preprocessor) =
    var last_tok_line = def.origin.line
    while true:
       case pp.tok.kind
-      of TkEndOfFile:
+      of TkEndOfFile, TkBlockComment:
          break
       of TkComment:
          # A one=line comment is not included in the replacement list but tokens

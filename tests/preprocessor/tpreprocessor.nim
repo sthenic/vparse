@@ -16,7 +16,7 @@ template run_test(title, stimuli: string, reference: openarray[Token]) =
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   open_preprocessor(pp, cache, "test_default", [""], new_string_stream(stimuli))
+   open_preprocessor(pp, cache, "tpreprocessor", [""], new_string_stream(stimuli))
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -381,7 +381,7 @@ run_test("Indirect recursion, longer replacement lists", """
 ]
 
 
-run_test("Ignoring one-line comment", """
+run_test("Ignoring one-line comments", """
 `define foo this \
    spans \
    // surprise!
@@ -395,7 +395,7 @@ run_test("Ignoring one-line comment", """
 ]
 
 
-run_test("Ignoring one-line comment, next line is empty", """
+run_test("Ignoring one-line comments, next line is empty", """
 `define foo this \
    // surprise!
 
@@ -404,8 +404,23 @@ run_test("Ignoring one-line comment, next line is empty", """
 ]
 
 
+run_test("Block comments -> end macro definition", """
+`define foo this \
+   spans \
+   /* surprise! */
+   multiple \
+   lines
+`foo"""): [
+   new_comment(TkBlockComment, 3, 3, "surprise!"),
+   new_identifier(TkSymbol, 4, 3, "multiple"),
+   new_token(TkBackslash, 4, 12),
+   new_identifier(TkSymbol, 5, 3, "lines"),
+   new_identifier(TkSymbol, 1, 12, "this"),
+   new_identifier(TkSymbol, 2, 3, "spans"),
+]
+
+
 # TODO: Test number of arguments mismatch: fewer, more.
-# TODO: Test ignoring comments.
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
