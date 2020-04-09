@@ -49,7 +49,7 @@ type
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
       TkRealLit,
-      TkDirective, TkDollar, TkComment, TkBlockComment, TkEndOfFile
+      TkDirective, TkDollar, TkComment, TkBlockComment, TkError, TkEndOfFile
 
    NumericalBase* = enum
       Base10, Base2, Base8, Base16
@@ -151,7 +151,7 @@ const
       "IntLit", "UIntLit",
       "AmbIntLit", "AmbUIntLit",
       "RealLit",
-      "Directive", "Dollar", "One-line comment", "Block comment", "[EOF]"
+      "Directive", "Dollar", "One-line comment", "Block comment", "Error", "[EOF]"
    ]
 
    Directives = [
@@ -259,6 +259,14 @@ proc init*(t: var Token) =
    t.size = -1
    t.line = 0
    t.col = 0
+
+
+proc new_error_token*(line, col: int, msg: string, args: varargs[string, `$`]): Token =
+   init(result)
+   result.kind = TkError
+   result.literal = format(msg, args)
+   result.line = line
+   result.col = col
 
 
 proc is_valid*(t: Token): bool =
@@ -850,6 +858,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.kind = TkRbrace
       inc(l.bufpos)
    of '`':
+      # FIXME: Could be token-pasting too, i.e. '``'.
       inc(l.bufpos)
       tok.kind = TkDirective
       handle_identifier(l, tok, SymChars)
