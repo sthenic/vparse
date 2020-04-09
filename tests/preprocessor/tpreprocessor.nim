@@ -340,13 +340,17 @@ endmodule
 # ]
 
 
-# TODO: Test direct recursion: not allowed.
-# run_test("sv-parser case 7 (direct recursion)", """
-# `define a `a
-# // direct recursion
-# `a
-# # """): [
-# ]
+run_test("Direct recursion -> error", """
+`define a `a b
+`define foo `foo
+`a
+`foo
+"""): [
+   new_error_token(1, 10, "Recursive definition of a."),
+   new_error_token(2, 12, "Recursive definition of foo."),
+   new_identifier(TkDirective, 3, 0, "a"),
+   new_identifier(TkDirective, 4, 0, "foo"),
+]
 
 
 # TODO: Test indirect recursion: not allowed.

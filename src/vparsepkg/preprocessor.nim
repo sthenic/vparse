@@ -32,6 +32,11 @@ type
       defines: Table[string, Define]
       include_paths: seq[string]
       context_stack: seq[Context]
+      error_tokens: seq[Token]
+
+
+const
+   RecursiveDefinition = "Recursive definition of $1."
 
 
 # Forward declaration of public interface.
@@ -60,6 +65,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
    add(pp.include_paths, include_paths)
    pp.context_stack = new_seq_of_cap[Context](32)
+   pp.error_tokens = new_seq_of_cap[Token](32)
    get_token(pp.lex, pp.tok)
 
 
@@ -112,8 +118,6 @@ proc handle_define(pp: var Preprocessor) =
    var include_newline = false
    var last_tok_line = def.origin.line
    while true:
-      # FIXME: Check for recursive definitions. Not allowed according to the
-      #        standard.
       case pp.tok.kind
       of TkEndOfFile:
          break
@@ -122,16 +126,28 @@ proc handle_define(pp: var Preprocessor) =
       else:
          # Check if the token is on a new line. If it is, we only collect it
          # into the replacement list if it was preceeded by a newline token.
+         # Additionally, we check for a direct recursive definition, i.e. we
+         # encounter a reference to the macro itself while collecting the
+         # replacement list. However, we don't stop the control flow since that
+         # leaves the token stream in a bad state. Instead, we construct the
+         # error token and keep going. Once the replacement list has been
+         # removed from the token stream, we discard the macro if an error was
+         # encountered.
          let line_delta = pp.tok.line - last_tok_line
          if (line_delta > 1) or (line_delta == 1 and not include_newline):
             break
+         if pp.tok.kind == TkDirective and pp.tok.identifier.s == def.name.identifier.s:
+            add(pp.error_tokens, new_error_token(pp.tok.line, pp.tok.col,
+                                                 RecursiveDefinition,
+                                                 def.name.identifier.s))
          add(def.tokens, pp.tok)
          last_tok_line = pp.tok.line
          include_newline = false
       get_token(pp)
 
-   # Add the define object
-   pp.defines[def.name.identifier.s] = def
+   # Add the define object unless there was an error in the `define directive.
+   if len(pp.error_tokens) == 0:
+      pp.defines[def.name.identifier.s] = def
 
 
 proc handle_undef(pp: var Preprocessor) =
@@ -355,10 +371,14 @@ proc prepare_token(pp: var Preprocessor) =
             break
    else:
       while true:
+         # If there's an error token to propagate we break out of the loop.
+         if len(pp.error_tokens) > 0:
+            break
+
          # If by handling a directive the context stack is no longer empty, we
          # perform a recursive call to run the code block above. A macro
-         # invocationmay be the first context token.
-         if len(pp.context_stack) != 0:
+         # invocation may be the first context token.
+         if len(pp.context_stack) > 0:
             prepare_token(pp)
             break
 
@@ -370,11 +390,13 @@ proc prepare_token(pp: var Preprocessor) =
             break
 
 proc get_token*(pp: var Preprocessor, tok: var Token) =
-   # If there's anything on the context stack, the caller will receive the next
-   # token from there. Otherwise, the next token is read directly from the
-   # source buffer.
+   # Error tokens have the highest precedence. Otherwise, if there's anything on
+   # the context stack, the caller will receive the next token from there.
+   # If not, the next token is read directly from the source buffer.
    prepare_token(pp)
-   if len(pp.context_stack) > 0:
+   if len(pp.error_tokens) > 0:
+      tok = pp.error_tokens.pop()
+   elif len(pp.context_stack) > 0:
       get_context_token(pp, tok)
    else:
       get_source_token(pp, tok)
