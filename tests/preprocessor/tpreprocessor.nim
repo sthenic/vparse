@@ -40,6 +40,12 @@ proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token 
    # cache variable everywhere.
    new_identifier(kind, line, col, identifier, cache)
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: Preprocessor
+------------------------""")
 
 run_test("Object-like macro", """
 `define WIRE wire [7:0]
@@ -343,16 +349,36 @@ run_test("Direct recursion -> error", """
 ]
 
 
-# TODO: Test indirect recursion: not allowed.
-# run_test("sv-parser case 8 (indirect recursion)", """
-# `define b `c
-# `define c `d
-# `define d `e
-# `define e `b
-# // indirect recursion
-# `b
-# # """): [
-# ]
+run_test("Indirect recursion -> token propagates", """
+`define b `c
+`define c `d
+`define d `e
+`define e `b
+`b"""): [
+   # We get the `b token from `e since the preprocessor finds it at the end of
+   # the expansion chain, unable to continue past it since `b is not enabled
+   # for expansion in its own context. This is the way GCC does it and is not
+   # incompatible with Verilog since recursive macros are not allowed outright.
+   new_identifier(TkDirective, 4, 10, "b"),
+]
+
+
+run_test("Indirect recursion, longer replacement lists", """
+`define b pre `c post
+`define c pre `d post
+`define d pre `e post
+`define e pre `b post
+`b"""): [
+   new_identifier(TkSymbol, 1, 10, "pre"),
+   new_identifier(TkSymbol, 2, 10, "pre"),
+   new_identifier(TkSymbol, 3, 10, "pre"),
+   new_identifier(TkSymbol, 4, 10, "pre"),
+   new_identifier(TkDirective, 4, 14, "b"),
+   new_identifier(TkSymbol, 4, 17, "post"),
+   new_identifier(TkSymbol, 3, 17, "post"),
+   new_identifier(TkSymbol, 2, 17, "post"),
+   new_identifier(TkSymbol, 1, 17, "post"),
+]
 
 
 # TODO: Test number of arguments mismatch: fewer, more.

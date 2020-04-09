@@ -16,13 +16,14 @@ type
       line*, col*: int
 
    Define* = object
-      # FIXME: Bool to enable/disable the macro expansion? Like GCC does?
       name*: Token
       origin*: Origin
       tokens*: seq[Token]
       parameters*: seq[Token]
+      is_enabled: bool
 
    Context = object
+      def: Define
       tokens: seq[Token]
       idx: int
 
@@ -103,6 +104,7 @@ proc handle_define(pp: var Preprocessor) =
    ## Handle the ``define`` directive.
    var def: Define
    update_origin(pp, def.origin)
+   def.is_enabled = true
 
    # FIXME: Expect the macro name, error if not present.
    get_token(pp)
@@ -263,7 +265,7 @@ proc substitute_parameters(def: Define, arguments: Table[string, seq[Token]]): s
          add(result, tok)
 
 
-proc enter_macro_context(pp: var Preprocessor, def: Define) =
+proc enter_macro_context(pp: var Preprocessor, def: var Define) =
    ## Push a new macro context onto the context stack. This proc expects that
    ## the macro token (``def.name``) has been removed from the token stream.
 
@@ -279,8 +281,10 @@ proc enter_macro_context(pp: var Preprocessor, def: Define) =
    else:
       replacement_list = def.tokens
 
-   # Add the context entry to the top of the stack.
-   let context = Context(tokens: replacement_list, idx: 0)
+   # Add the context entry to the top of the stack and disable the macro from
+   # expanding until the context is popped.
+   def.is_enabled = false
+   let context = Context(def: def, tokens: replacement_list, idx: 0)
    add(pp.context_stack, context)
 
 
@@ -319,12 +323,16 @@ proc top_context_token(pp: Preprocessor): Token =
    result = pp.context_stack[^1].tokens[pp.context_stack[^1].idx]
 
 
-proc is_last_context_token(pp: Preprocessor): bool =
-   return pp.context_stack[^1].idx == high(pp.context_stack[^1].tokens)
+proc is_context_exhausted(pp: Preprocessor): bool =
+   return pp.context_stack[^1].idx > high(pp.context_stack[^1].tokens)
 
 
-proc pop_context_stack(pp: var Preprocessor) =
-   discard pop(pp.context_stack)
+proc pop_context_stack(pp: var Preprocessor, enable: bool = true) =
+   # As long as there are exhausted contexts on the stack we remove them and
+   # reenable the corresponding macro for expansion.
+   while len(pp.context_stack) > 0 and is_context_exhausted(pp):
+      let context = pop(pp.context_stack)
+      pp.defines[context.def.name.identifier.s].is_enabled = enable
 
 
 proc inc_context_stack(pp: var Preprocessor) =
@@ -334,12 +342,12 @@ proc inc_context_stack(pp: var Preprocessor) =
 proc get_context_token(pp: var Preprocessor, tok: var Token) =
    tok = top_context_token(pp)
 
-   # If we've just read the last token from the topmost context entry, we remove
-   # the entry from the stack. Otherwise, increment the entry's token cursor.
-   if is_last_context_token(pp):
+   # Increment the context token list and check if we've just read the last
+   # token, thus exhausting the replacement list. If we have, we pop the context
+   # from the stack.
+   inc_context_stack(pp)
+   if is_context_exhausted(pp):
       pop_context_stack(pp)
-   else:
-      inc_context_stack(pp)
 
 
 proc get_source_token(pp: var Preprocessor, tok: var Token) =
@@ -349,7 +357,8 @@ proc get_source_token(pp: var Preprocessor, tok: var Token) =
 
 
 proc is_defined_macro(pp: Preprocessor, tok: Token): bool =
-   return tok.kind == TkDirective and tok.identifier.s in pp.defines
+   return tok.kind == TkDirective and tok.identifier.s in pp.defines and
+          pp.defines[tok.identifier.s].is_enabled
 
 
 proc prepare_token(pp: var Preprocessor) =
@@ -361,10 +370,8 @@ proc prepare_token(pp: var Preprocessor) =
       while true:
          let next_tok = top_context_token(pp)
          if is_defined_macro(pp, next_tok):
-            if is_last_context_token(pp):
-               pop_context_stack(pp)
-            else:
-               inc_context_stack(pp)
+            # Read past the macro name.
+            inc_context_stack(pp)
             # FIXME: possibly all the directives? handle_directive()?
             enter_macro_context(pp, pp.defines[next_tok.identifier.s])
          else:
