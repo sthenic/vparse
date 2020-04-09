@@ -293,51 +293,41 @@ endmodule
    new_identifier(TkEndmodule, 15, 0, "endmodule"),
 ]
 
-# run_test("sv-parser case 5", """
-# module a;
-# `define HI Hello
-# `define LO "`HI, world"
-# `define H(x) "Hello, x"
-# initial begin
-# $display("`HI, world");
-# $display(`LO);
-# $display(`H(world));
-# end
-# endmodule
-# """): [
-#    new_identifier(TkSymbol, 2, 18, "foo"),
-#    new_identifier(TkSymbol, 1, 17, "ABC"),
-#    new_identifier(TkSymbol, 2, 18, "foo"),
-#    new_identifier(TkSymbol, 1, 17, "ABC"),
-#    new_inumber(TkIntLit, 3, 10, 3, Base10, -1, "3"),
-#    new_identifier(TkSymbol, 1, 17, "ABC"),
-#    new_identifier(TkSymbol, 3, 25, "bAz"),
-#    new_token(TkLparen, 3, 30),
-#    new_inumber(TkIntLit, 3, 31, 2, Base10, -1, "2"),
-#    new_token(TkRparen, 3, 32),
-# ]
-
-
-# run_test("sv-parser case 6", """
-# `define msg(x,y) `"x: `\`"y`\`"`"
-
-# module a;
-# initial begin
-# $display(`msg(left side,right side));
-# end
-# endmodule
-# # """): [
-#    new_identifier(TkSymbol, 2, 18, "foo"),
-#    new_identifier(TkSymbol, 1, 17, "ABC"),
-#    new_identifier(TkSymbol, 2, 18, "foo"),
-#    new_identifier(TkSymbol, 1, 17, "ABC"),
-#    new_inumber(TkIntLit, 3, 10, 3, Base10, -1, "3"),
-#    new_identifier(TkSymbol, 1, 17, "ABC"),
-#    new_identifier(TkSymbol, 3, 25, "bAz"),
-#    new_token(TkLparen, 3, 30),
-#    new_inumber(TkIntLit, 3, 31, 2, Base10, -1, "2"),
-#    new_token(TkRparen, 3, 32),
-# ]
+run_test("String literals in macros (sv-parser case 5)", """
+module a;
+`define HI Hello
+`define LO "`HI, world"
+`define H(x) "Hello, x"
+initial begin
+$display("`HI, world");
+$display(`LO);
+$display(`H(world));
+end
+endmodule
+"""): [
+   new_identifier(TkModule, 1, 0, "module"),
+   new_identifier(TkSymbol, 1, 7, "a"),
+   new_token(TkSemicolon, 1, 8),
+   new_identifier(TkInitial, 5, 0, "initial"),
+   new_identifier(TkBegin, 5, 8, "begin"),
+   new_identifier(TkDollar, 6, 0, "display"),
+   new_token(TkLparen, 6, 8),
+   new_string_literal(6, 9, "`HI, world"),
+   new_token(TkRparen, 6, 21),
+   new_token(TkSemicolon, 6, 22),
+   new_identifier(TkDollar, 7, 0, "display"),
+   new_token(TkLparen, 7, 8),
+   new_string_literal(3, 11, "`HI, world"),
+   new_token(TkRparen, 7, 12),
+   new_token(TkSemicolon, 7, 13),
+   new_identifier(TkDollar, 8, 0, "display"),
+   new_token(TkLparen, 8, 8),
+   new_string_literal(4, 13, "Hello, x"),
+   new_token(TkRparen, 8, 18),
+   new_token(TkSemicolon, 8, 19),
+   new_identifier(TkEnd, 9, 0, "end"),
+   new_identifier(TkEndmodule, 10, 0, "endmodule"),
+]
 
 
 run_test("Direct recursion -> error", """
