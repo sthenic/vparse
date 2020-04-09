@@ -47,6 +47,23 @@ styledWriteLine(stdout, styleBright,
 Test suite: Preprocessor
 ------------------------""")
 
+
+run_test("Missing macro name -> error", """
+`define
+"""): [
+   new_error_token(2, 0, "Invalid token given as macro name '[EOF]'."),
+]
+
+
+run_test("Macro name not on the same line as `define directive.", """
+`define
+FOO Hello
+"""): [
+   new_error_token(2, 0, "The macro name token 'FOO' is not on the same line as the `define directive."),
+   new_identifier(TkSymbol, 2, 4, "Hello"),
+]
+
+
 run_test("Object-like macro", """
 `define WIRE wire [7:0]
 `WIRE my_wire;

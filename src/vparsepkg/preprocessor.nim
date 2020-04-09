@@ -38,6 +38,8 @@ type
 
 const
    RecursiveDefinition = "Recursive definition of $1."
+   InvalidMacroName = "Invalid token given as macro name $1."
+   MacroNameLine = "The macro name token $1 is not on the same line as the `define directive."
 
 
 # Forward declaration of public interface.
@@ -106,8 +108,16 @@ proc handle_define(pp: var Preprocessor) =
    update_origin(pp, def.origin)
    def.is_enabled = true
 
-   # FIXME: Expect the macro name, error if not present.
+   # Scan over `define.
+   let def_line = pp.tok.line
    get_token(pp)
+   # Expect the macro name on the same line as the `define directive.
+   if pp.tok.kind != TkSymbol:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      return
+   elif pp.tok.line != def_line:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, MacroNameLine, pp.tok)
+      return
    def.name = pp.tok
 
    # If the next character is '(', and it follows the macro name w/o any
