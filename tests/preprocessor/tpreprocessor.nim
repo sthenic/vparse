@@ -499,6 +499,38 @@ reg [1:`wordsize] data;
    new_token(TkSemicolon, 8, 33),
 ]
 
+
+run_test("Function-like macro, missing opening parenthesis", """
+`define FOO(x) x
+`FOO s
+"""): [
+   new_error_token(2, 5, "Expected token '(', got 's'."),
+]
+
+
+run_test("Function-like macro, too few arguments", """
+`define FOO(x, y) x and y
+`FOO(1)
+"""): [
+   new_error_token(2, 4, "Expected 2 arguments, got 1."),
+]
+
+
+run_test("Function-like macro, too many arguments", """
+`define FOO(x, y) x and y
+`FOO(1, 2, 1, 5)
+"""): [
+   new_error_token(2, 4, "Expected 2 arguments, got 4."),
+]
+
+
+run_test("Function-like macro, unexpected end of file", """
+`define FOO(x, y) x and y
+`FOO(1, 2
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
 # TODO: Test number of arguments mismatch: fewer, more.
 
 # Print summary

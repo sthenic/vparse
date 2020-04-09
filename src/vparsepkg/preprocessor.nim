@@ -35,11 +35,25 @@ type
       context_stack: seq[Context]
       error_tokens: seq[Token]
 
+   PreprocessorError = object of ValueError
+      line, col: int
+
 
 const
    RecursiveDefinition = "Recursive definition of $1."
    InvalidMacroName = "Invalid token given as macro name $1."
    MacroNameLine = "The macro name token $1 is not on the same line as the $2 directive."
+   ExpectedToken = "Expected token $1, got $2."
+   UnexpectedEndOfFile = "Unexpected end of file."
+   WrongNumberOfArguments = "Expected $1 arguments, got $2."
+
+
+proc new_preprocessor_error(line, col: int, msg: string,
+                            args: varargs[string, `$`]): ref PreprocessorError =
+   new result
+   result.msg = format(msg, args)
+   result.line = line
+   result.col = col
 
 
 # Forward declaration of public interface.
@@ -221,9 +235,13 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
    let nof_arguments = len(def.parameters)
    result = init_table[string, seq[Token]](right_size(nof_arguments))
 
-   # TODO: Enforce opening parenthesis.
+   # Expect an opening parenthesis.
    var tok: Token
    get_token(pp, tok)
+   if tok.kind != TkLparen:
+      raise new_preprocessor_error(tok.line, tok.col, ExpectedToken, TkLparen, tok)
+   let paren_line = tok.line
+   let paren_col = tok.col
 
    # Although only valid Verilog expressions are allowed as arguments we don't
    # implement any syntax-aware parsing of the tokens here. Instead, we track
@@ -254,22 +272,20 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
          if paren_count > 0:
             dec(paren_count)
          else:
-            result[def.parameters[idx].identifier.s] = token_list
+            if idx < nof_arguments:
+               result[def.parameters[idx].identifier.s] = token_list
             break
 
       of TkComma:
          if paren_count == 0 and brace_count == 0:
-            result[def.parameters[idx].identifier.s] = token_list
+            if idx < nof_arguments:
+               result[def.parameters[idx].identifier.s] = token_list
             set_len(token_list, 0)
             inc(idx)
-            if len(result) >= nof_arguments:
-               return
-            else:
-               continue
+            continue
 
       of TkEndOfFile:
-         # FIXME: Error
-         break
+         raise new_preprocessor_error(tok.line, tok.col, UnexpectedEndOfFile)
 
       else:
          discard
@@ -278,9 +294,13 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
       # the token list.
       add(token_list, tok)
 
+   let nof_collected_arguments = idx + 1
+   if nof_collected_arguments != nof_arguments:
+      raise new_preprocessor_error(paren_line, paren_col, WrongNumberOfArguments,
+                                   nof_arguments, nof_collected_arguments)
+
 
 proc substitute_parameters(def: Define, arguments: Table[string, seq[Token]]): seq[Token] =
-   assert len(def.parameters) == len(arguments)
    for tok in def.tokens:
       if tok.kind == TkSymbol and tok.identifier.s in arguments:
          add(result, arguments[tok.identifier.s])
@@ -298,9 +318,15 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
    var arguments: Table[string, seq[Token]]
    var replacement_list: seq[Token]
    if len(def.parameters) > 0:
-      # FIXME: Check for errors
-      arguments = collect_arguments(pp, def)
-      replacement_list = substitute_parameters(def, arguments)
+      # Collecting arguments can generate errors since a certain syntax is
+      # expected. We convert exceptions into error tokens and stop the function
+      # in that case.
+      try:
+         arguments = collect_arguments(pp, def)
+         replacement_list = substitute_parameters(def, arguments)
+      except PreprocessorError as e:
+         add(pp.error_tokens, new_error_token(e.line, e.col, e.msg))
+         return
    else:
       replacement_list = def.tokens
 
