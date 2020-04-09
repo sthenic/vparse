@@ -531,6 +531,13 @@ run_test("Function-like macro, unexpected end of file", """
    new_error_token(3, 0, "Unexpected end of file."),
 ]
 
+
+run_test("Function-like macro, missing closing parenthesis in parameter list", """
+`define FOO(x, y
+"""): [
+   new_error_token(2, 0, "Expected token ')', got '[EOF]'."),
+]
+
 # TODO: Test number of arguments mismatch: fewer, more.
 
 # Print summary

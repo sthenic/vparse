@@ -106,7 +106,10 @@ proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
          break
       get_token(pp)
 
-   # FIXME: Expect a closing parenthesis. Error if not present.
+   # Expect a closing parenthesis.
+   if pp.tok.kind != TkRparen:
+      add(pp.error_tokens, new_error_token(pp.tok.line, pp.tok.col,
+                                           ExpectedToken, TkRparen, pp.tok))
    get_token(pp)
 
 
