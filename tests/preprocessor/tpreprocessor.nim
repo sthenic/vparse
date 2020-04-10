@@ -59,7 +59,7 @@ run_test("Macro name not on the same line as the `define directive.", """
 `define
 FOO Hello
 """): [
-   new_error_token(2, 0, "The macro name token 'FOO' is not on the same line as the `define directive."),
+   new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `define directive."),
    new_identifier(TkSymbol, 2, 4, "Hello"),
 ]
 
@@ -204,7 +204,7 @@ run_test("Macro name not on the same line as the `undef directive.", """
 `undef
 FOO
 """): [
-   new_error_token(2, 0, "The macro name token 'FOO' is not on the same line as the `undef directive."),
+   new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `undef directive."),
 ]
 
 
@@ -538,7 +538,44 @@ run_test("Function-like macro, missing closing parenthesis in parameter list", "
    new_error_token(2, 0, "Expected token ')', got '[EOF]'."),
 ]
 
-# TODO: Test number of arguments mismatch: fewer, more.
+
+run_test("Include file", """
+`include "test.vh"
+wire [3:0] another_wire;
+"""): [
+   new_identifier(TkWire, 1, 0, "wire"),
+   new_token(TkLbracket, 1, 5),
+   new_inumber(TkIntLit, 1, 6, 7, Base10, -1, "7"),
+   new_token(TkColon, 1, 7),
+   new_inumber(TkIntLit, 1, 8, 0, Base10, -1, "0"),
+   new_token(TkRbracket, 1, 9),
+   new_identifier(TkSymbol, 1, 11, "my_wire"),
+   new_token(TkSemicolon, 1, 18),
+   new_identifier(TkWire, 2, 0, "wire"),
+   new_token(TkLbracket, 2, 5),
+   new_inumber(TkIntLit, 2, 6, 3, Base10, -1, "3"),
+   new_token(TkColon, 2, 7),
+   new_inumber(TkIntLit, 2, 8, 0, Base10, -1, "0"),
+   new_token(TkRbracket, 2, 9),
+   new_identifier(TkSymbol, 2, 11, "another_wire"),
+   new_token(TkSemicolon, 2, 23),
+]
+
+
+run_test("Missing filename for `include -> error", """
+`include
+"""): [
+   new_error_token(2, 0, "Expected token StrLit, got '[EOF]'."),
+]
+
+
+run_test("Filename not on the same line as the `include directive", """
+`include
+"test.vh"
+"""): [
+   new_error_token(2, 0, "The argument token '\"test.vh\"' is not on the same line as the `include directive."),
+]
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

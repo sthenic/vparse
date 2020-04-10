@@ -30,10 +30,12 @@ type
    Preprocessor* = object
       lex: Lexer
       tok: Token
+      pp_tok: Token
       defines: Table[string, Define]
       include_paths: seq[string]
       context_stack: seq[Context]
       error_tokens: seq[Token]
+      pp_include: ref Preprocessor
 
    PreprocessorError = object of ValueError
       line, col: int
@@ -42,7 +44,7 @@ type
 const
    RecursiveDefinition = "Recursive definition of $1."
    InvalidMacroName = "Invalid token given as macro name $1."
-   MacroNameLine = "The macro name token $1 is not on the same line as the $2 directive."
+   DirectiveArgLine = "The argument token $1 is not on the same line as the $2 directive."
    ExpectedToken = "Expected token $1, got $2."
    UnexpectedEndOfFile = "Unexpected end of file."
    WrongNumberOfArguments = "Expected $1 arguments, got $2."
@@ -77,12 +79,14 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         s: Stream) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
+   init(pp.pp_tok)
    open_lexer(pp.lex, cache, filename, s)
    pp.defines = init_table[string, Define](32)
    pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
    add(pp.include_paths, include_paths)
    pp.context_stack = new_seq_of_cap[Context](32)
    pp.error_tokens = new_seq_of_cap[Token](32)
+   pp.pp_include = nil
    get_token(pp.lex, pp.tok)
 
 
@@ -133,7 +137,8 @@ proc handle_define(pp: var Preprocessor) =
       pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
       return
    elif pp.tok.line != def_line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, MacroNameLine, pp.tok, "`define")
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
+                               pp.tok, "`define")
       return
    def.name = pp.tok
 
@@ -193,7 +198,8 @@ proc handle_undef(pp: var Preprocessor) =
       pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
       return
    elif pp.tok.line != undef_line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, MacroNameLine, pp.tok, "`undef")
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
+                               pp.tok, "`undef")
       return
    # The del() proc does nothing if the key does not exist.
    del(pp.defines, pp.tok.identifier.s)
@@ -201,8 +207,29 @@ proc handle_undef(pp: var Preprocessor) =
 
 
 proc handle_include(pp: var Preprocessor) =
-   # FIXME: Implement
-   discard
+   # Skip over `include.
+   let include_line = pp.tok.line
+   get_token(pp)
+
+   if pp.tok.kind != TkStrLit:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, ExpectedToken, TkStrLit,
+                               pp.tok)
+      return
+   elif pp.tok.line != include_line:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
+                               pp.tok, "`include")
+      return
+
+   # Create a new preprocessor for the include file.
+   # FIXME: Go through the inlcude paths etc.
+   new pp.pp_include
+   let fs = new_file_stream(pp.tok.literal)
+   assert fs != nil
+   open_preprocessor(pp.pp_include[], pp.lex.cache, pp.tok.literal,
+                     pp.include_paths, fs)
+   get_token(pp)
+   get_token(pp.pp_include[], pp.pp_tok)
+   # FIXME: Ensure that the next token is on a different line?
 
 
 proc handle_ifdef(pp: var Preprocessor) =
@@ -263,14 +290,11 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
       case tok.kind
       of TkLbrace:
          inc(brace_count)
-
       of TkRbrace:
          if brace_count > 0:
             dec(brace_count)
-
       of TkLparen:
          inc(paren_count)
-
       of TkRparen:
          if paren_count > 0:
             dec(paren_count)
@@ -278,7 +302,6 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
             if idx < nof_arguments:
                result[def.parameters[idx].identifier.s] = token_list
             break
-
       of TkComma:
          if paren_count == 0 and brace_count == 0:
             if idx < nof_arguments:
@@ -286,10 +309,8 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
             set_len(token_list, 0)
             inc(idx)
             continue
-
       of TkEndOfFile:
          raise new_preprocessor_error(tok.line, tok.col, UnexpectedEndOfFile)
-
       else:
          discard
 
@@ -408,20 +429,35 @@ proc get_source_token(pp: var Preprocessor, tok: var Token) =
       get_token(pp.lex, pp.tok)
 
 
-proc is_defined_macro(pp: Preprocessor, tok: Token): bool =
+proc get_include_token(pp: var Preprocessor, tok: var Token) =
+   tok = pp.pp_tok
+   get_token(pp.pp_include[], pp.pp_tok)
+
+
+proc is_macro_defined(pp: Preprocessor, tok: Token): bool =
    return tok.kind == TkDirective and tok.identifier.s in pp.defines and
           pp.defines[tok.identifier.s].is_enabled
 
 
 proc prepare_token(pp: var Preprocessor) =
    # When this proc returns, the preprocessor is in a position to return a token
-   # from either the topmost context entry or the source buffer. We get to this
-   # point by examining the next token from the active source (the context stack
-   # has priority) to see if it should be consumed by the preprocessor or not.
-   if len(pp.context_stack) > 0:
+   # from either the include file, the topmost context entry or the source
+   # buffer. We get to this point by examining the next token from the active
+   # source to see if it should be consumed by the preprocessor or not.
+   if pp.pp_include != nil:
+      # The token representing the end of the include file does not propagate
+      # to the caller. We use this to close the include file's preprocessor
+      # and recursively call this function to prepare a token from one of the
+      # other sources.
+      if pp.pp_tok.kind == TkEndOfFile:
+         # FIXME: Merge defines?
+         close_preprocessor(pp.pp_include[])
+         pp.pp_include = nil
+         prepare_token(pp)
+   elif len(pp.context_stack) > 0:
       while true:
          let next_tok = top_context_token(pp)
-         if is_defined_macro(pp, next_tok):
+         if is_macro_defined(pp, next_tok):
             # Read past the macro name.
             inc_context_stack(pp)
             # FIXME: possibly all the directives? handle_directive()?
@@ -430,6 +466,11 @@ proc prepare_token(pp: var Preprocessor) =
             break
    else:
       while true:
+         # If a include file has been set up as a token source we break out of
+         # the loop.
+         if pp.pp_include != nil:
+            break
+
          # If there's an error token to propagate we break out of the loop.
          if len(pp.error_tokens) > 0:
             break
@@ -448,12 +489,24 @@ proc prepare_token(pp: var Preprocessor) =
          else:
             break
 
+
 proc get_token*(pp: var Preprocessor, tok: var Token) =
-   # Error tokens have the highest precedence. Otherwise, if there's anything on
-   # the context stack, the caller will receive the next token from there.
-   # If not, the next token is read directly from the source buffer.
+   ## Read a token from the preprocessor ``pp`` into ``tok``.
+   # This proc arbitrates the various token sources. There's a clear order of
+   # precedence:
+   #
+   #   1. Tokens from an `include direcive.
+   #   2. Error tokens (this is how errors are communicated to the caller).
+   #   3. Tokens from an active context (macro expansion).
+   #   4. Tokens from the source file.
+   #
+   # But before the source is selected, the preprocessor goes through a
+   # preparation phase to process tokens intended for this layer and remove
+   # them from the token stream.
    prepare_token(pp)
-   if len(pp.error_tokens) > 0:
+   if pp.pp_include != nil:
+      get_include_token(pp, tok)
+   elif len(pp.error_tokens) > 0:
       tok = pp.error_tokens.pop()
    elif len(pp.context_stack) > 0:
       get_context_token(pp, tok)
