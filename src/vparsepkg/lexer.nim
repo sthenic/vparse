@@ -744,37 +744,6 @@ proc eat_directive_arguments(l: var Lexer, tok: var Token) =
          inc(l.bufpos)
 
 
-proc handle_directive(l: var Lexer, tok: var Token) =
-   # While this is not a preprocessor and we don't expect to encounter
-   # directives, if we do we need to grab all the characters that 'belongs' to
-   # the directive and remove them from the character stream. We do this to
-   # avoid interpreting the directive text as regular Verilog and to let the
-   # parser handle these tokens as an atomic block.
-   #
-   # There are a number of compiler directives defined by the standard. For
-   # these, we eat all characters until the next newline. We continue with the
-   # next line if the newline character is escaped (as is allowed for `define).
-   # However, if we don't recognize the directive, we just grab the first word
-   # and optionally a comma-separated list of arguments enclosed in parenthesis.
-   # The assumption is that this is a text macro usage.
-   tok.kind = TkDirective
-   inc(l.bufpos)
-   # We include "'" as a symbol character when parsing the directive identifier
-   # to handle the case `WIDTH'b10110001 and grab this as an entire token.
-   handle_identifier(l, tok, SymChars + {'\''})
-
-   if tok.identifier.s in Directives:
-      eat_directive_line(l, tok)
-      while tok.literal.ends_with('\\') and l.buf[l.bufpos] in lexbase.NewLines:
-         l.bufpos = handle_crlf(l, l.bufpos)
-         add(tok.literal, '\n')
-         eat_directive_line(l, tok)
-   else:
-      l.bufpos = skip(l, l.bufpos)
-      if l.buf[l.bufpos] == '(':
-         eat_directive_arguments(l, tok)
-
-
 proc get_token*(l: var Lexer, tok: var Token) =
    # Skip until there is a token in the buffer.
    l.bufpos = skip(l, l.bufpos)
@@ -858,7 +827,6 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.kind = TkRbrace
       inc(l.bufpos)
    of '`':
-      # FIXME: Could be token-pasting too, i.e. '``'.
       inc(l.bufpos)
       tok.kind = TkDirective
       handle_identifier(l, tok, SymChars)
