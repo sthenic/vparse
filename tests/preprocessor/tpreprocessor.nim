@@ -580,6 +580,29 @@ wire [3:0] another_wire;
 ]
 
 
+run_test("Nested include files", """
+wire wire0;
+`include "include/test2.vh"
+wire last_wire;
+"""): [
+   new_identifier(TkWire, 1, 0, "wire"),
+   new_identifier(TkSymbol, 1, 5, "wire0"),
+   new_token(TkSemicolon, 1, 10),
+   new_identifier(TkWire, 1, 0, "wire"),
+   new_identifier(TkSymbol, 1, 5, "wire2"),
+   new_token(TkSemicolon, 1, 10),
+   new_identifier(TkWire, 1, 0, "wire"),
+   new_identifier(TkSymbol, 1, 5, "wire3"),
+   new_token(TkSemicolon, 1, 10),
+   new_identifier(TkWire, 3, 0, "wire"),
+   new_identifier(TkSymbol, 3, 5, "next_to_last_wire"),
+   new_token(TkSemicolon, 3, 22),
+   new_identifier(TkWire, 3, 0, "wire"),
+   new_identifier(TkSymbol, 3, 5, "last_wire"),
+   new_token(TkSemicolon, 3, 14),
+]
+
+
 run_test("File cannot be found for `include -> error", """
 `include "test_invalid.vh"
 wire
