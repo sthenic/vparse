@@ -1,14 +1,14 @@
 import streams
 import strutils
 
-import ./lexer
+import ./preprocessor
 import ./ast
 
-export ast, lexer
+export ast, preprocessor
 
 type
    Parser* = object
-      lex: Lexer
+      pp: Preprocessor
       tok: Token
       next_tok: Token
 
@@ -38,21 +38,22 @@ proc get_token(p: var Parser) =
    #        tree at the end?
    p.tok = p.next_tok
    if p.next_tok.kind != TkEndOfFile:
-      get_token(p.lex, p.next_tok)
+      get_token(p.pp, p.next_tok)
       while p.next_tok.kind in {TkComment, TkBlockComment}:
-         get_token(p.lex, p.next_tok)
+         get_token(p.pp, p.next_tok)
 
 
 proc open_parser*(p: var Parser, cache: IdentifierCache,
                   filename: string, s: Stream) =
    init(p.tok)
    init(p.next_tok)
-   open_lexer(p.lex, cache, filename, s)
+   # FIXME: Add include paths.
+   open_preprocessor(p.pp, cache, filename, [""], s)
    get_token(p)
 
 
 proc close_parser*(p: var Parser) =
-   close_lexer(p.lex)
+   close_preprocessor(p.pp)
 
 
 proc new_line_info(tok: Token): TLineInfo =
