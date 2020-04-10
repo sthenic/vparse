@@ -68,6 +68,11 @@ proc new_preprocessor_error(line, col: int, msg: string,
    result.col = col
 
 
+proc add_error_token(pp: var Preprocessor, line, col: int, msg: string,
+                     args: varargs[string, `$`]) =
+   add(pp.error_tokens, new_error_token(line, col, msg, args))
+
+
 # Forward declaration of public interface.
 proc get_token*(pp: var Preprocessor, tok: var Token)
 
@@ -123,8 +128,7 @@ proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
 
    # Expect a closing parenthesis.
    if pp.tok.kind != TkRparen:
-      add(pp.error_tokens, new_error_token(pp.tok.line, pp.tok.col,
-                                           ExpectedToken, TkRparen, pp.tok))
+      add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkRparen, pp.tok)
    get_token(pp)
 
 
@@ -145,17 +149,18 @@ proc handle_define(pp: var Preprocessor) =
    get_token(pp)
    # Expect the macro name on the same line as the `define directive.
    if pp.tok.kind != TkSymbol:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      add_error_token(pp, pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      get_token(pp)
       return
    elif pp.tok.line != def_line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
-                               pp.tok, "`define")
+      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`define")
+      get_token(pp)
       return
    def.name = pp.tok
 
    if def.name.identifier.s in ProtectedMacroNames:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col,RedefineProtected,
-                               def.name)
+      add_error_token(pp, pp.tok.line, pp.tok.col, RedefineProtected, def.name)
+      get_token(pp)
       return
 
    # If the next character is '(', and it follows the macro name w/o any
@@ -192,9 +197,8 @@ proc handle_define(pp: var Preprocessor) =
          if (line_delta > 1) or (line_delta == 1 and not include_newline):
             break
          if pp.tok.kind == TkDirective and pp.tok.identifier.s == def.name.identifier.s:
-            add(pp.error_tokens, new_error_token(pp.tok.line, pp.tok.col,
-                                                 RecursiveDefinition,
-                                                 def.name.identifier.s))
+            add_error_token(pp, pp.tok.line, pp.tok.col, RecursiveDefinition,
+                            def.name.identifier.s)
          add(def.tokens, pp.tok)
          last_tok_line = pp.tok.line
          include_newline = false
@@ -211,11 +215,12 @@ proc handle_undef(pp: var Preprocessor) =
    get_token(pp)
    # Expect the macro name on the same line as the `undef directive.
    if pp.tok.kind != TkSymbol:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      add_error_token(pp, pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      get_token(pp)
       return
    elif pp.tok.line != undef_line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
-                               pp.tok, "`undef")
+      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`undef")
+      get_token(pp)
       return
    # FIXME: Undefining a macro that doesn't exist should result in an error node.
    #        Should turn up as a warning though.
@@ -245,12 +250,12 @@ proc handle_include(pp: var Preprocessor) =
    get_token(pp)
 
    if pp.tok.kind != TkStrLit:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, ExpectedToken, TkStrLit,
-                               pp.tok)
+      add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkStrLit, pp.tok)
+      get_token(pp)
       return
    elif pp.tok.line != include_line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
-                               pp.tok, "`include")
+      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`include")
+      get_token(pp)
       return
 
    var filename = pp.tok.literal
@@ -259,7 +264,7 @@ proc handle_include(pp: var Preprocessor) =
    let full_path = get_include_file(pp, filename)
    get_token(pp)
    if len(full_path) == 0:
-      add(pp.error_tokens, new_error_token(line, col, CannotOpenFile, filename))
+      add_error_token(pp, line, col, CannotOpenFile, filename)
       return
 
    # Create a new preprocessor for the include file.
@@ -317,12 +322,12 @@ proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
    get_token(pp)
 
    if pp.tok.kind != TkSymbol:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, ExpectedToken, TkSymbol,
-                               pp.tok)
+      add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkSymbol, pp.tok)
+      get_token(pp)
       return
    elif pp.tok.line != line:
-      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
-                               pp.tok, "`" & label)
+      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`" & label)
+      get_token(pp)
       return
 
    var take_if_branch = pp.tok.identifier.s in pp.defines
@@ -469,7 +474,7 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
          arguments = collect_arguments(pp, def)
          replacement_list = substitute_parameters(def, arguments)
       except PreprocessorError as e:
-         add(pp.error_tokens, new_error_token(e.line, e.col, e.msg))
+         add_error_token(pp, e.line, e.col, e.msg)
          return
    else:
       replacement_list = def.tokens

@@ -48,10 +48,10 @@ Test suite: Preprocessor
 ------------------------""")
 
 
-run_test("Missing macro name -> error", """
-`define
+run_test("Invalid macro name -> error", """
+`define "foo"
 """): [
-   new_error_token(2, 0, "Invalid token given as macro name '[EOF]'."),
+   new_error_token(1, 8, "Invalid token given as macro name '\"foo\"'."),
 ]
 
 
@@ -201,10 +201,10 @@ run_test("`undef macro before usage", """
 ]
 
 
-run_test("Missing macro name for `undef -> error", """
-`undef
+run_test("Invalid macro name for `undef -> error", """
+`undef "foo"
 """): [
-   new_error_token(2, 0, "Invalid token given as macro name '[EOF]'."),
+   new_error_token(1, 7, "Invalid token given as macro name '\"foo\"'."),
 ]
 
 
@@ -1022,6 +1022,21 @@ run_test("Conditional include: else-branch", """
    new_identifier(TkWire, 3, 0, "wire"),
    new_identifier(TkSymbol, 3, 5, "next_to_last_wire"),
    new_token(TkSemicolon, 3, 22),
+]
+
+
+run_test("Invalid `ifdef token -> error", """
+`ifdef "FOO"
+"""): [
+   new_error_token(1, 7, "Expected token Symbol, got '\"FOO\"'."),
+]
+
+
+run_test("Macro name not on the same line as the `ifdef directive", """
+`ifdef
+FOO
+"""): [
+   new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `ifdef directive."),
 ]
 
 
