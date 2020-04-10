@@ -106,7 +106,7 @@ proc new_error_node(p: Parser, kind: NodeKind, msg: string,
                     args: varargs[string, `$`]): PNode =
    result = new_node(p, kind)
    result.msg = format(msg, args)
-   result.eraw = raw(p.tok) & p.tok.literal
+   result.eraw = p.tok.literal
 
 
 template expect_token(p: Parser, expected: set[TokenKind]): untyped =

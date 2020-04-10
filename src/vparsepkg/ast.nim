@@ -173,7 +173,13 @@ proc pretty*(n: PNode, indent: int = 0): string =
       # FIXME: Unused right now
       add(result, format(": $1\n", n.op))
    of ErrorTypes:
-      add(result, format(": $1\n", n.msg))
+      var msg = ": $1"
+      var args = @[n.msg]
+      if len(n.eraw) > 0:
+         add(msg, " ($2)")
+         add(args, n.eraw)
+      add(msg, "\n")
+      add(result, format(msg, args))
    of NkStrLit:
       add(result, format(": $1\n", n.s))
    of NkWildcard:
