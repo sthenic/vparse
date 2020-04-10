@@ -72,6 +72,7 @@ for filename in cli_state.input_files:
    let t_start = cpu_time()
    let root_node = parse_all(p)
    let t_diff_ms = (cpu_time() - t_start) * 1000
+   close(fs)
 
    if ofs != nil:
       if cli_state.json:
@@ -96,6 +97,7 @@ for filename in cli_state.input_files:
 
    # TODO: Analyze errors and present a summary.
    if has_errors(root_node):
+      log.error("The AST contains errors.")
       exit_val = -EPARSE
 
 quit(exit_val)
