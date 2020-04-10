@@ -466,6 +466,12 @@ proc is_macro_defined(pp: Preprocessor, tok: Token): bool =
           pp.defines[tok.identifier.s].is_enabled
 
 
+proc merge(x: var Table[string, Define], y: Table[string, Define]) =
+   # TODO: Perhaps generate a warning if a define overwrites another entry?
+   for k, v in pairs(y):
+      x[k] = v
+
+
 proc prepare_token(pp: var Preprocessor) =
    # When this proc returns, the preprocessor is in a position to return a token
    # from either the include file, the topmost context entry or the source
@@ -475,10 +481,11 @@ proc prepare_token(pp: var Preprocessor) =
       # The token representing the end of the include file does not propagate
       # to the caller. We use this to close the include file's preprocessor
       # and recursively call this function to prepare a token from one of the
-      # other sources.
+      # other sources. Additionally, any defines active at the end of the
+      # processed include file is added to the defines on this level.
       if pp.pp_tok.kind == TkEndOfFile:
-         # FIXME: Merge defines?
          close_preprocessor(pp.pp_include[])
+         merge(pp.defines, pp.pp_include.defines)
          pp.pp_include = nil
          prepare_token(pp)
    elif len(pp.context_stack) > 0:
@@ -496,6 +503,7 @@ proc prepare_token(pp: var Preprocessor) =
          # If a include file has been set up as a token source we break out of
          # the loop.
          if pp.pp_include != nil:
+            prepare_token(pp)
             break
 
          # If there's an error token to propagate we break out of the loop.

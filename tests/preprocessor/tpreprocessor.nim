@@ -603,6 +603,23 @@ wire last_wire;
 ]
 
 
+run_test("Macro defined in an include file", """
+`include "test4.vh"
+wire [`WIDTH-1:0] my_wire;
+"""): [
+   new_identifier(TkWire, 2, 0, "wire"),
+   new_token(TkLbracket, 2, 5),
+   new_inumber(TkIntLit, 1, 14, 8, Base10, -1, "8"),
+   new_identifier(TkOperator, 2, 12, "-"),
+   new_inumber(TkIntLit, 2, 13, 1, Base10, -1, "1"),
+   new_token(TkColon, 2, 14),
+   new_inumber(TkIntLit, 2, 15, 0, Base10, -1, "0"),
+   new_token(TkRbracket, 2, 16),
+   new_identifier(TkSymbol, 2, 18, "my_wire"),
+   new_token(TkSemicolon, 2, 25),
+]
+
+
 run_test("File cannot be found for `include -> error", """
 `include "test_invalid.vh"
 wire
