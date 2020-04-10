@@ -1040,6 +1040,63 @@ FOO
 ]
 
 
+run_test("`ifdef unexpected end of file", """
+`ifdef FOO
+   wire ignored_wire;
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("Unexpected `endif", """
+`endif
+wire some_wire;
+"""): [
+   new_error_token(1, 0, "Unexpected token '`endif'."),
+   new_identifier(TkWire, 2, 0, "wire"),
+   new_identifier(TkSymbol, 2, 5, "some_wire"),
+   new_token(TkSemicolon, 2, 14),
+]
+
+
+run_test("`else unexpected end of file", """
+`ifndef FOO
+`else
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("Unexpected `else", """
+`else
+wire some_wire;
+"""): [
+   new_error_token(1, 0, "Unexpected token '`else'."),
+   new_identifier(TkWire, 2, 0, "wire"),
+   new_identifier(TkSymbol, 2, 5, "some_wire"),
+   new_token(TkSemicolon, 2, 14),
+]
+
+
+run_test("Conditional directives, broken syntax", """
+`ifdef FOO
+   wire my_foo_wire;
+   `ifndef BAR
+      wire my_bar_wire
+   `endif
+   `endif
+`else
+   wire my_else_wire;
+`endif
+"""): [
+   new_error_token(7, 0, "Unexpected token '`else'."),
+   new_identifier(TkWire, 8, 3, "wire"),
+   new_identifier(TkSymbol, 8, 8, "my_else_wire"),
+   new_token(TkSemicolon, 8, 20),
+   new_error_token(9, 0, "Unexpected token '`endif'."),
+]
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

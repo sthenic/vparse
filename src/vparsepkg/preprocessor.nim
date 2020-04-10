@@ -48,6 +48,7 @@ const
    InvalidMacroName = "Invalid token given as macro name $1."
    DirectiveArgLine = "The argument token $1 is not on the same line as the $2 directive."
    ExpectedToken = "Expected token $1, got $2."
+   UnexpectedToken = "Unexpected token $1."
    UnexpectedEndOfFile = "Unexpected end of file."
    WrongNumberOfArguments = "Expected $1 arguments, got $2."
    CannotOpenFile = "Cannot open file '$1'."
@@ -278,7 +279,8 @@ proc handle_include(pp: var Preprocessor) =
 
 proc handle_else(pp: var Preprocessor) =
    if pp.endif_semaphore == 0:
-      # FIXME: Error
+      add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedToken, pp.tok)
+      get_token(pp)
       return
 
    # If we're in this proc then the preprocessor has encountered an `else
@@ -290,7 +292,7 @@ proc handle_else(pp: var Preprocessor) =
       get_token(pp)
       case pp.tok.kind
       of TkEndOfFile:
-         # FIXME: Error
+         add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedEndOfFile)
          break
       of TkDirective:
          case pp.tok.identifier.s
@@ -301,6 +303,8 @@ proc handle_else(pp: var Preprocessor) =
                get_token(pp)
                dec(pp.endif_semaphore)
                break
+            else:
+               dec(pp.endif_semaphore)
          else:
             discard
       else:
@@ -308,11 +312,11 @@ proc handle_else(pp: var Preprocessor) =
 
 
 proc handle_endif(pp: var Preprocessor) =
-   get_token(pp)
    if pp.endif_semaphore == 0:
-      # FIXME: Error
-      return
-   dec(pp.endif_semaphore)
+      add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedToken, pp.tok)
+   else:
+      dec(pp.endif_semaphore)
+   get_token(pp)
 
 
 proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
@@ -356,7 +360,7 @@ proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
          get_token(pp)
          case pp.tok.kind
          of TkEndOfFile:
-            # FIXME: Unexpected (error)
+            add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedEndOfFile)
             break
          of TkDirective:
             case pp.tok.identifier.s
