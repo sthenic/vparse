@@ -444,19 +444,17 @@ run_test("Ignoring one-line comments, next line is empty", """
 ]
 
 
-run_test("Block comments -> end macro definition", """
+run_test("Ignoring block comments", """
 `define foo this \
    spans \
    /* surprise! */
    multiple \
    lines
 `foo"""): [
-   new_comment(TkBlockComment, 3, 3, "surprise!"),
-   new_identifier(TkSymbol, 4, 3, "multiple"),
-   new_token(TkBackslash, 4, 12),
-   new_identifier(TkSymbol, 5, 3, "lines"),
    new_identifier(TkSymbol, 1, 12, "this"),
    new_identifier(TkSymbol, 2, 3, "spans"),
+   new_identifier(TkSymbol, 4, 3, "multiple"),
+   new_identifier(TkSymbol, 5, 3, "lines"),
 ]
 
 

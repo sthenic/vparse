@@ -78,10 +78,12 @@ proc add_error_token(pp: var Preprocessor, line, col: int, msg: string,
 proc get_token*(pp: var Preprocessor, tok: var Token)
 
 
-proc get_token(pp: var Preprocessor) =
+proc get_token(pp: var Preprocessor, ignore_comments = false) =
    ## Internal token consumer. Reads a token from the lexer and stores the result
    ## in the local ``tok`` variable.
    get_token(pp.lex, pp.tok)
+   while ignore_comments and pp.tok.kind in {TkComment, TkBlockComment}:
+      get_token(pp.lex, pp.tok)
 
 
 template update_origin(pp: Preprocessor, o: var Origin) =
@@ -126,20 +128,20 @@ proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
    ## proc returns, the closing parenthesis has been removed from the buffer.
    # Skip over the opening parenthesis and collect a list of comma-separated
    # identifiers.
-   get_token(pp)
+   get_token(pp, true)
    while true:
       if pp.tok.kind != TkSymbol:
          break
       add(def.parameters, pp.tok)
-      get_token(pp)
+      get_token(pp, true)
       if (pp.tok.kind != TkComma):
          break
-      get_token(pp)
+      get_token(pp, true)
 
-   # Expect a closing parenthesis.
+   # Expect a closing parenthesis but don't remove the token. The caller needs
+   # to know the position of the token.
    if pp.tok.kind != TkRparen:
       add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkRparen, pp.tok)
-   get_token(pp)
 
 
 proc immediately_follows(x, y: Token): bool =
@@ -167,6 +169,7 @@ proc handle_define(pp: var Preprocessor) =
       get_token(pp)
       return
    def.name = pp.tok
+   var last_tok_line = def.origin.line
 
    if def.name.identifier.s in ProtectedMacroNames:
       add_error_token(pp, pp.tok.line, pp.tok.col, RedefineProtected, def.name)
@@ -179,14 +182,15 @@ proc handle_define(pp: var Preprocessor) =
    get_token(pp)
    if pp.tok.kind == TkLparen and immediately_follows(pp.tok, def.name):
       handle_parameter_list(pp, def)
+      last_tok_line = pp.tok.line
+      get_token(pp)
 
    var include_newline = false
-   var last_tok_line = def.origin.line
    while true:
       case pp.tok.kind
-      of TkEndOfFile, TkBlockComment:
+      of TkEndOfFile:
          break
-      of TkComment:
+      of TkComment, TkBlockComment:
          # A one=line comment is not included in the replacement list but tokens
          # on the next line may be included if we've scanned over a backslash
          # before this token.
@@ -686,3 +690,4 @@ proc get_token*(pp: var Preprocessor, tok: var Token) =
       get_context_token(pp, tok)
    else:
       get_source_token(pp, tok)
+   # echo pretty(tok)
