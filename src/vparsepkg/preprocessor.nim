@@ -502,6 +502,16 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
    add(pp.context_stack, context)
 
 
+proc handle_line(pp: var Preprocessor) =
+   let line = pp.tok.line
+   add_error_token(pp, pp.tok.line, pp.tok.col,
+                   "The `line directive is currently not supported.")
+   while true:
+      get_token(pp)
+      if pp.tok.kind == TkEndOfFile or pp.tok.line - line > 0:
+         break
+
+
 proc handle_directive(pp: var Preprocessor): bool =
    result = true
    case pp.tok.identifier.s
@@ -519,6 +529,8 @@ proc handle_directive(pp: var Preprocessor): bool =
       handle_else(pp)
    of "endif":
       handle_endif(pp)
+   of "line":
+      handle_line(pp)
    of "resetall":
       # The `resetall directive should propagate out of the preprocessor since
       # the implementation of the various directive handlers are spread between

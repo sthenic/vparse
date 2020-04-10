@@ -1129,6 +1129,17 @@ run_test("Clear defines with `resetall", """
 ]
 
 
+run_test("`line directive unsupported", """
+`line 2 "test.v" 1
+wire my_wire;
+"""): [
+   new_error_token(1, 0, "The `line directive is currently not supported."),
+   new_identifier(TkWire, 2, 0, "wire"),
+   new_identifier(TkSymbol, 2, 5, "my_wire"),
+   new_token(TkSemicolon, 2, 12),
+]
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
