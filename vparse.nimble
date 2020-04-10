@@ -34,3 +34,4 @@ task parsertests, "Run the parser test suite":
       exec("nim c --hints:off -r teventdeclaration")
       exec("nim c --hints:off -r tblockingnonblockingassignment")
       exec("nim c --hints:off -r tnetdeclaration")
+      exec("nim c --hints:off -r tdirective")

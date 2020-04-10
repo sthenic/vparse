@@ -30,6 +30,17 @@ const
    Resynchronized = "Resynchronized at $1."
 
 
+proc handle_directive(p: var Parser) =
+   # When handling directives we read tokens directly from the preprocessor.
+   # FIXME: Think about how to communicate errors. Setting next_tok?
+   # FIXME: Right now we remove all tokens until we find one on a new line.
+   let line = p.next_tok.line
+   while true:
+      get_token(p.pp, p.next_tok)
+      if p.next_tok.kind == TkEndOfFile or p.next_tok.line - line > 0:
+         break
+
+
 proc get_token(p: var Parser) =
    # FIXME: Properly handle comments. If we want to be able to recreate the
    #        source file, the comments also need to be nodes in the AST.
@@ -39,8 +50,14 @@ proc get_token(p: var Parser) =
    p.tok = p.next_tok
    if p.next_tok.kind != TkEndOfFile:
       get_token(p.pp, p.next_tok)
-      while p.next_tok.kind in {TkComment, TkBlockComment}:
-         get_token(p.pp, p.next_tok)
+      while true:
+         case p.next_tok.kind
+         of TkComment, TkBlockComment:
+            get_token(p.pp, p.next_tok)
+         of TkDirective:
+            handle_directive(p)
+         else:
+            break
 
 
 proc open_parser*(p: var Parser, cache: IdentifierCache,
