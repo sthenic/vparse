@@ -37,6 +37,7 @@ type
       context_stack: seq[Context]
       error_tokens: seq[Token]
       pp_include: ref Preprocessor
+      endif_semaphore: int
 
    PreprocessorError = object of ValueError
       line, col: int
@@ -89,6 +90,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
    init(pp.pp_tok)
+   pp.endif_semaphore = 0
    open_lexer(pp.lex, cache, filename, s)
    pp.defines = init_table[string, Define](64)
    pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
@@ -269,29 +271,97 @@ proc handle_include(pp: var Preprocessor) =
    # FIXME: Ensure that the next token is on a different line?
 
 
-proc handle_ifdef(pp: var Preprocessor) =
-   # FIXME: Implement
-   discard
-
-
-proc handle_ifndef(pp: var Preprocessor) =
-   # FIXME: Implement
-   discard
-
-
-proc handle_elsif(pp: var Preprocessor) =
-   # FIXME: Implement
-   discard
-
-
 proc handle_else(pp: var Preprocessor) =
-   # FIXME: Implement
-   discard
+   if pp.endif_semaphore == 0:
+      # FIXME: Error
+      return
+
+   # If we're in this proc then the preprocessor has encountered an `else
+   # while tokens from an _active_ `ifdef/`ifndef/`elif branch. Now we have
+   # to remove all the subsequent tokens from the stream until we hit the end
+   # of the file (an error condition) or a closing `endif directive.
+   while true:
+      get_token(pp)
+      case pp.tok.kind
+      of TkEndOfFile:
+         # FIXME: Error
+         break
+      of TkDirective:
+         case pp.tok.identifier.s
+         of "endif":
+            get_token(pp)
+            dec(pp.endif_semaphore)
+            break
+         else:
+            discard
+      else:
+         discard
 
 
 proc handle_endif(pp: var Preprocessor) =
-   # FIXME: Implement
-   discard
+   get_token(pp)
+   if pp.endif_semaphore == 0:
+      # FIXME: Error
+      return
+   dec(pp.endif_semaphore)
+
+
+proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
+   # Skip over `ifdef.
+   let line = pp.tok.line
+   var label = pp.tok.identifier.s
+   get_token(pp)
+
+   if pp.tok.kind != TkSymbol:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, ExpectedToken, TkSymbol,
+                               pp.tok)
+      return
+   elif pp.tok.line != line:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
+                               pp.tok, "`" & label)
+      return
+
+   var take_if_branch = pp.tok.identifier.s in pp.defines
+   if invert:
+      take_if_branch = not take_if_branch
+
+   # If we should take the if-branch, we skip to the next token and increment
+   # the endif semaphore to expect an `endif directive later on. Otherwise, we
+   # start removing tokens until one of four things happens:
+   #   1. The file ends (error condition).
+   #   2. We find an `elsif directive in which case we recusively call this
+   #      function and break since the logic is the same.
+   #   3. We find an `else directive in which case we know that the following
+   #      lines of souce code should be included. We increment the endif
+   #      semaphore and break.
+   #   4. We find an `endif directive in which case we remove that token from
+   #      the stream and break.
+   if take_if_branch:
+      get_token(pp)
+      inc(pp.endif_semaphore)
+   else:
+      while true:
+         get_token(pp)
+         case pp.tok.kind
+         of TkEndOfFile:
+            # FIXME: Unexpected (error)
+            break
+         of TkDirective:
+            case pp.tok.identifier.s
+            of "elsif":
+               handle_ifdef(pp)
+               break
+            of "else":
+               get_token(pp)
+               inc(pp.endif_semaphore)
+               break
+            of "endif":
+               get_token(pp)
+               break
+            else:
+               discard
+         else:
+            discard
 
 
 proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Token]] =
@@ -410,10 +480,8 @@ proc handle_directive(pp: var Preprocessor): bool =
    of "ifdef":
       handle_ifdef(pp)
    of "ifndef":
-      handle_ifndef(pp)
-   of "elsif":
-      handle_elsif(pp)
-   of "else":
+      handle_ifdef(pp, invert = true)
+   of "else", "elsif":
       handle_else(pp)
    of "endif":
       handle_endif(pp)

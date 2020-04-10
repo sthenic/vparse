@@ -652,6 +652,251 @@ run_test("Filename not on the same line as the `include directive", """
 ]
 
 
+run_test("`ifdef: w/o `else, ignored", """
+`ifdef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkReg, 4, 0, "reg"),
+   new_identifier(TkSymbol, 4, 4, "a"),
+   new_token(TkSemicolon, 4, 5),
+]
+
+
+run_test("`ifdef: w/o `else, included", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 3, 3, "wire"),
+   new_identifier(TkSymbol, 3, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 3, 19),
+   new_identifier(TkReg, 5, 0, "reg"),
+   new_identifier(TkSymbol, 5, 4, "a"),
+   new_token(TkSemicolon, 5, 5),
+]
+
+
+run_test("`ifdef: w/ `else, if-branch", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 3, 3, "wire"),
+   new_identifier(TkSymbol, 3, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 3, 19),
+   new_identifier(TkReg, 7, 0, "reg"),
+   new_identifier(TkSymbol, 7, 4, "a"),
+   new_token(TkSemicolon, 7, 5),
+]
+
+
+run_test("`ifdef: w/ `else, else-branch", """
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 4, 3, "wire"),
+   new_identifier(TkSymbol, 4, 8, "my_else_wire"),
+   new_token(TkSemicolon, 4, 20),
+   new_identifier(TkReg, 6, 0, "reg"),
+   new_identifier(TkSymbol, 6, 4, "a"),
+   new_token(TkSemicolon, 6, 5),
+]
+
+
+run_test("`ifdef: w/ `elsif, if-branch", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 3, 3, "wire"),
+   new_identifier(TkSymbol, 3, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 3, 19),
+   new_identifier(TkReg, 9, 0, "reg"),
+   new_identifier(TkSymbol, 9, 4, "a"),
+   new_token(TkSemicolon, 9, 5),
+]
+
+
+run_test("`ifdef: w/ `elsif, elsif-branch", """
+`define BAR
+`ifdef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 5, 3, "wire"),
+   new_identifier(TkSymbol, 5, 8, "my_bar_wire"),
+   new_token(TkSemicolon, 5, 19),
+   new_identifier(TkReg, 9, 0, "reg"),
+   new_identifier(TkSymbol, 9, 4, "a"),
+   new_token(TkSemicolon, 9, 5),
+]
+
+
+run_test("`ifdef: w/ `elsif, else-branch", """
+`ifdef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 6, 3, "wire"),
+   new_identifier(TkSymbol, 6, 8, "my_else_wire"),
+   new_token(TkSemicolon, 6, 20),
+   new_identifier(TkReg, 8, 0, "reg"),
+   new_identifier(TkSymbol, 8, 4, "a"),
+   new_token(TkSemicolon, 8, 5),
+]
+
+
+run_test("`ifndef: w/o `else, ignored", """
+`define FOO
+`ifndef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkReg, 5, 0, "reg"),
+   new_identifier(TkSymbol, 5, 4, "a"),
+   new_token(TkSemicolon, 5, 5),
+]
+
+
+run_test("`ifndef: w/o `else, included", """
+`ifndef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 2, 3, "wire"),
+   new_identifier(TkSymbol, 2, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 2, 19),
+   new_identifier(TkReg, 4, 0, "reg"),
+   new_identifier(TkSymbol, 4, 4, "a"),
+   new_token(TkSemicolon, 4, 5),
+]
+
+
+run_test("`ifndef: w/ `else, if-branch", """
+`ifndef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 2, 3, "wire"),
+   new_identifier(TkSymbol, 2, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 2, 19),
+   new_identifier(TkReg, 6, 0, "reg"),
+   new_identifier(TkSymbol, 6, 4, "a"),
+   new_token(TkSemicolon, 6, 5),
+]
+
+
+run_test("`ifndef: w/ `else, else-branch", """
+`define FOO
+`ifndef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 5, 3, "wire"),
+   new_identifier(TkSymbol, 5, 8, "my_else_wire"),
+   new_token(TkSemicolon, 5, 20),
+   new_identifier(TkReg, 7, 0, "reg"),
+   new_identifier(TkSymbol, 7, 4, "a"),
+   new_token(TkSemicolon, 7, 5),
+]
+
+
+run_test("`ifndef: w/ `elsif, if-branch", """
+`ifndef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 2, 3, "wire"),
+   new_identifier(TkSymbol, 2, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 2, 19),
+   new_identifier(TkReg, 8, 0, "reg"),
+   new_identifier(TkSymbol, 8, 4, "a"),
+   new_token(TkSemicolon, 8, 5),
+]
+
+
+run_test("`ifndef: w/ `elsif, elsif-branch", """
+`define FOO
+`define BAR
+`ifndef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 6, 3, "wire"),
+   new_identifier(TkSymbol, 6, 8, "my_bar_wire"),
+   new_token(TkSemicolon, 6, 19),
+   new_identifier(TkReg, 10, 0, "reg"),
+   new_identifier(TkSymbol, 10, 4, "a"),
+   new_token(TkSemicolon, 10, 5),
+]
+
+
+run_test("`ifndef: w/ `elsif, else-branch", """
+`define FOO
+`ifndef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, 7, 3, "wire"),
+   new_identifier(TkSymbol, 7, 8, "my_else_wire"),
+   new_token(TkSemicolon, 7, 20),
+   new_identifier(TkReg, 9, 0, "reg"),
+   new_identifier(TkSymbol, 9, 4, "a"),
+   new_token(TkSemicolon, 9, 5),
+]
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
