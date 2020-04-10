@@ -399,11 +399,9 @@ proc parse_constant_primary(p: var Parser): PNode =
          get_token(p)
          while true:
             add(result.sons, parse_constant_expression(p))
-            case p.tok.kind
-            of TkComma:
-               get_token(p)
-            else:
+            if p.tok.kind != TkComma:
                break
+            get_token(p)
          expect_token(p, result, TkRparen)
          get_token(p)
    of TkLparen:
@@ -1566,10 +1564,9 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
                get_token(p)
             else:
                add(result.sons, parse_constant_expression(p))
-               if p.tok.kind == TkRparen:
+               if p.tok.kind != TkComma:
                   break
-               elif p.tok.kind == TkComma:
-                  get_token(p)
+               get_token(p)
          expect_token(p, result, TkRparen)
          get_token(p)
       expect_token(p, result, TkSemicolon)
@@ -2273,9 +2270,11 @@ proc assume_source_text(p: var Parser): PNode =
    of TkPrimitive:
       # TODO: Implement
       result = new_error_node(p, NkCritical, UdpDeclarationNotSupported)
+      get_token(p)
    of TkConfig:
       # TODO: Implement
       result = new_error_node(p, NkCritical, ConfigDeclarationNotSupported)
+      get_token(p)
    else:
       result = unexpected_token(p)
 
