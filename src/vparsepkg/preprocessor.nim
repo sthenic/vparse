@@ -499,6 +499,11 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
    else:
       replacement_list = def.tokens
 
+   # Avoid adding an empty replacement list. We still have to read any arguments
+   # though.
+   if len(replacement_list) == 0:
+      return
+
    # Add the context entry to the top of the stack and disable the macro from
    # expanding until the context is popped.
    def.is_enabled = false
@@ -690,4 +695,3 @@ proc get_token*(pp: var Preprocessor, tok: var Token) =
       get_context_token(pp, tok)
    else:
       get_source_token(pp, tok)
-   # echo pretty(tok)

@@ -87,6 +87,12 @@ run_test("Object-like macro", """
 ]
 
 
+run_test("Object-like macro, empty", """
+`define FOO
+`FOO
+""", [])
+
+
 run_test("Object-like macro, multiline", """
 `define WIRE wire \
    [7:0]
@@ -229,6 +235,12 @@ run_test("Function-like macro", """
    new_identifier(TkSymbol, 2, 8, "a_reg"),
    new_token(TkSemicolon, 2, 13),
 ]
+
+
+run_test("Function-like macro, empty", """
+`define FOO(x, y)
+`FOO (1, 2)
+""", [])
 
 
 run_test("Incorrect spacing in function-like macro -> object-like", """
