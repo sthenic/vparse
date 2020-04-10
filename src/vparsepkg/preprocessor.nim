@@ -304,7 +304,7 @@ proc handle_else(pp: var Preprocessor) =
       get_token(pp)
       case pp.tok.kind
       of TkEndOfFile:
-         add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedEndOfFile)
+         # The error is added in prepare_token().
          break
       of TkDirective:
          case pp.tok.identifier.s
@@ -630,6 +630,15 @@ proc prepare_token(pp: var Preprocessor) =
             break
 
          case pp.tok.kind
+         of TkEndOfFile:
+            # If we've reached the end of the file, check if it's expected.
+            # We could be waiting for an `endif. After we've added the error
+            # token we set the semaphore to zero to avoid to keep on generating
+            # errors indefinately.
+            if pp.endif_semaphore > 0:
+               add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedEndOfFile)
+               pp.endif_semaphore = 0
+            break
          of TkDirective:
             if not handle_directive(pp):
                break

@@ -1059,7 +1059,15 @@ wire some_wire;
 ]
 
 
-run_test("`else unexpected end of file", """
+run_test("`ifdef/`else unexpected end of file", """
+`ifdef FOO
+`else
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("`ifndef/`else unexpected end of file", """
 `ifndef FOO
 `else
 """): [
