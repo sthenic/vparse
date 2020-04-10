@@ -519,6 +519,12 @@ proc handle_directive(pp: var Preprocessor): bool =
       handle_else(pp)
    of "endif":
       handle_endif(pp)
+   of "resetall":
+      # The `resetall directive should propagate out of the preprocessor since
+      # the implementation of the various directive handlers are spread between
+      # the preprocessor and the parser.
+      clear(pp.defines)
+      result = false
    else:
       # If we don't recognize the directive, check if it's a macro usage which
       # has a matching entry in the macro table. Otherwise, leave the token as

@@ -1105,6 +1105,30 @@ run_test("Conditional directives, broken syntax", """
 ]
 
 
+run_test("Clear defines with `resetall", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+`resetall
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, 3, 3, "wire"),
+   new_identifier(TkSymbol, 3, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 3, 19),
+   new_identifier(TkDirective, 7, 0, "resetall"),
+   new_identifier(TkWire, 11, 3, "wire"),
+   new_identifier(TkSymbol, 11, 8, "my_else_wire"),
+   new_token(TkSemicolon, 11, 20),
+]
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
