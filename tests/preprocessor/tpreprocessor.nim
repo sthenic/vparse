@@ -16,7 +16,7 @@ template run_test(title, stimuli: string, reference: openarray[Token]) =
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   open_preprocessor(pp, cache, "tpreprocessor", [""], new_string_stream(stimuli))
+   open_preprocessor(pp, cache, "tpreprocessor", ["include"], new_string_stream(stimuli))
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -559,6 +559,33 @@ wire [3:0] another_wire;
    new_token(TkRbracket, 2, 9),
    new_identifier(TkSymbol, 2, 11, "another_wire"),
    new_token(TkSemicolon, 2, 23),
+]
+
+
+run_test("Include file, depending on an include path", """
+`include "test1.vh"
+wire [3:0] another_wire;
+"""): [
+   new_identifier(TkReg, 1, 0, "reg"),
+   new_identifier(TkSymbol, 1, 4, "a_register"),
+   new_token(TkSemicolon, 1, 14),
+   new_identifier(TkWire, 2, 0, "wire"),
+   new_token(TkLbracket, 2, 5),
+   new_inumber(TkIntLit, 2, 6, 3, Base10, -1, "3"),
+   new_token(TkColon, 2, 7),
+   new_inumber(TkIntLit, 2, 8, 0, Base10, -1, "0"),
+   new_token(TkRbracket, 2, 9),
+   new_identifier(TkSymbol, 2, 11, "another_wire"),
+   new_token(TkSemicolon, 2, 23),
+]
+
+
+run_test("File cannot be found for `include -> error", """
+`include "test_invalid.vh"
+wire
+"""): [
+   new_error_token(1, 9, "Cannot open file 'test_invalid.vh'."),
+   new_identifier(TkWire, 2, 0, "wire"),
 ]
 
 

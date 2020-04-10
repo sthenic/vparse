@@ -6,6 +6,7 @@
 import streams
 import tables
 import strutils
+import os
 
 import ./lexer
 export lexer
@@ -48,6 +49,7 @@ const
    ExpectedToken = "Expected token $1, got $2."
    UnexpectedEndOfFile = "Unexpected end of file."
    WrongNumberOfArguments = "Expected $1 arguments, got $2."
+   CannotOpenFile = "Cannot open file '$1'."
 
 
 proc new_preprocessor_error(line, col: int, msg: string,
@@ -142,6 +144,8 @@ proc handle_define(pp: var Preprocessor) =
       return
    def.name = pp.tok
 
+   # FIXME: Validate name, compiler directives are not allowed to be redefined.
+
    # If the next character is '(', and it follows the macro name w/o any
    # whitespace, this is a function like macro and we attempt to read the
    # parameter list.
@@ -201,9 +205,26 @@ proc handle_undef(pp: var Preprocessor) =
       pp.tok = new_error_token(pp.tok.line, pp.tok.col, DirectiveArgLine,
                                pp.tok, "`undef")
       return
+   # FIXME: Undefining a macro that doesn't exist should result in an error node.
+   #        Should turn up as a warning though.
    # The del() proc does nothing if the key does not exist.
    del(pp.defines, pp.tok.identifier.s)
    get_token(pp)
+
+
+proc get_include_file(pp: Preprocessor, filename: string): string =
+   ## Return the full path to the file with name/path ``filename``. If the file
+   ## does not exist, a ``PreprocessorError`` is raised.
+   # If the file exists in the current directory or is a relative path we're
+   # done right away. Otherwise, check the include paths.
+   # FIXME: Environment variable for include path?
+   if file_exists(filename):
+      result = expand_filename(filename)
+   else:
+      for dir in pp.include_paths:
+         let tmp = dir / filename
+         if file_exists(tmp):
+            return expand_filename(tmp)
 
 
 proc handle_include(pp: var Preprocessor) =
@@ -220,14 +241,20 @@ proc handle_include(pp: var Preprocessor) =
                                pp.tok, "`include")
       return
 
-   # Create a new preprocessor for the include file.
-   # FIXME: Go through the inlcude paths etc.
-   new pp.pp_include
-   let fs = new_file_stream(pp.tok.literal)
-   assert fs != nil
-   open_preprocessor(pp.pp_include[], pp.lex.cache, pp.tok.literal,
-                     pp.include_paths, fs)
+   var filename = pp.tok.literal
+   let line = pp.tok.line
+   let col = pp.tok.col
+   let full_path = get_include_file(pp, filename)
    get_token(pp)
+   if len(full_path) == 0:
+      add(pp.error_tokens, new_error_token(line, col, CannotOpenFile, filename))
+      return
+
+   # Create a new preprocessor for the include file.
+   let fs = new_file_stream(full_path)
+   new pp.pp_include
+   open_preprocessor(pp.pp_include[], pp.lex.cache, full_path,
+                     pp.include_paths, fs)
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 
