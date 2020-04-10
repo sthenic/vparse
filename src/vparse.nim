@@ -58,6 +58,7 @@ if len(cli_state.output_file) != 0:
       log.info("Opened output file '$1'.", cli_state.output_file)
 
 var p: Parser
+var exit_val = ESUCCESS
 for filename in cli_state.input_files:
    let fs = new_file_stream(filename, fmRead)
    if fs == nil:
@@ -94,5 +95,7 @@ for filename in cli_state.input_files:
             format_float(t_diff_ms, ffDecimal, 1), " ms", resetStyle, ".")
 
    # TODO: Analyze errors and present a summary.
+   if has_errors(root_node):
+      exit_val = -EPARSE
 
-quit(ESUCCESS)
+quit(exit_val)

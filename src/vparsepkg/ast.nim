@@ -328,6 +328,20 @@ proc detailed_compare*(x, y: PNode) =
          detailed_compare(x.sons[i], y.sons[i])
 
 
+proc has_errors*(n: PNode): bool =
+   ## Returns ``true`` if the AST starting with the node ``n`` contains errors.
+   case n.kind
+   of ErrorTypes:
+      return true
+   of IdentifierTypes, IntegerTypes, NkRealLit, OperatorTypes, NkStrLit, NkWildcard:
+      return false
+   else:
+      for i in 0..<len(n.sons):
+         if has_errors(n.sons[i]):
+            return true
+      return false
+
+
 proc new_line_info*(line: uint16, col: int16): TLineInfo =
    result.line = line
    result.col = col
