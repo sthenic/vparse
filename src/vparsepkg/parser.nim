@@ -48,7 +48,7 @@ proc open_parser*(p: var Parser, cache: IdentifierCache,
    init(p.tok)
    init(p.next_tok)
    # FIXME: Add include paths.
-   open_preprocessor(p.pp, cache, filename, [""], s)
+   open_preprocessor(p.pp, cache, filename, [], s)
    get_token(p)
 
 

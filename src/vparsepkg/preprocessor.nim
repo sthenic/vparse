@@ -97,13 +97,22 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    init(pp.tok)
    init(pp.pp_tok)
    pp.endif_semaphore = 0
-   open_lexer(pp.lex, cache, filename, s)
    pp.defines = init_table[string, Define](64)
-   pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
-   add(pp.include_paths, include_paths)
+   pp.include_paths = new_seq_of_cap[string](len(pp.include_paths) + 1)
    pp.context_stack = new_seq_of_cap[Context](32)
    pp.error_tokens = new_seq_of_cap[Token](32)
    pp.pp_include = nil
+
+   # We add the include paths passed as an argument but not before we add the
+   # parent directory of the file itself. The parent directory always has
+   # priority.
+   if file_exists(filename):
+      let parent_dir = parent_dir(expand_filename(filename))
+      if parent_dir notin include_paths:
+         add(pp.include_paths, parent_dir)
+   add(pp.include_paths, include_paths)
+
+   open_lexer(pp.lex, cache, filename, s)
    get_token(pp.lex, pp.tok)
 
 
@@ -271,6 +280,9 @@ proc handle_include(pp: var Preprocessor) =
    # Create a new preprocessor for the include file.
    let fs = new_file_stream(full_path)
    new pp.pp_include
+   # var pp_include_paths = new_seq_of_cap[string](len(pp.include_paths) + 1)
+   # add(pp_include_paths, pp.include_paths)
+   # add(pp_include_paths, expand_filename(pp.lex.filename))
    open_preprocessor(pp.pp_include[], pp.lex.cache, full_path,
                      pp.include_paths, fs)
    get_token(pp.pp_include[], pp.pp_tok)
