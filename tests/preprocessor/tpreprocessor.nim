@@ -897,6 +897,134 @@ reg a;
 ]
 
 
+run_test("`ifdef: nested 1", """
+`ifdef FOO
+   wire my_foo_wire;
+   `ifdef BAR
+      wire my_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_wire;
+`else
+   wire my_foo_else_wire;
+   `ifndef BAR
+      wire my_not_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, 10, 3, "wire"),
+   new_identifier(TkSymbol, 10, 8, "my_foo_else_wire"),
+   new_token(TkSemicolon, 10, 24),
+   new_identifier(TkWire, 12, 6, "wire"),
+   new_identifier(TkSymbol, 12, 11, "my_not_bar_wire"),
+   new_token(TkSemicolon, 12, 26),
+   new_identifier(TkWire, 16, 3, "wire"),
+   new_identifier(TkSymbol, 16, 8, "another_foo_else_wire"),
+   new_token(TkSemicolon, 16, 29),
+]
+
+
+run_test("`ifdef: nested 2", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+   `ifdef BAR
+      wire my_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_wire;
+`else
+   wire my_foo_else_wire;
+   `ifndef BAR
+      wire my_not_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, 3, 3, "wire"),
+   new_identifier(TkSymbol, 3, 8, "my_foo_wire"),
+   new_token(TkSemicolon, 3, 19),
+   new_identifier(TkWire, 7, 6, "wire"),
+   new_identifier(TkSymbol, 7, 11, "my_bar_else_wire"),
+   new_token(TkSemicolon, 7, 27),
+   new_identifier(TkWire, 9, 3, "wire"),
+   new_identifier(TkSymbol, 9, 8, "another_foo_wire"),
+   new_token(TkSemicolon, 9, 24),
+]
+
+
+run_test("`ifdef: nested 3", """
+`define BAR
+`ifdef FOO
+   wire my_foo_wire;
+   `ifdef BAR
+      wire my_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_wire;
+`else
+   wire my_foo_else_wire;
+   `ifndef BAR
+      wire my_not_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, 11, 3, "wire"),
+   new_identifier(TkSymbol, 11, 8, "my_foo_else_wire"),
+   new_token(TkSemicolon, 11, 24),
+   new_identifier(TkWire, 15, 6, "wire"),
+   new_identifier(TkSymbol, 15, 11, "my_bar_else_wire"),
+   new_token(TkSemicolon, 15, 27),
+   new_identifier(TkWire, 17, 3, "wire"),
+   new_identifier(TkSymbol, 17, 8, "another_foo_else_wire"),
+   new_token(TkSemicolon, 17, 29),
+]
+
+
+run_test("Conditional include: if-branch", """
+`define FOO
+`ifdef FOO
+   `include "test1.vh"
+`else
+   `include "test2.vh"
+`endif
+"""): [
+   new_identifier(TkReg, 1, 0, "reg"),
+   new_identifier(TkSymbol, 1, 4, "a_register"),
+   new_token(TkSemicolon, 1, 14),
+]
+
+
+run_test("Conditional include: else-branch", """
+`ifdef FOO
+   `include "test1.vh"
+`else
+   `include "test2.vh"
+`endif
+"""): [
+   new_identifier(TkWire, 1, 0, "wire"),
+   new_identifier(TkSymbol, 1, 5, "wire2"),
+   new_token(TkSemicolon, 1, 10),
+   new_identifier(TkWire, 1, 0, "wire"),
+   new_identifier(TkSymbol, 1, 5, "wire3"),
+   new_token(TkSemicolon, 1, 10),
+   new_identifier(TkWire, 3, 0, "wire"),
+   new_identifier(TkSymbol, 3, 5, "next_to_last_wire"),
+   new_token(TkSemicolon, 3, 22),
+]
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

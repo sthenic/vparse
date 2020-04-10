@@ -280,6 +280,7 @@ proc handle_else(pp: var Preprocessor) =
    # while tokens from an _active_ `ifdef/`ifndef/`elif branch. Now we have
    # to remove all the subsequent tokens from the stream until we hit the end
    # of the file (an error condition) or a closing `endif directive.
+   let semaphore_reference = pp.endif_semaphore
    while true:
       get_token(pp)
       case pp.tok.kind
@@ -288,10 +289,13 @@ proc handle_else(pp: var Preprocessor) =
          break
       of TkDirective:
          case pp.tok.identifier.s
+         of "ifdef", "ifndef":
+            inc(pp.endif_semaphore)
          of "endif":
-            get_token(pp)
-            dec(pp.endif_semaphore)
-            break
+            if pp.endif_semaphore == semaphore_reference:
+               get_token(pp)
+               dec(pp.endif_semaphore)
+               break
          else:
             discard
       else:
@@ -327,15 +331,18 @@ proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
 
    # If we should take the if-branch, we skip to the next token and increment
    # the endif semaphore to expect an `endif directive later on. Otherwise, we
-   # start removing tokens until one of four things happens:
+   # start removing tokens until one of five things happens:
    #   1. The file ends (error condition).
-   #   2. We find an `elsif directive in which case we recusively call this
+   #   2. We find an `ifdef or `ifndef directive in which case we increment the
+   #      semaphore to match w/ the correct `endif token and continue discarding.
+   #   3. We find an `elsif directive in which case we recusively call this
    #      function and break since the logic is the same.
-   #   3. We find an `else directive in which case we know that the following
+   #   4. We find an `else directive in which case we know that the following
    #      lines of souce code should be included. We increment the endif
    #      semaphore and break.
-   #   4. We find an `endif directive in which case we remove that token from
+   #   5. We find an `endif directive in which case we remove that token from
    #      the stream and break.
+   let semaphore_reference = pp.endif_semaphore
    if take_if_branch:
       get_token(pp)
       inc(pp.endif_semaphore)
@@ -348,16 +355,22 @@ proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
             break
          of TkDirective:
             case pp.tok.identifier.s
+            of "ifdef", "ifndef":
+               inc(pp.endif_semaphore)
             of "elsif":
                handle_ifdef(pp)
                break
             of "else":
-               get_token(pp)
-               inc(pp.endif_semaphore)
-               break
+               if pp.endif_semaphore == semaphore_reference:
+                  get_token(pp)
+                  inc(pp.endif_semaphore)
+                  break
             of "endif":
-               get_token(pp)
-               break
+               if pp.endif_semaphore == semaphore_reference:
+                  get_token(pp)
+                  break
+               else:
+                  dec(pp.endif_semaphore)
             else:
                discard
          else:
