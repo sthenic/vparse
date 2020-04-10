@@ -55,12 +55,20 @@ run_test("Missing macro name -> error", """
 ]
 
 
-run_test("Macro name not on the same line as the `define directive.", """
+run_test("Macro name not on the same line as the `define directive", """
 `define
 FOO Hello
 """): [
    new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `define directive."),
    new_identifier(TkSymbol, 2, 4, "Hello"),
+]
+
+
+run_test("Attempting to redefine compiler directive", """
+`define define FOO
+"""): [
+   new_error_token(1, 8, "Attempting to redefine protected macro name 'define'."),
+   new_identifier(TkSymbol, 1, 15, "FOO"),
 ]
 
 

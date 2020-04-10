@@ -50,6 +50,13 @@ const
    UnexpectedEndOfFile = "Unexpected end of file."
    WrongNumberOfArguments = "Expected $1 arguments, got $2."
    CannotOpenFile = "Cannot open file '$1'."
+   RedefineProtected = "Attempting to redefine protected macro name $1."
+   ProtectedMacroNames = [
+      "begin_keywords", "celldefine", "default_nettype", "define", "else",
+      "elsif", "end_keywords", "endcelldefine", "endif", "ifdef", "ifndef",
+      "include", "line", "nounconnected_drive", "pragma", "resetall",
+      "timescale", "unconnected_drive", "undef"
+   ]
 
 
 proc new_preprocessor_error(line, col: int, msg: string,
@@ -83,7 +90,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    init(pp.tok)
    init(pp.pp_tok)
    open_lexer(pp.lex, cache, filename, s)
-   pp.defines = init_table[string, Define](32)
+   pp.defines = init_table[string, Define](64)
    pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
    add(pp.include_paths, include_paths)
    pp.context_stack = new_seq_of_cap[Context](32)
@@ -144,7 +151,10 @@ proc handle_define(pp: var Preprocessor) =
       return
    def.name = pp.tok
 
-   # FIXME: Validate name, compiler directives are not allowed to be redefined.
+   if def.name.identifier.s in ProtectedMacroNames:
+      pp.tok = new_error_token(pp.tok.line, pp.tok.col,RedefineProtected,
+                               def.name)
+      return
 
    # If the next character is '(', and it follows the macro name w/o any
    # whitespace, this is a function like macro and we attempt to read the
