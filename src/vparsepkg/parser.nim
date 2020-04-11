@@ -33,12 +33,17 @@ const
 proc handle_directive(p: var Parser) =
    # When handling directives we read tokens directly from the preprocessor.
    # FIXME: Think about how to communicate errors. Setting next_tok?
-   # FIXME: Right now we remove all tokens until we find one on a new line.
-   let line = p.next_tok.line
-   while true:
+   # FIXME: Right now we remove all tokens until we find one on a new line for
+   #        directives that take arguments. Otherwise, we remove just the token.
+   case p.next_tok.identifier.s
+   of "default_nettype", "timescale", "begin_keywords":
+      let line = p.next_tok.line
+      while true:
+         get_token(p.pp, p.next_tok)
+         if p.next_tok.kind == TkEndOfFile or p.next_tok.line - line > 0:
+            break
+   else:
       get_token(p.pp, p.next_tok)
-      if p.next_tok.kind == TkEndOfFile or p.next_tok.line - line > 0:
-         break
 
 
 proc get_token(p: var Parser) =
