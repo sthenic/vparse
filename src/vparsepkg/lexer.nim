@@ -154,7 +154,7 @@ const
       "Directive", "Dollar", "One-line comment", "Block comment", "Error", "[EOF]"
    ]
 
-   Directives = [
+   Directives* = [
       "begin_keywords", "celldefine", "default_nettype", "define", "else",
       "elsif", "end_keywords", "endcelldefine", "endif", "ifdef", "ifndef",
       "include", "line", "nounconnected_drive", "pragma", "resetall",

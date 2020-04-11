@@ -53,12 +53,6 @@ const
    WrongNumberOfArguments = "Expected $1 arguments, got $2."
    CannotOpenFile = "Cannot open file '$1'."
    RedefineProtected = "Attempting to redefine protected macro name $1."
-   ProtectedMacroNames = [
-      "begin_keywords", "celldefine", "default_nettype", "define", "else",
-      "elsif", "end_keywords", "endcelldefine", "endif", "ifdef", "ifndef",
-      "include", "line", "nounconnected_drive", "pragma", "resetall",
-      "timescale", "unconnected_drive", "undef"
-   ]
 
 
 proc new_preprocessor_error(line, col: int, msg: string,
@@ -171,7 +165,7 @@ proc handle_define(pp: var Preprocessor) =
    def.name = pp.tok
    var last_tok_line = def.origin.line
 
-   if def.name.identifier.s in ProtectedMacroNames:
+   if def.name.identifier.s in Directives:
       add_error_token(pp, pp.tok.line, pp.tok.col, RedefineProtected, def.name)
       get_token(pp)
       return
