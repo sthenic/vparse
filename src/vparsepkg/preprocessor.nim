@@ -94,20 +94,12 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    init(pp.pp_tok)
    pp.endif_semaphore = 0
    pp.defines = init_table[string, Define](64)
-   pp.include_paths = new_seq_of_cap[string](len(pp.include_paths) + 1)
+   pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
    pp.context_stack = new_seq_of_cap[Context](32)
    pp.error_tokens = new_seq_of_cap[Token](32)
    pp.pp_include = nil
 
-   # We add the include paths passed as an argument but not before we add the
-   # parent directory of the file itself. The parent directory always has
-   # priority.
-   if file_exists(filename):
-      let parent_dir = parent_dir(expand_filename(filename))
-      if parent_dir notin include_paths:
-         add(pp.include_paths, parent_dir)
    add(pp.include_paths, include_paths)
-
    open_lexer(pp.lex, cache, filename, s)
    get_token(pp.lex, pp.tok)
 
@@ -240,16 +232,17 @@ proc handle_undef(pp: var Preprocessor) =
 proc get_include_file(pp: Preprocessor, filename: string): string =
    ## Return the full path to the file with name/path ``filename``. If the file
    ## does not exist, a ``PreprocessorError`` is raised.
-   # If the file exists in the current directory or is a relative path we're
-   # done right away. Otherwise, check the include paths.
    # FIXME: Environment variable for include path?
-   if file_exists(filename):
-      result = expand_filename(filename)
+   # If the file exists relative to the parent directory of the current file,
+   # we're done right away. Otherwise, we go through the include paths.
+   let path_relative_parent_dir = parent_dir(pp.lex.filename) / filename
+   if file_exists(path_relative_parent_dir):
+      return path_relative_parent_dir
    else:
       for dir in pp.include_paths:
          let tmp = dir / filename
          if file_exists(tmp):
-            return expand_filename(tmp)
+            return tmp
 
 
 proc handle_include(pp: var Preprocessor) =
