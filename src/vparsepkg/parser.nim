@@ -66,12 +66,12 @@ proc get_token(p: var Parser) =
 
 
 proc open_parser*(p: var Parser, cache: IdentifierCache,
-                  filename: string, s: Stream,
+                  s: Stream, filename: string,
                   add_to_index: proc(filename: string): int) =
    init(p.tok)
    init(p.next_tok)
    # FIXME: Add include paths.
-   open_preprocessor(p.pp, cache, filename, [], s, add_to_index)
+   open_preprocessor(p.pp, cache, s, filename, add_to_index, [])
    get_token(p)
 
 
@@ -2294,21 +2294,19 @@ proc parse_all*(p: var Parser): PNode =
          add(result.sons, n)
 
 
-proc parse_string*(s: string, cache: IdentifierCache,
-                   filename: string = ""):  PNode =
+proc parse_string*(s: string, cache: IdentifierCache):  PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   open_parser(p, cache, filename, ss, nil)
+   open_parser(p, cache, ss, "", nil)
    result = parse_all(p)
    close_parser(p)
 
 
 # Procedure used by the test framework to parse subsets of the grammar.
-proc parse_specific_grammar*(s: string, cache: IdentifierCache,
-                             kind: NodeKind, filename: string = ""): PNode =
+proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind): PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   open_parser(p, cache, filename, ss, nil)
+   open_parser(p, cache, ss, "", nil)
 
    var parse_proc: proc (p: var Parser): PNode
    case kind

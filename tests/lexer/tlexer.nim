@@ -5,7 +5,6 @@ import strformat
 import ../../src/vparsepkg/lexer
 import ./constructors
 
-var response: seq[string] = @[]
 var nof_passed = 0
 var nof_failed = 0
 var lex: Lexer
@@ -17,7 +16,7 @@ template run_test(title, stimuli: string; reference: seq[Token],
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   open_lexer(lex, cache, "", 0, new_string_stream(stimuli))
+   open_lexer(lex, cache, new_string_stream(stimuli), "", 0)
    while true:
       get_token(lex, tok)
       if tok.kind == TokenKind.TkEndOfFile:

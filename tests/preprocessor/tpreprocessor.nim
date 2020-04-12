@@ -27,8 +27,7 @@ template run_test(title, stimuli: string, reference: openarray[Token]) =
    var tok: Token
    init(tok)
    set_len(file_index, 0)
-   open_preprocessor(pp, cache, "tpreprocessor", ["include"], new_string_stream(stimuli),
-                     add_to_index)
+   open_preprocessor(pp, cache, new_string_stream(stimuli), "", add_to_index, ["include"])
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:

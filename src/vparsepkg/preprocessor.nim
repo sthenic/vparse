@@ -88,8 +88,9 @@ template update_origin(pp: Preprocessor, o: var Origin) =
 
 
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
-                        filename: string, include_paths: openarray[string],
-                        s: Stream, add_to_index: proc(filename: string): int) =
+                        s: Stream, filename: string,
+                        add_to_index: proc(filename: string): int,
+                        include_paths: openarray[string]) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
    init(pp.pp_tok)
@@ -106,7 +107,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    if pp.add_to_index != nil:
       file_idx = pp.add_to_index(filename)
 
-   open_lexer(pp.lex, cache, filename, file_idx, s)
+   open_lexer(pp.lex, cache, s, filename, file_idx)
    get_token(pp.lex, pp.tok)
 
 
@@ -277,8 +278,8 @@ proc handle_include(pp: var Preprocessor) =
    # Create a new preprocessor for the include file.
    let fs = new_file_stream(full_path)
    new pp.pp_include
-   open_preprocessor(pp.pp_include[], pp.lex.cache, full_path,
-                     pp.include_paths, fs, pp.add_to_index)
+   open_preprocessor(pp.pp_include[], pp.lex.cache, fs, full_path,
+                     pp.add_to_index, pp.include_paths)
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 
@@ -613,6 +614,7 @@ proc prepare_token(pp: var Preprocessor) =
       # other sources. Additionally, any defines active at the end of the
       # processed include file is added to the defines on this level.
       if pp.pp_tok.kind == TkEndOfFile:
+         # FIXME: Include file stream is dangling and not being closed.
          close_preprocessor(pp.pp_include[])
          merge(pp.defines, pp.pp_include.defines)
          pp.pp_include = nil

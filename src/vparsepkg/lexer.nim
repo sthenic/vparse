@@ -843,8 +843,8 @@ proc get_token*(l: var Lexer, tok: var Token) =
          inc(l.bufpos)
 
 
-proc open_lexer*(l: var Lexer, cache: IdentifierCache, filename: string,
-                 file_index: int, s: Stream) =
+proc open_lexer*(l: var Lexer, cache: IdentifierCache, s: Stream,
+                 filename: string, file_index: int) =
    lexbase.open(l, s)
    l.filename = filename
    l.cache = cache
