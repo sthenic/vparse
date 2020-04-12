@@ -32,13 +32,13 @@ type
       lex: Lexer
       tok: Token
       pp_tok: Token
+      endif_semaphore: int
       defines: Table[string, Define]
       include_paths: seq[string]
       context_stack: seq[Context]
       error_tokens: seq[Token]
       pp_include: ref Preprocessor
-      endif_semaphore: int
-      add_to_index: proc(filename: string): int
+      file_index: ref seq[string]
 
    PreprocessorError = object of ValueError
       line, col: int
@@ -87,9 +87,19 @@ template update_origin(pp: Preprocessor, o: var Origin) =
    o.col = pp.tok.col
 
 
+proc add_to_index(pp: var Preprocessor, filename: string): int =
+   ## Add a file to the graph's file index and return its index.
+   let idx = find(pp.file_index[], filename)
+   if idx < 0:
+      add(pp.file_index[], filename)
+      result = high(pp.file_index[])
+   else:
+      result = idx
+
+
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         s: Stream, filename: string,
-                        add_to_index: proc(filename: string): int,
+                        file_index: ref seq[string],
                         include_paths: openarray[string]) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
@@ -100,14 +110,10 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    pp.context_stack = new_seq_of_cap[Context](32)
    pp.error_tokens = new_seq_of_cap[Token](32)
    pp.pp_include = nil
-   pp.add_to_index = add_to_index
+   pp.file_index = file_index
 
    add(pp.include_paths, include_paths)
-   var file_idx = 0
-   if pp.add_to_index != nil:
-      file_idx = pp.add_to_index(filename)
-
-   open_lexer(pp.lex, cache, s, filename, file_idx)
+   open_lexer(pp.lex, cache, s, filename, add_to_index(pp, filename))
    get_token(pp.lex, pp.tok)
 
 
@@ -279,7 +285,7 @@ proc handle_include(pp: var Preprocessor) =
    let fs = new_file_stream(full_path)
    new pp.pp_include
    open_preprocessor(pp.pp_include[], pp.lex.cache, fs, full_path,
-                     pp.add_to_index, pp.include_paths)
+                     pp.file_index, pp.include_paths)
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 

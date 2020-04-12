@@ -10,24 +10,16 @@ var nof_passed = 0
 var nof_failed = 0
 var pp: Preprocessor
 var cache = new_ident_cache()
-var file_index: seq[string]
-
-
-proc add_to_index(filename: string): int =
-   let idx = find(file_index, filename)
-   if idx < 0:
-      add(file_index, filename)
-      result = high(file_index)
-   else:
-      result = idx
+var file_index: ref seq[string]
+new file_index
 
 
 template run_test(title, stimuli: string, reference: openarray[Token]) =
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   set_len(file_index, 0)
-   open_preprocessor(pp, cache, new_string_stream(stimuli), "", add_to_index, ["include"])
+   set_len(file_index[], 0)
+   open_preprocessor(pp, cache, new_string_stream(stimuli), "", file_index, ["include"])
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -1160,6 +1152,7 @@ wire my_wire;
    new_identifier(TkSymbol, 2, 5, "my_wire"),
    new_token(TkSemicolon, 2, 12),
 ]
+
 
 
 # Print summary
