@@ -66,11 +66,12 @@ proc get_token(p: var Parser) =
 
 
 proc open_parser*(p: var Parser, cache: IdentifierCache,
-                  filename: string, s: Stream) =
+                  filename: string, s: Stream,
+                  add_to_index: proc(filename: string): int) =
    init(p.tok)
    init(p.next_tok)
    # FIXME: Add include paths.
-   open_preprocessor(p.pp, cache, filename, [], s)
+   open_preprocessor(p.pp, cache, filename, [], s, add_to_index)
    get_token(p)
 
 
@@ -2297,7 +2298,7 @@ proc parse_string*(s: string, cache: IdentifierCache,
                    filename: string = ""):  PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   open_parser(p, cache, filename, ss)
+   open_parser(p, cache, filename, ss, nil)
    result = parse_all(p)
    close_parser(p)
 
@@ -2307,7 +2308,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache,
                              kind: NodeKind, filename: string = ""): PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   open_parser(p, cache, filename, ss)
+   open_parser(p, cache, filename, ss, nil)
 
    var parse_proc: proc (p: var Parser): PNode
    case kind

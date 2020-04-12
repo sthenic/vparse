@@ -12,30 +12,12 @@ var lex: Lexer
 var cache = new_ident_cache()
 
 
-template echo_response(title, stimuli: string) =
-   var response: seq[Token] = @[]
-   var tok: Token
-   init(tok)
-   open_lexer(lex, "test", new_string_stream(stimuli))
-   while true:
-      get_token(lex, tok)
-      if tok.kind == TokenKind.TkEndOfFile:
-         break
-      add(response, tok)
-   close_lexer(lex)
-
-   styledWriteLine(stdout, styleBright, fgYellow, "[!] ",
-                   fgWhite, "Response '",  title, "'")
-   for t in response:
-      echo t
-
-
 template run_test(title, stimuli: string; reference: seq[Token],
                   debug: bool = false) =
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   open_lexer(lex, cache, "", new_string_stream(stimuli))
+   open_lexer(lex, cache, "", 0, new_string_stream(stimuli))
    while true:
       get_token(lex, tok)
       if tok.kind == TokenKind.TkEndOfFile:

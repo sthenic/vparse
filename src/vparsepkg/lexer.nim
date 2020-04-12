@@ -65,10 +65,12 @@ type
       base*: NumericalBase # The numerical base
       size*: int # The size field of number
       line*, col*: int
+      file_index*: int
 
    Lexer* = object of BaseLexer
       filename*: string
       cache*: IdentifierCache
+      file_index*: int
 
 
 const
@@ -220,6 +222,7 @@ proc pretty*(t: Token): string =
    add(result, ", fnumber: " & $t.fnumber)
    add(result, ", base: " & $t.base)
    add(result, ", size: " & $t.size)
+   add(result, ", file_index: " & $t.file_index)
    add(result, ")")
 
 
@@ -325,6 +328,7 @@ template update_token_position(l: Lexer, tok: var Token) =
    # FIXME: This is wrong when pos is something other than l.bufpos.
    tok.col = get_col_number(l, l.bufpos)
    tok.line = l.lineNumber
+   tok.file_index = l.file_index
 
 
 proc skip(l: var Lexer, pos: int): int =
@@ -840,16 +844,11 @@ proc get_token*(l: var Lexer, tok: var Token) =
 
 
 proc open_lexer*(l: var Lexer, cache: IdentifierCache, filename: string,
-                 s: Stream) =
+                 file_index: int, s: Stream) =
    lexbase.open(l, s)
    l.filename = filename
    l.cache = cache
-
-
-# This proc is needed for the test framework since we somehow cannot initialize
-# a cache from a template?
-proc open_lexer*(l: var Lexer, filename: string, s: Stream) =
-   open_lexer(l, new_ident_cache(), filename, s)
+   l.file_index = file_index
 
 
 proc close_lexer*(l: var Lexer) =

@@ -38,6 +38,7 @@ type
       error_tokens: seq[Token]
       pp_include: ref Preprocessor
       endif_semaphore: int
+      add_to_index: proc(filename: string): int
 
    PreprocessorError = object of ValueError
       line, col: int
@@ -88,7 +89,7 @@ template update_origin(pp: Preprocessor, o: var Origin) =
 
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         filename: string, include_paths: openarray[string],
-                        s: Stream) =
+                        s: Stream, add_to_index: proc(filename: string): int) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
    init(pp.pp_tok)
@@ -98,9 +99,14 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    pp.context_stack = new_seq_of_cap[Context](32)
    pp.error_tokens = new_seq_of_cap[Token](32)
    pp.pp_include = nil
+   pp.add_to_index = add_to_index
 
    add(pp.include_paths, include_paths)
-   open_lexer(pp.lex, cache, filename, s)
+   var file_idx = 0
+   if pp.add_to_index != nil:
+      file_idx = pp.add_to_index(filename)
+
+   open_lexer(pp.lex, cache, filename, file_idx, s)
    get_token(pp.lex, pp.tok)
 
 
@@ -271,11 +277,8 @@ proc handle_include(pp: var Preprocessor) =
    # Create a new preprocessor for the include file.
    let fs = new_file_stream(full_path)
    new pp.pp_include
-   # var pp_include_paths = new_seq_of_cap[string](len(pp.include_paths) + 1)
-   # add(pp_include_paths, pp.include_paths)
-   # add(pp_include_paths, expand_filename(pp.lex.filename))
    open_preprocessor(pp.pp_include[], pp.lex.cache, full_path,
-                     pp.include_paths, fs)
+                     pp.include_paths, fs, pp.add_to_index)
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 
