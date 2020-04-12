@@ -30,12 +30,7 @@ template run_test(title, stimuli: string, reference: PNode) =
 
 
 proc li(line: uint16, col: int16): TLineInfo =
-   result = new_line_info(line, col - 1)
-
-
-# Wrapper for a constant primary expression
-template cprim(n: PNode): PNode =
-   n
+   result = new_line_info(line, col - 1, 0)
 
 
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
@@ -50,73 +45,73 @@ Test suite: constant expression
 
 # Run tests
 run_test("Constant primary: numbers, decimal signed", "1234567890"):
-   cprim(new_inumber_node(NkIntLit, li(1, 1), 1234567890, "1234567890", Base10, -1))
+   new_inumber_node(NkIntLit, li(1, 1), 1234567890, "1234567890", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "32'd2617"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), 2617, "2617", Base10, 32))
+   new_inumber_node(NkUIntLit, li(1, 1), 2617, "2617", Base10, 32)
 
 run_test("Constant primary: numbers, decimal number w/ base", "18'D32"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), 32, "32", Base10, 18))
+   new_inumber_node(NkUIntLit, li(1, 1), 32, "32", Base10, 18)
 
 run_test("Constant primary: numbers, decimal number w/ base", "'d77"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), 77, "77", Base10, -1))
+   new_inumber_node(NkUIntLit, li(1, 1), 77, "77", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "'sd90"):
-   cprim(new_inumber_node(NkIntLit, li(1, 1), 90, "90", Base10, -1))
+   new_inumber_node(NkIntLit, li(1, 1), 90, "90", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "'Sd100"):
-   cprim(new_inumber_node(NkIntLit, li(1, 1), 100, "100", Base10, -1))
+   new_inumber_node(NkIntLit, li(1, 1), 100, "100", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "5'D 3"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), 3, "3", Base10, 5))
+   new_inumber_node(NkUIntLit, li(1, 1), 3, "3", Base10, 5)
 
 run_test("Constant primary: numbers, underscore", "2617_123_"):
-   cprim(new_inumber_node(NkIntLit, li(1, 1), 2617123, "2617123", Base10, -1))
+   new_inumber_node(NkIntLit, li(1, 1), 2617123, "2617123", Base10, -1)
 
 run_test("Constant primary: numbers, decimal X-digit", "16'dX_"):
-   cprim(new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "x", Base10, 16))
+   new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "x", Base10, 16)
 
 run_test("Constant primary: numbers, decimal Z-digit", "16'DZ_"):
-   cprim(new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "z", Base10, 16))
+   new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "z", Base10, 16)
 
 run_test("Constant primary: numbers, decimal Z-digit", "2'd?"):
-   cprim(new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "?", Base10, 2))
+   new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "?", Base10, 2)
 
 run_test("Constant primary: numbers, decimal negative (unary)", "-13"):
-   cprim(new_node(NkPrefix, li(1, 1), @[
+   new_node(NkPrefix, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "-"),
-      cprim(new_inumber_node(NkIntLit, li(1, 2), 13, "13", Base10, -1))
-   ]))
+      new_inumber_node(NkIntLit, li(1, 2), 13, "13", Base10, -1)
+   ])
 
 run_test("Constant primary: numbers, decimal positive (unary)", "+3"):
-   cprim(new_node(NkPrefix, li(1, 1), @[
+   new_node(NkPrefix, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "+"),
-      cprim(new_inumber_node(NkIntLit, li(1, 2), 3, "3", Base10, -1))
-   ]))
+      new_inumber_node(NkIntLit, li(1, 2), 3, "3", Base10, -1)
+   ])
 
 run_test("Constant primary: numbers, invalid decimal", "'dAF"):
-   cprim(new_node(NkTokenError, li(1, 1)))
+   new_node(NkTokenError, li(1, 1))
 
 run_test("Constant primary: numbers, simple real", "3.14159"):
-   cprim(new_fnumber_node(NkRealLit, li(1, 1), 3.14159, "3.14159"))
+   new_fnumber_node(NkRealLit, li(1, 1), 3.14159, "3.14159")
 
 run_test("Constant primary: numbers, real (positive exponent)", "1e2"):
-   cprim(new_fnumber_node(NkRealLit, li(1, 1), 100, "1e2"))
+   new_fnumber_node(NkRealLit, li(1, 1), 100, "1e2")
 
 run_test("Constant primary: numbers, real (negative exponent)", "1e-2"):
-   cprim(new_fnumber_node(NkRealLit, li(1, 1), 0.01, "1e-2"))
+   new_fnumber_node(NkRealLit, li(1, 1), 0.01, "1e-2")
 
 run_test("Constant primary: numbers, binary", "8'B10000110"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), 134, "10000110", Base2, 8))
+   new_inumber_node(NkUIntLit, li(1, 1), 134, "10000110", Base2, 8)
 
 run_test("Constant primary: numbers, octal", "6'O6721"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), 3537, "6721", Base8, 6))
+   new_inumber_node(NkUIntLit, li(1, 1), 3537, "6721", Base8, 6)
 
 run_test("Constant primary: numbers, hex", "32'hFFFF_FFFF"):
-   cprim(new_inumber_node(NkUIntLit, li(1, 1), (1 shl 32)-1, "FFFFFFFF", Base16, 32))
+   new_inumber_node(NkUIntLit, li(1, 1), (1 shl 32)-1, "FFFFFFFF", Base16, 32)
 
 run_test("Constant primary: identifier", "FOO"):
-   cprim(new_identifier_node(NkIdentifier, li(1, 1), "FOO"))
+   new_identifier_node(NkIdentifier, li(1, 1), "FOO")
 
 run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
    new_node(NkRangedIdentifier, li(1, 1), @[
@@ -124,27 +119,27 @@ run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
       new_node(NkConstantRangeExpression, li(1, 4), @[
          new_node(NkInfix, li(1, 10), @[
             new_identifier_node(NkIdentifier, li(1, 10), "-"),
-            cprim(new_identifier_node(NkIdentifier, li(1, 5), "WIDTH")),
-            cprim(new_inumber_node(NkIntLit, li(1, 11), 1, "1", Base10, -1))
+            new_identifier_node(NkIdentifier, li(1, 5), "WIDTH"),
+            new_inumber_node(NkIntLit, li(1, 11), 1, "1", Base10, -1)
          ]),
-         cprim(new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1))
+         new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
       ])
    ])
 
 run_test("Constant primary: concatenation", "{64, 32, foobar}"):
-   cprim(new_node(NkConstantConcat, li(1, 1), @[
-      cprim(new_inumber_node(NkIntLit, li(1, 2), 64, "64", Base10, -1)),
-      cprim(new_inumber_node(NkIntLit, li(1, 6), 32, "32", Base10, -1)),
-      cprim(new_identifier_node(NkIdentifier, li(1, 10), "foobar"))
-   ]))
+   new_node(NkConstantConcat, li(1, 1), @[
+      new_inumber_node(NkIntLit, li(1, 2), 64, "64", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 6), 32, "32", Base10, -1),
+      new_identifier_node(NkIdentifier, li(1, 10), "foobar")
+   ])
 
 run_test("Constant primary: multiple concatenation", "{32{2'b01}}"):
-   cprim(new_node(NkConstantMultipleConcat, li(1, 1), @[
-      cprim(new_inumber_node(NkIntLit, li(1, 2), 32, "32", Base10, -1)),
+   new_node(NkConstantMultipleConcat, li(1, 1), @[
+      new_inumber_node(NkIntLit, li(1, 2), 32, "32", Base10, -1),
       new_node(NkConstantConcat, li(1, 4), @[
-         cprim(new_inumber_node(NkUIntLit, li(1, 5), 1, "01", Base2, 2)),
+         new_inumber_node(NkUIntLit, li(1, 5), 1, "01", Base2, 2),
       ])
-   ]))
+   ])
 
 run_test("Constant primary: nested concatenation", "{{(WIDTH-1){1'b0}}, 1'b1}"):
    new_node(NkConstantConcat, li(1, 1), @[
@@ -164,48 +159,48 @@ run_test("Constant primary: nested concatenation", "{{(WIDTH-1){1'b0}}, 1'b1}"):
    ])
 
 run_test("Constant primary: function call", "myfun (* attr = val *) (2, 3, MYCONST)"):
-   cprim(new_node(NkConstantFunctionCall, li(1, 1), @[
+   new_node(NkConstantFunctionCall, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "myfun"),
       new_node(NkAttributeInst, li(1, 7), @[
          new_identifier_node(NkAttributeName, li(1, 10), "attr"),
-         cprim(new_identifier_node(NkIdentifier, li(1, 17), "val"))
+         new_identifier_node(NkIdentifier, li(1, 17), "val")
       ]),
-      cprim(new_inumber_node(NkIntLit, li(1, 25), 2, "2", Base10, -1)),
-      cprim(new_inumber_node(NkIntLit, li(1, 28), 3, "3", Base10, -1)),
-      cprim(new_identifier_node(NkIdentifier, li(1, 31), "MYCONST"))
-   ]))
+      new_inumber_node(NkIntLit, li(1, 25), 2, "2", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 28), 3, "3", Base10, -1),
+      new_identifier_node(NkIdentifier, li(1, 31), "MYCONST")
+   ])
 
 run_test("Constant primary: system function call", "$clog2(2, 3, MYCONST)"):
-   cprim(new_node(NkConstantSystemFunctionCall, li(1, 1), @[
+   new_node(NkConstantSystemFunctionCall, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "clog2"),
-      cprim(new_inumber_node(NkIntLit, li(1, 8), 2, "2", Base10, -1)),
-      cprim(new_inumber_node(NkIntLit, li(1, 11), 3, "3", Base10, -1)),
-      cprim(new_identifier_node(NkIdentifier, li(1, 14), "MYCONST"))
-   ]))
+      new_inumber_node(NkIntLit, li(1, 8), 2, "2", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 11), 3, "3", Base10, -1),
+      new_identifier_node(NkIdentifier, li(1, 14), "MYCONST")
+   ])
 
 run_test("Constant primary: system function call, no arguments", "$times"):
-   cprim(new_node(NkConstantSystemFunctionCall, li(1, 1), @[
+   new_node(NkConstantSystemFunctionCall, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "times")
-   ]))
+   ])
 
 run_test("Constant primary: mintypmax", "(2'b00:8'd32:MYMAX)"):
    new_node(NkParenthesis, li(1, 1), @[
-      cprim(new_node(NkConstantMinTypMaxExpression, li(1, 2), @[
-         cprim(new_inumber_node(NkUIntLit, li(1, 2), 0, "00", Base2, 2)),
-         cprim(new_inumber_node(NkUIntLit, li(1, 8), 32, "32", Base10, 8)),
-         cprim(new_identifier_node(NkIdentifier, li(1, 14), "MYMAX"))
-      ]))
+      new_node(NkConstantMinTypMaxExpression, li(1, 2), @[
+         new_inumber_node(NkUIntLit, li(1, 2), 0, "00", Base2, 2),
+         new_inumber_node(NkUIntLit, li(1, 8), 32, "32", Base10, 8),
+         new_identifier_node(NkIdentifier, li(1, 14), "MYMAX")
+      ])
    ])
 
 run_test("Constant primary: string", """"This is a string""""):
-   cprim(new_str_lit_node(li(1, 1), "This is a string"))
+   new_str_lit_node(li(1, 1), "This is a string")
 
 # Legal syntax but the expression doesn't make sense in a Verilog context.
 run_test("Constant primary: two strings", """"This is a string" + "Another string""""):
    new_node(NkInfix, li(1, 20), @[
-      cprim(new_identifier_node(NkIdentifier, li(1, 20), "+")),
-      cprim(new_str_lit_node(li(1, 1), "This is a string")),
-      cprim(new_str_lit_node(li(1, 22), "Another string"))
+      new_identifier_node(NkIdentifier, li(1, 20), "+"),
+      new_str_lit_node(li(1, 1), "This is a string"),
+      new_str_lit_node(li(1, 22), "Another string")
    ])
 
 # Unary operators (prefix nodes)

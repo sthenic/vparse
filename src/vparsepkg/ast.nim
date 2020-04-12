@@ -154,13 +154,14 @@ type
    TLineInfo* = object
       line*: uint16
       col*: int16
+      file_index*: int32
 
 
 proc pretty*(n: PNode, indent: int = 0): string =
    if n == nil:
       return
    result = spaces(indent) & $n.kind &
-            format("($1:$2)", n.info.line, n.info.col + 1)
+            format("($1:$2:$3)", n.info.file_index, n.info.line, n.info.col + 1)
    case n.kind
    of IdentifierTypes:
       add(result, ": " & $n.identifier.s & "\n")
@@ -194,7 +195,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
 
 
 proc `%`*(info: TLineInfo): JsonNode =
-   return %*{"line": info.line, "col": info.col + 1}
+   return %*{"line": info.line, "col": info.col + 1, "file_index": info.file_index}
 
 
 proc `%`*(n: PNode): JsonNode =
@@ -342,9 +343,10 @@ proc has_errors*(n: PNode): bool =
       return false
 
 
-proc new_line_info*(line: uint16, col: int16): TLineInfo =
+proc new_line_info*(line: uint16, col: int16, file_index: int32): TLineInfo =
    result.line = line
    result.col = col
+   result.file_index = file_index
 
 
 proc new_node*(kind: NodeKind, info: TLineInfo): PNode =

@@ -29,12 +29,7 @@ template run_test(title, stimuli: string, reference: PNode) =
 
 
 proc li(line: uint16, col: int16): TLineInfo =
-   result = new_line_info(line, col - 1)
-
-
-# Wrapper for a constant primary expression
-template cprim(n: PNode): PNode =
-   n
+   result = new_line_info(line, col - 1, 0)
 
 
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
@@ -133,7 +128,7 @@ run_test("Port reference w/ range expressions", """(
          new_node(NkPortReference, li(2, 9), @[
             new_identifier_node(NkPortIdentifier, li(2, 9), "a"),
             new_node(NkConstantRangeExpression, li(2, 10), @[
-               cprim(new_inumber_node(NkIntLit, li(2, 11), 64, "64", Base10, -1))
+               new_inumber_node(NkIntLit, li(2, 11), 64, "64", Base10, -1)
             ])
          ])
       ]),
@@ -142,8 +137,8 @@ run_test("Port reference w/ range expressions", """(
          new_node(NkPortReference, li(3, 9), @[
             new_identifier_node(NkPortIdentifier, li(3, 9), "b"),
             new_node(NkConstantRangeExpression, li(3, 10), @[
-               cprim(new_inumber_node(NkIntLit, li(3, 11), 7, "7", Base10, -1)),
-               cprim(new_inumber_node(NkIntLit, li(3, 13), 0, "0", Base10, -1))
+               new_inumber_node(NkIntLit, li(3, 11), 7, "7", Base10, -1),
+               new_inumber_node(NkIntLit, li(3, 13), 0, "0", Base10, -1)
             ])
          ])
       ]),
@@ -156,10 +151,10 @@ run_test("Port reference w/ range expressions", """(
                   new_identifier_node(NkIdentifier, li(4, 21), "+:"),
                   new_node(NkInfix, li(4, 17), @[
                      new_identifier_node(NkIdentifier, li(4, 17), "*"),
-                     cprim(new_identifier_node(NkIdentifier, li(4, 11), "WIDTH")),
-                     cprim(new_identifier_node(NkIdentifier, li(4, 19), "i")),
+                     new_identifier_node(NkIdentifier, li(4, 11), "WIDTH"),
+                     new_identifier_node(NkIdentifier, li(4, 19), "i"),
                   ]),
-                  cprim(new_identifier_node(NkIdentifier, li(4, 24), "WIDTH")),
+                  new_identifier_node(NkIdentifier, li(4, 24), "WIDTH"),
                ])
             ])
          ])
@@ -173,10 +168,10 @@ run_test("Port reference w/ range expressions", """(
                   new_identifier_node(NkIdentifier, li(5, 18), "-:"),
                   new_node(NkInfix, li(5, 15), @[
                      new_identifier_node(NkIdentifier, li(5, 15), "-"),
-                     cprim(new_identifier_node(NkIdentifier, li(5, 11), "ADDR")),
-                     cprim(new_inumber_node(NkIntLit, li(5, 16), 1, "1", Base10, -1))
+                     new_identifier_node(NkIdentifier, li(5, 11), "ADDR"),
+                     new_inumber_node(NkIntLit, li(5, 16), 1, "1", Base10, -1)
                   ]),
-                  cprim(new_identifier_node(NkIdentifier, li(5, 21), "WIDTH")),
+                  new_identifier_node(NkIdentifier, li(5, 21), "WIDTH"),
                ])
             ])
          ])
@@ -197,7 +192,7 @@ run_test("Port reference, concatenation", """(
             new_node(NkPortReference, li(2, 14), @[
                new_identifier_node(NkPortIdentifier, li(2, 14), "b"),
                new_node(NkConstantRangeExpression, li(2, 15), @[
-                  cprim(new_inumber_node(NkIntLit, li(2, 16), 5, "5", Base10, -1))
+                  new_inumber_node(NkIntLit, li(2, 16), 5, "5", Base10, -1)
                ])
             ]),
             new_node(NkPortReference, li(2, 20), @[
@@ -242,10 +237,10 @@ run_test("Anonymous port w/ range", """(
             new_node(NkConstantRangeExpression, li(2, 8), @[
                new_node(NkInfix, li(2, 14), @[
                   new_identifier_node(NkIdentifier, li(2, 14), "-"),
-                  cprim(new_identifier_node(NkIdentifier, li(2, 9), "WIDTH")),
-                  cprim(new_inumber_node(NkIntLit, li(2, 15), 1, "1", Base10, -1))
+                  new_identifier_node(NkIdentifier, li(2, 9), "WIDTH"),
+                  new_inumber_node(NkIntLit, li(2, 15), 1, "1", Base10, -1)
                ]),
-               cprim(new_inumber_node(NkIntLit, li(2, 17), 0, "0", Base10, -1))
+               new_inumber_node(NkIntLit, li(2, 17), 0, "0", Base10, -1)
             ])
          ])
       ])
@@ -269,10 +264,10 @@ run_test("Anonymous port concatenation", """(
                new_node(NkConstantRangeExpression, li(2, 15), @[
                   new_node(NkInfix, li(2, 21), @[
                      new_identifier_node(NkIdentifier, li(2, 21), "-"),
-                     cprim(new_identifier_node(NkIdentifier, li(2, 16), "WIDTH")),
-                     cprim(new_inumber_node(NkIntLit, li(2, 22), 1, "1", Base10, -1))
+                     new_identifier_node(NkIdentifier, li(2, 16), "WIDTH"),
+                     new_inumber_node(NkIntLit, li(2, 22), 1, "1", Base10, -1)
                   ]),
-                  cprim(new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1))
+                  new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1)
                ])
             ]),
             new_node(NkPortReference, li(2, 28), @[

@@ -29,7 +29,7 @@ template run_test(title, stimuli: string, reference: PNode) =
 
 
 proc li(line: uint16, col: int16): TLineInfo =
-   result = new_line_info(line, col - 1)
+   result = new_line_info(line, col - 1, 0)
 
 
 template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =

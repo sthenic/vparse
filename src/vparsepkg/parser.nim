@@ -90,6 +90,11 @@ proc new_line_info(tok: Token): TLineInfo =
    else:
       result.col = -1
 
+   if tok.file_index < int(high(int32)):
+      result.file_index = int32(tok.file_index)
+   else:
+      result.file_index = -1
+
 
 proc new_line_info(p: Parser): TLineInfo =
    result = new_line_info(p.tok)
