@@ -1,4 +1,4 @@
-import ./vparsepkg/parser
+import ./vparsepkg/graph
 import ./vparsepkg/private/[cli, log]
 
 import strutils
@@ -57,20 +57,20 @@ if len(cli_state.output_file) != 0:
    else:
       log.info("Opened output file '$1'.", cli_state.output_file)
 
-var p: Parser
+var g: Graph
 var exit_val = ESUCCESS
 for filename in cli_state.input_files:
-   let fs = new_file_stream(filename, fmRead)
+   let fs = new_file_stream(filename)
    if fs == nil:
       log.error("Failed to open '$1' for reading, skipping.", filename)
       continue
 
    let cache = new_ident_cache()
-   open_parser(p, cache, fs, filename, nil)
+   open_graph(g, cache, fs, filename)
    log.info("Parsing source file '$1'", filename)
 
    let t_start = cpu_time()
-   let root_node = parse_all(p)
+   let root_node = parse_all(g)
    let t_diff_ms = (cpu_time() - t_start) * 1000
    close(fs)
 
