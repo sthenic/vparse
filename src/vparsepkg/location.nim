@@ -1,6 +1,7 @@
 import strutils
 import json
 
+
 type
    # This data structure encodes the physical or virtual location of a token
    # in the source code. It is exactly 64-bits.
@@ -12,6 +13,7 @@ type
    LocationPair* = tuple[x, y: Location]
 
    MacroMap* = object
+      name*: string
       # Location of the macro expansion point.
       expansion_loc*: Location
       # Location pairs of the tokens.

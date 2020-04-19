@@ -463,6 +463,7 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
    var arguments: Table[string, seq[Token]]
    var macro_map: MacroMap
    macro_map.locations = new_seq_of_cap[LocationPair](len(def.tokens))
+   macro_map.name = def.name.identifier.s
    macro_map.expansion_loc = loc
 
    var expansion_list: seq[Token]
