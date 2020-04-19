@@ -125,7 +125,7 @@ type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
    TNode = object of RootObj
-      info*: TLineInfo
+      loc*: Location
       case kind*: NodeKind
       of NkStrLit:
          s*: string
@@ -150,18 +150,11 @@ type
       else:
          sons*: TNodeSeq
 
-   # FIXME: This should be replaced w/ Location.
-   TLineInfo* = object
-      line*: uint16
-      col*: int16
-      file_index*: int32
-
 
 proc pretty*(n: PNode, indent: int = 0): string =
    if n == nil:
       return
-   result = spaces(indent) & $n.kind &
-            format("($1:$2:$3)", n.info.file_index, n.info.line, n.info.col + 1)
+   result = spaces(indent) & $n.kind & $n.loc
    case n.kind
    of IdentifierTypes:
       add(result, ": " & $n.identifier.s & "\n")
@@ -194,10 +187,6 @@ proc pretty*(n: PNode, indent: int = 0): string =
       add(result, sons_str)
 
 
-proc `%`*(info: TLineInfo): JsonNode =
-   return %*{"line": info.line, "col": info.col + 1, "file_index": info.file_index}
-
-
 proc `%`*(n: PNode): JsonNode =
    if n == nil:
       return
@@ -205,13 +194,13 @@ proc `%`*(n: PNode): JsonNode =
    of IdentifierTypes:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "identifier": n.identifier.s
       }
    of IntegerTypes:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "number": n.inumber,
          "raw": n.iraw,
          "base": to_int(n.base),
@@ -220,38 +209,38 @@ proc `%`*(n: PNode): JsonNode =
    of NkRealLit:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "number": n.fnumber,
          "raw": n.fraw
       }
    of OperatorTypes:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "operator": n.identifier.s
       }
    of ErrorTypes:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "message": n.msg,
          "raw": n.eraw
       }
    of NkStrLit:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "string": n.s
       }
    of NkWildcard:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info
+         "loc": n.loc
       }
    else:
       result = %*{
          "kind": $n.kind,
-         "pos": n.info,
+         "loc": n.loc,
          "sons": %n.sons
       }
 
@@ -260,7 +249,7 @@ proc `==`*(x, y: PNode): bool =
    if is_nil(x) or is_nil(y):
       return false
 
-   if x.info != y.info:
+   if x.loc != y.loc:
       return false
 
    if x.kind != y.kind:
@@ -304,8 +293,8 @@ proc detailed_compare*(x, y: PNode) =
       echo "RHS node is nil"
       return
 
-   if x.info != y.info:
-      echo "Line info differs:\n", pretty(x, indent), pretty(y, indent)
+   if x.loc != y.loc:
+      echo "Location differs:\n", pretty(x, indent), pretty(y, indent)
       return
 
    if x.kind != y.kind:
@@ -343,50 +332,44 @@ proc has_errors*(n: PNode): bool =
       return false
 
 
-proc new_line_info*(line: uint16, col: int16, file_index: int32): TLineInfo =
-   result.line = line
-   result.col = col
-   result.file_index = file_index
+proc new_node*(kind: NodeKind, loc: Location): PNode =
+   result = PNode(kind: kind, loc: loc)
 
 
-proc new_node*(kind: NodeKind, info: TLineInfo): PNode =
-   result = PNode(kind: kind, info: info)
-
-
-proc new_node*(kind: NodeKind, info: TLineInfo, sons: seq[PNode]): PNode =
-   result = new_node(kind, info)
+proc new_node*(kind: NodeKind, loc: Location, sons: seq[PNode]): PNode =
+   result = new_node(kind, loc)
    result.sons = sons
 
 
-proc new_identifier_node*(kind: NodeKind, info: TLineInfo,
+proc new_identifier_node*(kind: NodeKind, loc: Location,
                           identifier: PIdentifier): PNode =
-   result = new_node(kind, info)
+   result = new_node(kind, loc)
    result.identifier = identifier
 
 
-proc new_inumber_node*(kind: NodeKind, info: TLineInfo, inumber: BiggestInt,
+proc new_inumber_node*(kind: NodeKind, loc: Location, inumber: BiggestInt,
                        raw: string, base: NumericalBase, size: int): PNode =
-   result = new_node(kind, info)
+   result = new_node(kind, loc)
    result.inumber = inumber
    result.iraw = raw
    result.base = base
    result.size = size
 
 
-proc new_fnumber_node*(kind: NodeKind, info: TLineInfo, fnumber: BiggestFloat,
+proc new_fnumber_node*(kind: NodeKind, loc: Location, fnumber: BiggestFloat,
                        raw: string): PNode =
-   result = new_node(kind, info)
+   result = new_node(kind, loc)
    result.fnumber = fnumber
    result.fraw = raw
 
 
-proc new_str_lit_node*(info: TLineInfo, s: string): PNode =
-   result = new_node(NkStrLit, info)
+proc new_str_lit_node*(loc: Location, s: string): PNode =
+   result = new_node(NkStrLit, loc)
    result.s = s
 
 
-proc new_error_node*(kind: NodeKind, info: TLineInfo, raw, msg: string,
+proc new_error_node*(kind: NodeKind, loc: Location, raw, msg: string,
                      args: varargs[string, `$`]): PNode =
-   result = new_node(kind, info)
+   result = new_node(kind, loc)
    result.msg = format(msg, args)
    result.eraw = raw

@@ -79,30 +79,8 @@ proc close_parser*(p: var Parser) =
    close_preprocessor(p.pp)
 
 
-proc new_line_info(tok: Token): TLineInfo =
-   if tok.loc.line < high(uint16):
-      result.line = uint16(tok.loc.line)
-   else:
-      result.line = high(uint16)
-
-   if tok.loc.col < int(high(int16)):
-      result.col = int16(tok.loc.col)
-   else:
-      result.col = -1
-
-   # FIXME: Rename file_index -> file
-   if tok.loc.file < high(int32):
-      result.file_index = tok.loc.file
-   else:
-      result.file_index = -1
-
-
-proc new_line_info(p: Parser): TLineInfo =
-   result = new_line_info(p.tok)
-
-
 proc new_node(p: Parser, kind: NodeKind): PNode =
-   result = new_node(kind, new_line_info(p))
+   result = new_node(kind, p.tok.loc)
 
 
 proc new_identifier_node(p: Parser, kind: NodeKind): PNode =
@@ -259,7 +237,7 @@ proc parse_constant_concatenation(p: var Parser): PNode =
 
 
 proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
-   let brace_pos = new_line_info(p.tok)
+   let brace_loc = p.tok.loc
    get_token(p)
    let first = parse_constant_expression(p)
 
@@ -268,7 +246,7 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
       # FIXME: Test case?
       # We're parsing a constant multiple concatenation.
       result = new_node(p, NkConstantMultipleConcat)
-      result.info = brace_pos
+      result.loc = brace_loc
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p))
       expect_token(p, result, TkRbrace)
@@ -278,14 +256,14 @@ proc parse_constant_multiple_or_regular_concatenation(p: var Parser): PNode =
       # is the first of several. Parse the rest and add these to the sons on
       # this level.
       result = new_node(p, NkConstantConcat)
-      result.info = brace_pos
+      result.loc = brace_loc
       add(result.sons, first)
       add(result.sons, parse_constant_concatenation(p).sons)
    of TkRbrace:
       # FIXME: Add test case
       # A constant concatenation that only contains the entry we parsed earlier.
       result = new_node(p, NkConstantConcat)
-      result.info = brace_pos
+      result.loc = brace_loc
       add(result.sons, first)
       get_token(p)
    else:
@@ -321,7 +299,7 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
    of TkLparenStar, TkLparen:
       # Parsing a constant function call.
       result = new_node(p, NkConstantFunctionCall)
-      result.info = identifier.info
+      result.loc = identifier.loc
       add(result.sons, identifier)
 
       if p.tok.kind == TkLparenStar:
@@ -344,7 +322,7 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
       # We've parsed a simple identifier.
       if p.tok.kind == TkLbracket:
          result = new_node(p, NkRangedIdentifier)
-         result.info = identifier.info
+         result.loc = identifier.loc
          add(result.sons, identifier)
          # The identifier may be followed by any number of bracketed expressions.
          # However, it's only the last one that's allowed to be a range expression.
@@ -366,7 +344,7 @@ proc parse_mintypmax_expression(p: var Parser): PNode =
    let first = parse_constant_expression(p)
    if p.tok.kind == TkColon:
       result = new_node(p, NkConstantMinTypMaxExpression)
-      result.info = first.info
+      result.loc = first.loc
       add(result.sons, first)
       get_token(p)
       add(result.sons, parse_constant_expression(p))
@@ -601,7 +579,7 @@ proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
       if p.tok.kind == TkEquals:
          get_token(p)
          let n = new_node(p, NkVariablePort)
-         n.info = identifier.info
+         n.loc = identifier.loc
          add(n.sons, identifier)
          add(n.sons, parse_constant_expression(p))
          add(result, n)
@@ -818,7 +796,7 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
 
 proc parse_array_identifier(p: var Parser, identifier: PNode): PNode =
    result = new_node(p, NkArrayIdentifer)
-   result.info = identifier.info
+   result.loc = identifier.loc
    add(result.sons, identifier)
    # Handle any number of dimension specifiers (array).
    while true:
@@ -841,7 +819,7 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
          add(result, parse_array_identifier(p, identifier))
       of TkEquals:
          let n = new_node(p, NkAssignment)
-         n.info = identifier.info
+         n.loc = identifier.loc
          add(n.sons, identifier)
          get_token(p)
          add(n.sons, parse_constant_expression(p))
@@ -897,7 +875,7 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
       # We're parsing a list of net declaration assignments. Handle the first
       # one manually.
       let n = new_node(p, NkAssignment)
-      n.info = first.info
+      n.loc = first.loc
       get_token(p)
       add(n.sons, first)
       add(n.sons, parse_constant_expression(p))
@@ -1226,7 +1204,7 @@ proc parse_event_control(p: var Parser): PNode =
       # instance. We have to interpret this differently.
       let n = new_node(p, NkParenthesis)
       let wc = new_node(p, NkWildcard)
-      inc(wc.info.col)
+      inc(wc.loc.col)
       add(n.sons, wc)
       get_token(p)
       expect_token(p, result, TkRparen)
@@ -1280,11 +1258,11 @@ proc parse_blocking_or_nonblocking_assignment(p: var Parser): PNode =
          unexpected_token(p, result)
    else:
       result = new_node(p, NkBlockingAssignment)
-      result.info = lvalue.info
+      result.loc = lvalue.loc
       unexpected_token(p, result)
 
    get_token(p)
-   result.info = lvalue.info
+   result.loc = lvalue.loc
    add(result.sons, lvalue)
 
    # Handle a delay or event control specifier.
@@ -1355,7 +1333,7 @@ proc parse_block(p: var Parser): PNode =
    # It's a parse error if the loop was broken with unprocessed attributes.
    if len(attributes) > 0:
       let n = new_error_node(p, NkCritical, AttributesNotAllowed)
-      n.info = attributes[0].info
+      n.loc = attributes[0].loc
       add(result.sons, n)
       return
 
@@ -2189,13 +2167,13 @@ proc parse_non_port_module_item(p: var Parser, attributes: seq[PNode]): PNode =
    of TkGenerate:
       if len(attributes) > 0:
          result = new_error_node(p, NkCritical, AttributesNotAllowed)
-         result.info = attributes[0].info
+         result.loc = attributes[0].loc
       else:
          result = parse_generate_region(p)
    of TkSpecify:
       if len(attributes) > 0:
          result = new_error_node(p, NkCritical, AttributesNotAllowed)
-         result.info = attributes[0].info
+         result.loc = attributes[0].loc
       else:
          result = parse_specify_block(p)
    of TkParameter:

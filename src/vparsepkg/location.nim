@@ -1,3 +1,6 @@
+import strutils
+import json
+
 type
    # This data structure encodes the physical or virtual location of a token
    # in the source code. It is exactly 64-bits.
@@ -18,6 +21,14 @@ type
    Locations* = object
       files*: seq[string]
       macro_maps*: seq[MacroMap]
+
+
+proc `$`*(l: Location): string =
+   result = format("($1:$2:$3)", l.file, l.line, l.col + 1)
+
+
+proc `%`*(l: Location): JsonNode =
+   result = %*{"file": l.file, "line": l.line, "col": l.col + 1}
 
 
 proc init*(locs: PLocations) =

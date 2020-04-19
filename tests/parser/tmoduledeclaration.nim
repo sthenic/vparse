@@ -29,12 +29,12 @@ template run_test(title, stimuli: string, reference: PNode) =
       detailed_compare(response, reference)
 
 
-proc li(line: uint16, col: int16): TLineInfo =
+proc li(line: uint16, col: int16): Location =
    result = new_line_info(line, col - 1)
 
 
-template new_identifier_node(kind: NodeKind, info: TLineInfo, str: string): untyped =
-   new_identifier_node(kind, info, get_identifier(cache, str))
+template new_identifier_node(kind: NodeKind, loc: Location, str: string): untyped =
+   new_identifier_node(kind, loc, get_identifier(cache, str))
 
 
 
