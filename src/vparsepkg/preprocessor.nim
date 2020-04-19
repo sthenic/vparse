@@ -12,13 +12,9 @@ import ./lexer
 export lexer
 
 type
-   Origin* = object
-      filename*: string
-      line*, col*: int
-
    Define* = object
       name*: Token
-      origin*: Origin
+      origin*: Location
       tokens*: seq[Token]
       parameters*: seq[Token]
       is_enabled: bool
@@ -38,10 +34,10 @@ type
       context_stack: seq[Context]
       error_tokens: seq[Token]
       pp_include: ref Preprocessor
-      file_index: ref seq[string]
+      locations: PLocations
 
    PreprocessorError = object of ValueError
-      line, col: int
+      loc: Location
 
 
 const
@@ -56,17 +52,19 @@ const
    RedefineProtected = "Attempting to redefine protected macro name $1."
 
 
-proc new_preprocessor_error(line, col: int, msg: string,
+proc new_preprocessor_error(loc: Location, msg: string,
                             args: varargs[string, `$`]): ref PreprocessorError =
    new result
    result.msg = format(msg, args)
-   result.line = line
-   result.col = col
+   result.loc = loc
 
 
-proc add_error_token(pp: var Preprocessor, line, col: int, msg: string,
-                     args: varargs[string, `$`]) =
-   add(pp.error_tokens, new_error_token(line, col, msg, args))
+proc add_error_token(pp: var Preprocessor, loc: Location, msg: string, args: varargs[string, `$`]) =
+   add(pp.error_tokens, new_error_token(loc, msg, args))
+
+
+proc add_error_token(pp: var Preprocessor, msg: string, args: varargs[string, `$`]) =
+   add_error_token(pp, pp.tok.loc, msg, args)
 
 
 # Forward declaration of public interface.
@@ -81,25 +79,9 @@ proc get_token(pp: var Preprocessor, ignore_comments = false) =
       get_token(pp.lex, pp.tok)
 
 
-template update_origin(pp: Preprocessor, o: var Origin) =
-   o.filename = pp.lex.filename
-   o.line = pp.tok.line
-   o.col = pp.tok.col
-
-
-proc add_to_index(pp: var Preprocessor, filename: string): int =
-   ## Add a file to the graph's file index and return its index.
-   let idx = find(pp.file_index[], filename)
-   if idx < 0:
-      add(pp.file_index[], filename)
-      result = high(pp.file_index[])
-   else:
-      result = idx
-
-
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         s: Stream, filename: string,
-                        file_index: ref seq[string],
+                        locations: PLocations,
                         include_paths: openarray[string]) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
@@ -110,10 +92,10 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    pp.context_stack = new_seq_of_cap[Context](32)
    pp.error_tokens = new_seq_of_cap[Token](32)
    pp.pp_include = nil
-   pp.file_index = file_index
+   pp.locations = locations
 
    add(pp.include_paths, include_paths)
-   open_lexer(pp.lex, cache, s, filename, add_to_index(pp, filename))
+   open_lexer(pp.lex, cache, s, filename, add_to_index(pp.locations, filename))
    get_token(pp.lex, pp.tok)
 
 
@@ -140,38 +122,38 @@ proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
    # Expect a closing parenthesis but don't remove the token. The caller needs
    # to know the position of the token.
    if pp.tok.kind != TkRparen:
-      add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkRparen, pp.tok)
+      add_error_token(pp, ExpectedToken, TkRparen, pp.tok)
 
 
 proc immediately_follows(x, y: Token): bool =
    ## Check if ``x`` immediately follows ``y`` in the source buffer.
    assert(y.kind == TkSymbol)
-   return x.line == y.line and x.col == (y.col + len(y.identifier.s))
+   return x.loc.line == y.loc.line and x.loc.col == (y.loc.col + len(y.identifier.s))
 
 
 proc handle_define(pp: var Preprocessor) =
    ## Handle the ``define`` directive.
    var def: Define
-   update_origin(pp, def.origin)
+   def.origin = pp.tok.loc
    def.is_enabled = true
 
    # Scan over `define.
-   let def_line = pp.tok.line
+   let def_line = pp.tok.loc.line
    get_token(pp)
    # Expect the macro name on the same line as the `define directive.
    if pp.tok.kind != TkSymbol:
-      add_error_token(pp, pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      add_error_token(pp, InvalidMacroName, pp.tok)
       get_token(pp)
       return
-   elif pp.tok.line != def_line:
-      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`define")
+   elif pp.tok.loc.line != def_line:
+      add_error_token(pp, DirectiveArgLine, pp.tok, "`define")
       get_token(pp)
       return
    def.name = pp.tok
    var last_tok_line = def.origin.line
 
    if def.name.identifier.s in Directives:
-      add_error_token(pp, pp.tok.line, pp.tok.col, RedefineProtected, def.name)
+      add_error_token(pp, RedefineProtected, def.name)
       get_token(pp)
       return
 
@@ -181,7 +163,7 @@ proc handle_define(pp: var Preprocessor) =
    get_token(pp)
    if pp.tok.kind == TkLparen and immediately_follows(pp.tok, def.name):
       handle_parameter_list(pp, def)
-      last_tok_line = pp.tok.line
+      last_tok_line = pp.tok.loc.line
       get_token(pp)
 
    var include_newline = false
@@ -193,7 +175,7 @@ proc handle_define(pp: var Preprocessor) =
          # A one=line comment is not included in the replacement list but tokens
          # on the next line may be included if we've scanned over a backslash
          # before this token.
-         last_tok_line = pp.tok.line
+         last_tok_line = pp.tok.loc.line
       of TkBackslash:
          include_newline = true;
       else:
@@ -206,14 +188,13 @@ proc handle_define(pp: var Preprocessor) =
          # error token and keep going. Once the replacement list has been
          # removed from the token stream, we discard the macro if an error was
          # encountered.
-         let line_delta = pp.tok.line - last_tok_line
+         let line_delta = pp.tok.loc.line - last_tok_line
          if (line_delta > 1) or (line_delta == 1 and not include_newline):
             break
          if pp.tok.kind == TkDirective and pp.tok.identifier.s == def.name.identifier.s:
-            add_error_token(pp, pp.tok.line, pp.tok.col, RecursiveDefinition,
-                            def.name.identifier.s)
+            add_error_token(pp, RecursiveDefinition, def.name.identifier.s)
          add(def.tokens, pp.tok)
-         last_tok_line = pp.tok.line
+         last_tok_line = pp.tok.loc.line
          include_newline = false
       get_token(pp)
 
@@ -224,15 +205,15 @@ proc handle_define(pp: var Preprocessor) =
 
 proc handle_undef(pp: var Preprocessor) =
    # Scan over `undef.
-   let undef_line = pp.tok.line
+   let undef_line = pp.tok.loc.line
    get_token(pp)
    # Expect the macro name on the same line as the `undef directive.
    if pp.tok.kind != TkSymbol:
-      add_error_token(pp, pp.tok.line, pp.tok.col, InvalidMacroName, pp.tok)
+      add_error_token(pp, InvalidMacroName, pp.tok)
       get_token(pp)
       return
-   elif pp.tok.line != undef_line:
-      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`undef")
+   elif pp.tok.loc.line != undef_line:
+      add_error_token(pp, DirectiveArgLine, pp.tok, "`undef")
       get_token(pp)
       return
    # FIXME: Undefining a macro that doesn't exist should result in an error node.
@@ -260,39 +241,38 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
 
 proc handle_include(pp: var Preprocessor) =
    # Skip over `include.
-   let include_line = pp.tok.line
+   let include_line = pp.tok.loc.line
    get_token(pp)
 
    if pp.tok.kind != TkStrLit:
-      add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkStrLit, pp.tok)
+      add_error_token(pp, ExpectedToken, TkStrLit, pp.tok)
       get_token(pp)
       return
-   elif pp.tok.line != include_line:
-      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`include")
+   elif pp.tok.loc.line != include_line:
+      add_error_token(pp, DirectiveArgLine, pp.tok, "`include")
       get_token(pp)
       return
 
    var filename = pp.tok.literal
-   let line = pp.tok.line
-   let col = pp.tok.col
+   let loc = pp.tok.loc
    let full_path = get_include_file(pp, filename)
    get_token(pp)
    if len(full_path) == 0:
-      add_error_token(pp, line, col, CannotOpenFile, filename)
+      add_error_token(pp, loc, CannotOpenFile, filename)
       return
 
    # Create a new preprocessor for the include file.
    let fs = new_file_stream(full_path)
    new pp.pp_include
    open_preprocessor(pp.pp_include[], pp.lex.cache, fs, full_path,
-                     pp.file_index, pp.include_paths)
+                     pp.locations, pp.include_paths)
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 
 
 proc handle_else(pp: var Preprocessor) =
    if pp.endif_semaphore == 0:
-      add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedToken, pp.tok)
+      add_error_token(pp, UnexpectedToken, pp.tok)
       get_token(pp)
       return
 
@@ -326,7 +306,7 @@ proc handle_else(pp: var Preprocessor) =
 
 proc handle_endif(pp: var Preprocessor) =
    if pp.endif_semaphore == 0:
-      add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedToken, pp.tok)
+      add_error_token(pp, UnexpectedToken, pp.tok)
    else:
       dec(pp.endif_semaphore)
    get_token(pp)
@@ -334,16 +314,16 @@ proc handle_endif(pp: var Preprocessor) =
 
 proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
    # Skip over `ifdef.
-   let line = pp.tok.line
+   let line = pp.tok.loc.line
    var label = pp.tok.identifier.s
    get_token(pp)
 
    if pp.tok.kind != TkSymbol:
-      add_error_token(pp, pp.tok.line, pp.tok.col, ExpectedToken, TkSymbol, pp.tok)
+      add_error_token(pp, ExpectedToken, TkSymbol, pp.tok)
       get_token(pp)
       return
-   elif pp.tok.line != line:
-      add_error_token(pp, pp.tok.line, pp.tok.col, DirectiveArgLine, pp.tok, "`" & label)
+   elif pp.tok.loc.line != line:
+      add_error_token(pp, DirectiveArgLine, pp.tok, "`" & label)
       get_token(pp)
       return
 
@@ -373,7 +353,7 @@ proc handle_ifdef(pp: var Preprocessor, invert: bool = false) =
          get_token(pp)
          case pp.tok.kind
          of TkEndOfFile:
-            add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedEndOfFile)
+            add_error_token(pp, UnexpectedEndOfFile)
             break
          of TkDirective:
             case pp.tok.identifier.s
@@ -411,9 +391,8 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
    var tok: Token
    get_token(pp, tok)
    if tok.kind != TkLparen:
-      raise new_preprocessor_error(tok.line, tok.col, ExpectedToken, TkLparen, tok)
-   let paren_line = tok.line
-   let paren_col = tok.col
+      raise new_preprocessor_error(tok.loc, ExpectedToken, TkLparen, tok)
+   let paren_loc = tok.loc
 
    # Although only valid Verilog expressions are allowed as arguments we don't
    # implement any syntax-aware parsing of the tokens here. Instead, we track
@@ -452,7 +431,7 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
             inc(idx)
             continue
       of TkEndOfFile:
-         raise new_preprocessor_error(tok.line, tok.col, UnexpectedEndOfFile)
+         raise new_preprocessor_error(tok.loc, UnexpectedEndOfFile)
       else:
          discard
 
@@ -462,7 +441,7 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
 
    let nof_collected_arguments = idx + 1
    if nof_collected_arguments != nof_arguments:
-      raise new_preprocessor_error(paren_line, paren_col, WrongNumberOfArguments,
+      raise new_preprocessor_error(paren_loc, WrongNumberOfArguments,
                                    nof_arguments, nof_collected_arguments)
 
 
@@ -491,7 +470,7 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
          arguments = collect_arguments(pp, def)
          replacement_list = substitute_parameters(def, arguments)
       except PreprocessorError as e:
-         add_error_token(pp, e.line, e.col, e.msg)
+         add_error_token(pp, e.loc, e.msg)
          return
    else:
       replacement_list = def.tokens
@@ -509,12 +488,11 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
 
 
 proc handle_line(pp: var Preprocessor) =
-   let line = pp.tok.line
-   add_error_token(pp, pp.tok.line, pp.tok.col,
-                   "The `line directive is currently not supported.")
+   let line = pp.tok.loc.line
+   add_error_token(pp, "The `line directive is currently not supported.")
    while true:
       get_token(pp)
-      if pp.tok.kind == TkEndOfFile or pp.tok.line - line > 0:
+      if pp.tok.kind == TkEndOfFile or pp.tok.loc.line - line > 0:
          break
 
 
@@ -661,7 +639,7 @@ proc prepare_token(pp: var Preprocessor) =
             # token we set the semaphore to zero to avoid to keep on generating
             # errors indefinately.
             if pp.endif_semaphore > 0:
-               add_error_token(pp, pp.tok.line, pp.tok.col, UnexpectedEndOfFile)
+               add_error_token(pp, UnexpectedEndOfFile)
                pp.endif_semaphore = 0
             break
          of TkDirective:

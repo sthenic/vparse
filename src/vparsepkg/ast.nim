@@ -3,7 +3,6 @@ import strutils
 import json
 
 import ./lexer
-import ./identifier
 
 type
    NodeKind* = enum
@@ -151,6 +150,7 @@ type
       else:
          sons*: TNodeSeq
 
+   # FIXME: This should be replaced w/ Location.
    TLineInfo* = object
       line*: uint16
       col*: int16

@@ -37,10 +37,10 @@ proc handle_directive(p: var Parser) =
    #        directives that take arguments. Otherwise, we remove just the token.
    case p.next_tok.identifier.s
    of "default_nettype", "timescale", "begin_keywords":
-      let line = p.next_tok.line
+      let line = p.next_tok.loc.line
       while true:
          get_token(p.pp, p.next_tok)
-         if p.next_tok.kind == TkEndOfFile or p.next_tok.line - line > 0:
+         if p.next_tok.kind == TkEndOfFile or p.next_tok.loc.line - line > 0:
             break
    else:
       get_token(p.pp, p.next_tok)
@@ -67,11 +67,11 @@ proc get_token(p: var Parser) =
 
 proc open_parser*(p: var Parser, cache: IdentifierCache,
                   s: Stream, filename: string,
-                  file_index: ref seq[string]) =
+                  locations: PLocations) =
    init(p.tok)
    init(p.next_tok)
    # FIXME: Add include paths.
-   open_preprocessor(p.pp, cache, s, filename, file_index, [])
+   open_preprocessor(p.pp, cache, s, filename, locations, [])
    get_token(p)
 
 
@@ -80,18 +80,19 @@ proc close_parser*(p: var Parser) =
 
 
 proc new_line_info(tok: Token): TLineInfo =
-   if tok.line < int(high(uint16)):
-      result.line = uint16(tok.line)
+   if tok.loc.line < high(uint16):
+      result.line = uint16(tok.loc.line)
    else:
       result.line = high(uint16)
 
-   if tok.col < int(high(int16)):
-      result.col = int16(tok.col)
+   if tok.loc.col < int(high(int16)):
+      result.col = int16(tok.loc.col)
    else:
       result.col = -1
 
-   if tok.file_index < int(high(int32)):
-      result.file_index = int32(tok.file_index)
+   # FIXME: Rename file_index -> file
+   if tok.loc.file < high(int32):
+      result.file_index = tok.loc.file
    else:
       result.file_index = -1
 
@@ -2302,9 +2303,9 @@ proc parse_all*(p: var Parser): PNode =
 proc parse_string*(s: string, cache: IdentifierCache):  PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   var file_index: ref seq[string]
-   new file_index
-   open_parser(p, cache, ss, "", file_index)
+   var locations: PLocations
+   new locations
+   open_parser(p, cache, ss, "", locations)
    result = parse_all(p)
    close_parser(p)
 
@@ -2313,9 +2314,9 @@ proc parse_string*(s: string, cache: IdentifierCache):  PNode =
 proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind): PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   var file_index: ref seq[string]
-   new file_index
-   open_parser(p, cache, ss, "", file_index)
+   var locations: PLocations
+   new locations
+   open_parser(p, cache, ss, "", locations)
 
    var parse_proc: proc (p: var Parser): PNode
    case kind

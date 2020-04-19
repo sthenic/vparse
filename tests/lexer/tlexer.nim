@@ -16,7 +16,7 @@ template run_test(title, stimuli: string; reference: seq[Token],
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   open_lexer(lex, cache, new_string_stream(stimuli), "", 0)
+   open_lexer(lex, cache, new_string_stream(stimuli), "", 1)
    while true:
       get_token(lex, tok)
       if tok.kind == TokenKind.TkEndOfFile:
@@ -44,7 +44,7 @@ template run_test(title, stimuli: string; reference: seq[Token],
       nof_failed += 1
 
 
-proc new_identifier(kind: TokenKind, line, col: int, identifier: string): Token =
+proc new_identifier(kind: TokenKind, line: uint16, col: int16, identifier: string): Token =
    # Wrap the call to the identifier constructor to avoid passing the global
    # cache variable everywhere.
    new_identifier(kind, line, col, identifier, cache)
@@ -62,7 +62,7 @@ run_test("One line comment", """
 // ** This is a one line comment **
 """, @[
    new_comment(TkComment, 1, 0, " ** This is a one line comment **")
-])
+], true)
 
 
 run_test("Multi line comment", """

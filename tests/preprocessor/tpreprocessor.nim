@@ -10,16 +10,16 @@ var nof_passed = 0
 var nof_failed = 0
 var pp: Preprocessor
 var cache = new_ident_cache()
-var file_index: ref seq[string]
-new file_index
+var locations: PLocations
+new locations
 
 
 template run_test(title, stimuli: string, reference: openarray[Token]) =
    var response: seq[Token] = @[]
    var tok: Token
    init(tok)
-   set_len(file_index[], 0)
-   open_preprocessor(pp, cache, new_string_stream(stimuli), "", file_index, ["include"])
+   init(locations)
+   open_preprocessor(pp, cache, new_string_stream(stimuli), "", locations, ["include"])
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -38,11 +38,16 @@ template run_test(title, stimuli: string, reference: openarray[Token]) =
       detailed_compare(response, reference)
 
 
-proc new_identifier(kind: TokenKind, line, col: int, identifier: string,
-                    file_index: int = 0): Token =
+proc new_identifier(kind: TokenKind, line: uint16, col: int16, identifier: string,
+                    file: int32 = 1): Token =
    # Wrap the call to the identifier constructor to avoid passing the global
    # cache variable everywhere.
-   new_identifier(kind, line, col, identifier, cache, file_index)
+   new_identifier(kind, line, col, identifier, cache, file)
+
+
+proc new_error_token(line, col: int, msg: string, args: varargs[string, `$`]): Token =
+   result = new_error_token(new_location(1, line, col), msg, args)
+
 
 # Test suite title
 styledWriteLine(stdout, styleBright,
@@ -565,14 +570,14 @@ run_test("Include file", """
 `include "test.vh"
 wire [3:0] another_wire;
 """): [
-   new_identifier(TkWire, 1, 0, "wire", 1),
-   new_token(TkLbracket, 1, 5, 1),
-   new_inumber(TkIntLit, 1, 6, 7, Base10, -1, "7", 1),
-   new_token(TkColon, 1, 7, 1),
-   new_inumber(TkIntLit, 1, 8, 0, Base10, -1, "0", 1),
-   new_token(TkRbracket, 1, 9, 1),
-   new_identifier(TkSymbol, 1, 11, "my_wire", 1),
-   new_token(TkSemicolon, 1, 18, 1),
+   new_identifier(TkWire, 1, 0, "wire", 2),
+   new_token(TkLbracket, 1, 5, 2),
+   new_inumber(TkIntLit, 1, 6, 7, Base10, -1, "7", 2),
+   new_token(TkColon, 1, 7, 2),
+   new_inumber(TkIntLit, 1, 8, 0, Base10, -1, "0", 2),
+   new_token(TkRbracket, 1, 9, 2),
+   new_identifier(TkSymbol, 1, 11, "my_wire", 2),
+   new_token(TkSemicolon, 1, 18, 2),
    new_identifier(TkWire, 2, 0, "wire"),
    new_token(TkLbracket, 2, 5),
    new_inumber(TkIntLit, 2, 6, 3, Base10, -1, "3"),
@@ -588,9 +593,9 @@ run_test("Include file, depending on an include path", """
 `include "test1.vh"
 wire [3:0] another_wire;
 """): [
-   new_identifier(TkReg, 1, 0, "reg", 1),
-   new_identifier(TkSymbol, 1, 4, "a_register", 1),
-   new_token(TkSemicolon, 1, 14, 1),
+   new_identifier(TkReg, 1, 0, "reg", 2),
+   new_identifier(TkSymbol, 1, 4, "a_register", 2),
+   new_token(TkSemicolon, 1, 14, 2),
    new_identifier(TkWire, 2, 0, "wire"),
    new_token(TkLbracket, 2, 5),
    new_inumber(TkIntLit, 2, 6, 3, Base10, -1, "3"),
@@ -610,15 +615,15 @@ wire last_wire;
    new_identifier(TkWire, 1, 0, "wire"),
    new_identifier(TkSymbol, 1, 5, "wire0"),
    new_token(TkSemicolon, 1, 10),
-   new_identifier(TkWire, 1, 0, "wire", 1),
-   new_identifier(TkSymbol, 1, 5, "wire2", 1),
-   new_token(TkSemicolon, 1, 10, 1),
    new_identifier(TkWire, 1, 0, "wire", 2),
-   new_identifier(TkSymbol, 1, 5, "wire3", 2),
+   new_identifier(TkSymbol, 1, 5, "wire2", 2),
    new_token(TkSemicolon, 1, 10, 2),
-   new_identifier(TkWire, 3, 0, "wire", 1),
-   new_identifier(TkSymbol, 3, 5, "next_to_last_wire", 1),
-   new_token(TkSemicolon, 3, 22, 1),
+   new_identifier(TkWire, 1, 0, "wire", 3),
+   new_identifier(TkSymbol, 1, 5, "wire3", 3),
+   new_token(TkSemicolon, 1, 10, 3),
+   new_identifier(TkWire, 3, 0, "wire", 2),
+   new_identifier(TkSymbol, 3, 5, "next_to_last_wire", 2),
+   new_token(TkSemicolon, 3, 22, 2),
    new_identifier(TkWire, 3, 0, "wire"),
    new_identifier(TkSymbol, 3, 5, "last_wire"),
    new_token(TkSemicolon, 3, 14),
@@ -631,7 +636,7 @@ wire [`WIDTH-1:0] my_wire;
 """): [
    new_identifier(TkWire, 2, 0, "wire"),
    new_token(TkLbracket, 2, 5),
-   new_inumber(TkIntLit, 1, 14, 8, Base10, -1, "8", 1),
+   new_inumber(TkIntLit, 1, 14, 8, Base10, -1, "8", 2),
    new_identifier(TkOperator, 2, 12, "-"),
    new_inumber(TkIntLit, 2, 13, 1, Base10, -1, "1"),
    new_token(TkColon, 2, 14),
@@ -1014,9 +1019,9 @@ run_test("Conditional include: if-branch", """
    `include "test2.vh"
 `endif
 """): [
-   new_identifier(TkReg, 1, 0, "reg", 1),
-   new_identifier(TkSymbol, 1, 4, "a_register", 1),
-   new_token(TkSemicolon, 1, 14, 1),
+   new_identifier(TkReg, 1, 0, "reg", 2),
+   new_identifier(TkSymbol, 1, 4, "a_register", 2),
+   new_token(TkSemicolon, 1, 14, 2),
 ]
 
 
@@ -1027,15 +1032,15 @@ run_test("Conditional include: else-branch", """
    `include "test2.vh"
 `endif
 """): [
-   new_identifier(TkWire, 1, 0, "wire", 1),
-   new_identifier(TkSymbol, 1, 5, "wire2", 1),
-   new_token(TkSemicolon, 1, 10, 1),
    new_identifier(TkWire, 1, 0, "wire", 2),
-   new_identifier(TkSymbol, 1, 5, "wire3", 2),
+   new_identifier(TkSymbol, 1, 5, "wire2", 2),
    new_token(TkSemicolon, 1, 10, 2),
-   new_identifier(TkWire, 3, 0, "wire", 1),
-   new_identifier(TkSymbol, 3, 5, "next_to_last_wire", 1),
-   new_token(TkSemicolon, 3, 22, 1),
+   new_identifier(TkWire, 1, 0, "wire", 3),
+   new_identifier(TkSymbol, 1, 5, "wire3", 3),
+   new_token(TkSemicolon, 1, 10, 3),
+   new_identifier(TkWire, 3, 0, "wire", 2),
+   new_identifier(TkSymbol, 3, 5, "next_to_last_wire", 2),
+   new_token(TkSemicolon, 3, 22, 2),
 ]
 
 

@@ -6,19 +6,20 @@
 import streams
 
 import ./parser
+import ./location
 export parser
 
 type
    Graph* = object
       parser: Parser
-      file_index: ref seq[string]
+      locations: PLocations
 
 
 proc open_graph*(g: var Graph, cache: IdentifierCache, s: Stream,
                  filename: string) =
-   new g.file_index
-   g.file_index[] = new_seq_of_cap[string](32)
-   open_parser(g.parser, cache, s, filename, g.file_index)
+   new g.locations
+   init(g.locations)
+   open_parser(g.parser, cache, s, filename, g.locations)
 
 
 proc close_graph*(g: var Graph) =

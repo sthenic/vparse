@@ -5,8 +5,9 @@ import hashes
 import macros
 
 import ./identifier
-
+import ./location
 export identifier
+export location
 
 type
    TokenKind* = enum
@@ -64,13 +65,12 @@ type
       fnumber*: BiggestFloat # Floating point literal
       base*: NumericalBase # The numerical base
       size*: int # The size field of number
-      line*, col*: int
-      file_index*: int
+      loc*: Location
 
    Lexer* = object of BaseLexer
       filename*: string
       cache*: IdentifierCache
-      file_index*: int
+      file*: int
 
 
 const
@@ -214,7 +214,7 @@ proc to_int*(base: NumericalBase): int =
 
 
 proc pretty*(t: Token): string =
-   result = format("($1:$2: ", t.line, t.col)
+   result = format("($1:$2:$3: ", t.loc.file, t.loc.line, t.loc.col)
    add(result, "kind: " & $t.kind)
    add(result, ", identifier: " & $t.identifier)
    add(result, ", literal: \"" & t.literal & "\"")
@@ -222,7 +222,6 @@ proc pretty*(t: Token): string =
    add(result, ", fnumber: " & $t.fnumber)
    add(result, ", base: " & $t.base)
    add(result, ", size: " & $t.size)
-   add(result, ", file_index: " & $t.file_index)
    add(result, ")")
 
 
@@ -233,7 +232,7 @@ proc detailed_compare*(x, y: Token) =
                   indent(pretty(x), INDENT), indent(pretty(y), INDENT))
       return
 
-   if x.line != y.line or x.col != y.col:
+   if x.loc.line != y.loc.line or x.loc.col != y.loc.col:
       echo format("Line info differs:\n$1\n$2\n",
                   indent(pretty(x), INDENT), indent(pretty(y), INDENT))
       return
@@ -260,16 +259,33 @@ proc init*(t: var Token) =
    t.fnumber = 0.0
    t.base = Base10
    t.size = -1
-   t.line = 0
-   t.col = 0
+   t.loc.file = 0
+   t.loc.line = 0
+   t.loc.col = 0
 
 
-proc new_error_token*(line, col: int, msg: string, args: varargs[string, `$`]): Token =
+proc new_location*(file, line, col: int): Location =
+   if line < int(high(uint16)):
+      result.line = uint16(line)
+   else:
+      result.line = high(uint16)
+
+   if col < int(high(int16)):
+      result.col = int16(col)
+   else:
+      result.col = -1
+
+   if file < int(high(int32)):
+      result.file = int32(file)
+   else:
+      result.file = 0
+
+
+proc new_error_token*(loc: Location, msg: string, args: varargs[string, `$`]): Token =
    init(result)
    result.kind = TkError
    result.literal = format(msg, args)
-   result.line = line
-   result.col = col
+   result.loc = loc
 
 
 proc is_valid*(t: Token): bool =
@@ -326,9 +342,7 @@ proc get_binary_precedence*(tok: Token): int =
 
 template update_token_position(l: Lexer, tok: var Token) =
    # FIXME: This is wrong when pos is something other than l.bufpos.
-   tok.col = get_col_number(l, l.bufpos)
-   tok.line = l.lineNumber
-   tok.file_index = l.file_index
+   tok.loc = new_location(l.file, l.lineNumber, get_col_number(l, l.bufpos))
 
 
 proc skip(l: var Lexer, pos: int): int =
@@ -844,11 +858,11 @@ proc get_token*(l: var Lexer, tok: var Token) =
 
 
 proc open_lexer*(l: var Lexer, cache: IdentifierCache, s: Stream,
-                 filename: string, file_index: int) =
+                 filename: string, file: int) =
    lexbase.open(l, s)
    l.filename = filename
    l.cache = cache
-   l.file_index = file_index
+   l.file = file
 
 
 proc close_lexer*(l: var Lexer) =
