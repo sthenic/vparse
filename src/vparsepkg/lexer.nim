@@ -214,7 +214,7 @@ proc to_int*(base: NumericalBase): int =
 
 
 proc pretty*(t: Token): string =
-   result = format("($1:$2:$3: ", t.loc.file, t.loc.line, t.loc.col)
+   result = format("($1:$2:$3: ", t.loc.file, t.loc.line, t.loc.col + 1)
    add(result, "kind: " & $t.kind)
    add(result, ", identifier: " & $t.identifier)
    add(result, ", literal: \"" & t.literal & "\"")
@@ -223,6 +223,11 @@ proc pretty*(t: Token): string =
    add(result, ", base: " & $t.base)
    add(result, ", size: " & $t.size)
    add(result, ")")
+
+
+proc pretty*(tokens: openarray[Token]): string =
+   for t in tokens:
+      add(result, pretty(t) & "\n")
 
 
 proc detailed_compare*(x, y: Token) =

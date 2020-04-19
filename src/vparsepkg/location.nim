@@ -47,7 +47,9 @@ proc add_to_index*(locs: PLocations, filename: string): int =
       result = idx + 1
 
 
-proc add_macro_map*(locs: PLocations, macro_map: MacroMap): int =
+proc add_macro_map*(locs: PLocations, macro_map: MacroMap) =
    add(locs.macro_maps, macro_map)
-   result = -high(locs.macro_maps) - 1
 
+
+proc next_macro_map_index*(locs: PLocations): int =
+   result = -high(locs.macro_maps) - 2

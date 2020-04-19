@@ -445,15 +445,15 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
                                    nof_arguments, nof_collected_arguments)
 
 
-proc substitute_parameters(def: Define, arguments: Table[string, seq[Token]]): seq[Token] =
-   for tok in def.tokens:
-      if tok.kind == TkSymbol and tok.identifier.s in arguments:
-         add(result, arguments[tok.identifier.s])
-      else:
-         add(result, tok)
+proc add_token(tokens: var seq[Token], lpairs: var seq[LocationPair],
+               file: int, x, y: Location, tok: Token) =
+   var t = tok
+   t.loc = Location(file: int32(file), line: uint16(len(lpairs)), col: 0)
+   add(tokens, t)
+   add(lpairs, (x, y))
 
 
-proc enter_macro_context(pp: var Preprocessor, def: var Define) =
+proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
    ## Push a new macro context onto the context stack. This proc expects that
    ## the macro token (``def.name``) has been removed from the token stream.
 
@@ -461,29 +461,50 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define) =
    # arguments, we perform parameter substitution in the macro's replacement
    # list.
    var arguments: Table[string, seq[Token]]
-   var replacement_list: seq[Token]
+   var macro_map: MacroMap
+   macro_map.locations = new_seq_of_cap[LocationPair](len(def.tokens))
+   macro_map.expansion_loc = loc
+
+   var expansion_list: seq[Token]
    if len(def.parameters) > 0:
       # Collecting arguments can generate errors since a certain syntax is
       # expected. We convert exceptions into error tokens and stop the function
       # in that case.
       try:
          arguments = collect_arguments(pp, def)
-         replacement_list = substitute_parameters(def, arguments)
       except PreprocessorError as e:
          add_error_token(pp, e.loc, e.msg)
          return
+
+      let file = next_macro_map_index(pp.locations)
+      for tok in def.tokens:
+         if tok.kind == TkSymbol and tok.identifier.s in arguments:
+            # Go through the replacement list for the argument, making a copy
+            # with an updated position and adding an entry to the macro map.
+            for rtok in arguments[tok.identifier.s]:
+               add_token(expansion_list, macro_map.locations, file, rtok.loc,
+                         tok.loc, rtok)
+         else:
+            add_token(expansion_list, macro_map.locations, file, tok.loc,
+                      tok.loc, tok)
    else:
-      replacement_list = def.tokens
+      let file = next_macro_map_index(pp.locations)
+      for tok in def.tokens:
+         add_token(expansion_list, macro_map.locations, file, tok.loc,
+                            tok.loc, tok)
 
    # Avoid adding an empty replacement list. We still have to read any arguments
    # though.
-   if len(replacement_list) == 0:
+   if len(expansion_list) == 0:
       return
+
+   # Add the macro map to the location tree.
+   add_macro_map(pp.locations, macro_map)
 
    # Add the context entry to the top of the stack and disable the macro from
    # expanding until the context is popped.
    def.is_enabled = false
-   let context = Context(def: def, tokens: replacement_list, idx: 0)
+   let context = Context(def: def, tokens: expansion_list, idx: 0)
    add(pp.context_stack, context)
 
 
@@ -527,8 +548,9 @@ proc handle_directive(pp: var Preprocessor): bool =
       # it is. The parser will deal with it.
       let macro_name = pp.tok.identifier.s
       if macro_name in pp.defines:
+         let loc = pp.tok.loc
          get_token(pp)
-         enter_macro_context(pp, pp.defines[macro_name])
+         enter_macro_context(pp, pp.defines[macro_name], loc)
       else:
          result = false
 
@@ -610,7 +632,7 @@ proc prepare_token(pp: var Preprocessor) =
             # Read past the macro name.
             inc_context_stack(pp)
             # FIXME: possibly all the directives? handle_directive()?
-            enter_macro_context(pp, pp.defines[next_tok.identifier.s])
+            enter_macro_context(pp, pp.defines[next_tok.identifier.s], next_tok.loc)
          else:
             break
    else:
