@@ -53,6 +53,43 @@ proc pretty*(maps: openarray[MacroMap]): string =
       add(result, pretty(m))
 
 
+proc detailed_compare*(x, y: MacroMap) =
+   if x.name != y.name:
+      echo format("Name differs: $1 != $2\n", x.name, y.name)
+      return
+
+   echo x.name
+   const INDENT = 2
+   if x.expansion_loc != y.expansion_loc:
+      echo indent(format("Expansion location differs: $1 != $2\n",
+                         x.expansion_loc, y.expansion_loc), INDENT)
+      return
+
+   for i in 0..<min(len(x.locations), len(y.locations)):
+      let xloc = x.locations[i]
+      let yloc = y.locations[i]
+
+      if xloc.x != yloc.x:
+         echo indent(format("Location $1 differs(x): $2 != $3", i, xloc.x,
+                     yloc.x), INDENT)
+
+      if xloc.y != yloc.y:
+         echo indent(format("Location $1 differs(y): $2 != $3", i, xloc.y,
+                     yloc.y), INDENT)
+
+   if len(x.locations) != len(y.locations):
+      echo indent(format("Location length differs: LHS($1) != RHS($2)",
+                  len(x.locations), len(y.locations)), INDENT)
+
+
+proc detailed_compare*(x, y: openarray[MacroMap]) =
+   for i in 0..<min(len(x), len(y)):
+      detailed_compare(x[i], y[i])
+
+   if len(x) != len(y):
+      echo format("Length differs: LHS($1) != RHS($2)", len(x), len(y))
+
+
 proc init*(locs: PLocations) =
    locs.files = new_seq_of_cap[string](32)
    locs.macro_maps = new_seq_of_cap[MacroMap](64)
