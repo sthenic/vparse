@@ -37,9 +37,7 @@ template run_test(title, stimuli: string, token_reference: openarray[Token],
          styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
                         fgWhite, "Test '",  title, "'")
          inc(nof_failed)
-         # FIXME: Add detailed comparison proc in location.nim
-         echo locations.macro_maps
-         echo macro_map_reference
+         detailed_compare(locations.macro_maps, macro_map_reference)
    else:
       styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
                       fgWhite, "Test '",  title, "'")
@@ -104,14 +102,14 @@ run_test("Object-like macro", """
 ], [
    MacroMap(
       name: "WIRE",
-      expansion_loc: new_location(1, 2, 0),
+      expansion_loc: loc(1, 2, 0),
       locations: @[
-         (new_location(1, 1, 13), new_location(1, 1, 13)),
-         (new_location(1, 1, 18), new_location(1, 1, 18)),
-         (new_location(1, 1, 19), new_location(1, 1, 19)),
-         (new_location(1, 1, 20), new_location(1, 1, 20)),
-         (new_location(1, 1, 21), new_location(1, 1, 21)),
-         (new_location(1, 1, 22), new_location(1, 1, 22)),
+         (loc(1, 1, 13), loc(1, 1, 13)),
+         (loc(1, 1, 18), loc(1, 1, 18)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 1, 20), loc(1, 1, 20)),
+         (loc(1, 1, 21), loc(1, 1, 21)),
+         (loc(1, 1, 22), loc(1, 1, 22)),
       ]
    )
 ])
@@ -139,14 +137,14 @@ run_test("Object-like macro, multiline", """
 ], [
    MacroMap(
       name: "WIRE",
-      expansion_loc: new_location(1, 3, 0),
+      expansion_loc: loc(1, 3, 0),
       locations: @[
-         (new_location(1, 1, 13), new_location(1, 1, 13)),
-         (new_location(1, 2, 3), new_location(1, 2, 3)),
-         (new_location(1, 2, 4), new_location(1, 2, 4)),
-         (new_location(1, 2, 5), new_location(1, 2, 5)),
-         (new_location(1, 2, 6), new_location(1, 2, 6)),
-         (new_location(1, 2, 7), new_location(1, 2, 7)),
+         (loc(1, 1, 13), loc(1, 1, 13)),
+         (loc(1, 2, 3), loc(1, 2, 3)),
+         (loc(1, 2, 4), loc(1, 2, 4)),
+         (loc(1, 2, 5), loc(1, 2, 5)),
+         (loc(1, 2, 6), loc(1, 2, 6)),
+         (loc(1, 2, 7), loc(1, 2, 7)),
       ]
    )
 ])
@@ -165,9 +163,9 @@ run_test("Object-like macro, multiline but next line is empty", """
 ], [
    MacroMap(
       name: "WIRE",
-      expansion_loc: new_location(1, 4, 0),
+      expansion_loc: loc(1, 4, 0),
       locations: @[
-         (new_location(1, 1, 13), new_location(1, 1, 13)),
+         (loc(1, 1, 13), loc(1, 1, 13)),
       ]
    )
 ])
@@ -189,21 +187,21 @@ run_test("Nested object-like macro", """
 ], [
    MacroMap(
       name: "WIRE",
-      expansion_loc: new_location(1, 3, 0),
+      expansion_loc: loc(1, 3, 0),
       locations: @[
-         (new_location(1, 2, 13), new_location(1, 2, 13)),
-         (new_location(1, 2, 18), new_location(1, 2, 18)),
-         (new_location(1, 2, 19), new_location(1, 2, 19)),
-         (new_location(1, 2, 24), new_location(1, 2, 24)),
-         (new_location(1, 2, 25), new_location(1, 2, 25)),
-         (new_location(1, 2, 26), new_location(1, 2, 26)),
+         (loc(1, 2, 13), loc(1, 2, 13)),
+         (loc(1, 2, 18), loc(1, 2, 18)),
+         (loc(1, 2, 19), loc(1, 2, 19)),
+         (loc(1, 2, 24), loc(1, 2, 24)),
+         (loc(1, 2, 25), loc(1, 2, 25)),
+         (loc(1, 2, 26), loc(1, 2, 26)),
       ]
    ),
    MacroMap(
       name: "HIGH",
-      expansion_loc: new_location(-1, 2, 0),
+      expansion_loc: loc(-1, 2, 0),
       locations: @[
-         (new_location(1, 1, 13), new_location(1, 1, 13)),
+         (loc(1, 1, 13), loc(1, 1, 13)),
       ]
    )
 ])
@@ -218,16 +216,16 @@ run_test("Nested object-like macros, immediate expansion", """
 ], [
    MacroMap(
       name: "BAR",
-      expansion_loc: new_location(1, 3, 0),
+      expansion_loc: loc(1, 3, 0),
       locations: @[
-         (new_location(1, 2, 12), new_location(1, 2, 12)),
+         (loc(1, 2, 12), loc(1, 2, 12)),
       ]
    ),
    MacroMap(
       name: "FOO",
-      expansion_loc: new_location(-1, 0, 0),
+      expansion_loc: loc(-1, 0, 0),
       locations: @[
-         (new_location(1, 1, 12), new_location(1, 1, 12)),
+         (loc(1, 1, 12), loc(1, 1, 12)),
       ]
    )
 ])
@@ -242,16 +240,16 @@ run_test("Nested object-like macros, reverse order of definition", """
 ], [
    MacroMap(
       name: "BAR",
-      expansion_loc: new_location(1, 3, 0),
+      expansion_loc: loc(1, 3, 0),
       locations: @[
-         (new_location(1, 1, 12), new_location(1, 1, 12)),
+         (loc(1, 1, 12), loc(1, 1, 12)),
       ]
    ),
    MacroMap(
       name: "FOO",
-      expansion_loc: new_location(-1, 0, 0),
+      expansion_loc: loc(-1, 0, 0),
       locations: @[
-         (new_location(1, 2, 12), new_location(1, 2, 12)),
+         (loc(1, 2, 12), loc(1, 2, 12)),
       ]
    )
 ])
@@ -264,124 +262,238 @@ run_test("Propagate unknown directive tokens", """
 ]
 
 
-# run_test("Object-like macro, redefinition", """
-# `define WIRE wire [7:0]
-# `WIRE my_wire;
-# `define WIRE wire [1:0]
-# `WIRE smaller_wire;
-# """): [
-#    new_identifier(TkWire, loc(1, 1, 13), "wire"),
-#    new_token(TkLbracket, loc(1, 1, 18)),
-#    new_inumber(TkIntLit, loc(1, 1, 19), 7, Base10, -1, "7"),
-#    new_token(TkColon, loc(1, 1, 20)),
-#    new_inumber(TkIntLit, loc(1, 1, 21), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 1, 22)),
-#    new_identifier(TkSymbol, loc(1, 2, 6), "my_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 13)),
-#    new_identifier(TkWire, loc(1, 3, 13), "wire"),
-#    new_token(TkLbracket, loc(1, 3, 18)),
-#    new_inumber(TkIntLit, loc(1, 3, 19), 1, Base10, -1, "1"),
-#    new_token(TkColon, loc(1, 3, 20)),
-#    new_inumber(TkIntLit, loc(1, 3, 21), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 3, 22)),
-#    new_identifier(TkSymbol, loc(1, 4, 6), "smaller_wire"),
-#    new_token(TkSemicolon, loc(1, 4, 18)),
-# ]
+run_test("Object-like macro, redefinition", """
+`define WIRE wire [7:0]
+`WIRE my_wire;
+`define WIRE wire [1:0]
+`WIRE smaller_wire;
+""", [
+   new_identifier(TkWire, loc(-1, 0, 0), "wire"),
+   new_token(TkLbracket, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), 7, Base10, -1, "7"),
+   new_token(TkColon, loc(-1, 3, 0)),
+   new_inumber(TkIntLit, loc(-1, 4, 0), 0, Base10, -1,  "0"),
+   new_token(TkRbracket, loc(-1, 5, 0)),
+   new_identifier(TkSymbol, loc(1, 2, 6), "my_wire"),
+   new_token(TkSemicolon, loc(1, 2, 13)),
+   new_identifier(TkWire, loc(-2, 0, 0), "wire"),
+   new_token(TkLbracket, loc(-2, 1, 0)),
+   new_inumber(TkIntLit, loc(-2, 2, 0), 1, Base10, -1, "1"),
+   new_token(TkColon, loc(-2, 3, 0)),
+   new_inumber(TkIntLit, loc(-2, 4, 0), 0, Base10, -1,  "0"),
+   new_token(TkRbracket, loc(-2, 5, 0)),
+   new_identifier(TkSymbol, loc(1, 4, 6), "smaller_wire"),
+   new_token(TkSemicolon, loc(1, 4, 18)),
+], [
+   MacroMap(
+      name: "WIRE",
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 13), loc(1, 1, 13)),
+         (loc(1, 1, 18), loc(1, 1, 18)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 1, 20), loc(1, 1, 20)),
+         (loc(1, 1, 21), loc(1, 1, 21)),
+         (loc(1, 1, 22), loc(1, 1, 22)),
+      ]
+   ),
+   MacroMap(
+      name: "WIRE",
+      expansion_loc: loc(1, 4, 0),
+      locations: @[
+         (loc(1, 3, 13), loc(1, 3, 13)),
+         (loc(1, 3, 18), loc(1, 3, 18)),
+         (loc(1, 3, 19), loc(1, 3, 19)),
+         (loc(1, 3, 20), loc(1, 3, 20)),
+         (loc(1, 3, 21), loc(1, 3, 21)),
+         (loc(1, 3, 22), loc(1, 3, 22)),
+      ]
+   ),
+])
 
-# run_test("`undef macro before usage", """
-# `define WIRE wire [7:0]
-# `WIRE my_wire;
-# `undef WIRE
-# `WIRE smaller_wire;
-# """): [
-#    new_identifier(TkWire, loc(1, 1, 13), "wire"),
-#    new_token(TkLbracket, loc(1, 1, 18)),
-#    new_inumber(TkIntLit, loc(1, 1, 19), 7, Base10, -1, "7"),
-#    new_token(TkColon, loc(1, 1, 20)),
-#    new_inumber(TkIntLit, loc(1, 1, 21), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 1, 22)),
-#    new_identifier(TkSymbol, loc(1, 2, 6), "my_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 13)),
-#    new_identifier(TkDirective, loc(1, 4, 0), "WIRE"),
-#    new_identifier(TkSymbol, loc(1, 4, 6), "smaller_wire"),
-#    new_token(TkSemicolon, loc(1, 4, 18)),
-# ]
-
-
-# run_test("Invalid macro name for `undef -> error", """
-# `undef "foo"
-# """): [
-#    new_error_token(1, 7, "Invalid token given as macro name '\"foo\"'."),
-# ]
-
-
-# run_test("Macro name not on the same line as the `undef directive.", """
-# `undef
-# FOO
-# """): [
-#    new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `undef directive."),
-# ]
-
-
-# run_test("Function-like macro", """
-# `define REG(width) reg [width:0]
-# `REG(7) a_reg;
-# """): [
-#    new_identifier(TkReg, loc(1, 1, 19), "reg"),
-#    new_token(TkLbracket, loc(1, 1, 23)),
-#    new_inumber(TkIntLit, loc(1, 2, 5), 7, Base10, -1, "7"),
-#    new_token(TkColon, loc(1, 1, 29)),
-#    new_inumber(TkIntLit, loc(1, 1, 30), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 1, 31)),
-#    new_identifier(TkSymbol, loc(1, 2, 8), "a_reg"),
-#    new_token(TkSemicolon, loc(1, 2, 13)),
-# ]
-
-
-# run_test("Function-like macro, empty", """
-# `define FOO(x, y)
-# `FOO (1, 2)
-# """, [])
-
-
-# run_test("Incorrect spacing in function-like macro -> object-like", """
-# `define NOT_A_FUNCTION_MACRO (value) {(value){1'b0}}
-# `NOT_A_FUNCTION_MACRO(8);
-# """): [
-#    new_token(TkLparen, loc(1, 1, 29)),
-#    new_identifier(TkSymbol, loc(1, 1, 30), "value"),
-#    new_token(TkRparen, loc(1, 1, 35)),
-#    new_token(TkLbrace, loc(1, 1, 37)),
-#    new_token(TkLparen, loc(1, 1, 38)),
-#    new_identifier(TkSymbol, loc(1, 1, 39), "value"),
-#    new_token(TkRparen, loc(1, 1, 44)),
-#    new_token(TkLbrace, loc(1, 1, 45)),
-#    new_inumber(TkUIntLit, loc(1, 1, 46), 0, Base2, 1, "0"),
-#    new_token(TkRbrace, loc(1, 1, 50)),
-#    new_token(TkRbrace, loc(1, 1, 51)),
-#    new_token(TkLparen, loc(1, 2, 21)),
-#    new_inumber(TkIntLit, loc(1, 2, 22), 8, Base10, -1, "8"),
-#    new_token(TkRparen, loc(1, 2, 23)),
-#    new_token(TkSemicolon, loc(1, 2, 24)),
-# ]
+run_test("`undef macro before usage", """
+`define WIRE wire [7:0]
+`WIRE my_wire;
+`undef WIRE
+`WIRE smaller_wire;
+""", [
+   new_identifier(TkWire, loc(-1, 0, 0), "wire"),
+   new_token(TkLbracket, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), 7, Base10, -1, "7"),
+   new_token(TkColon, loc(-1, 3, 0)),
+   new_inumber(TkIntLit, loc(-1, 4, 0), 0, Base10, -1,  "0"),
+   new_token(TkRbracket, loc(-1, 5, 0)),
+   new_identifier(TkSymbol, loc(1, 2, 6), "my_wire"),
+   new_token(TkSemicolon, loc(1, 2, 13)),
+   new_identifier(TkDirective, loc(1, 4, 0), "WIRE"),
+   new_identifier(TkSymbol, loc(1, 4, 6), "smaller_wire"),
+   new_token(TkSemicolon, loc(1, 4, 18)),
+], [
+   MacroMap(
+      name: "WIRE",
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 13), loc(1, 1, 13)),
+         (loc(1, 1, 18), loc(1, 1, 18)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 1, 20), loc(1, 1, 20)),
+         (loc(1, 1, 21), loc(1, 1, 21)),
+         (loc(1, 1, 22), loc(1, 1, 22)),
+      ]
+   ),
+])
 
 
-# run_test("Nested function- & object-like macros", """
-# `define CONSTANT ABC
-# `define bar(x, y) foo `CONSTANT x y
-# `bar(`bar(3, `CONSTANT), bAz) (2)
-# """): [
-#    new_identifier(TkSymbol, loc(1, 0, 0), "foo", -4),
-#    new_identifier(TkSymbol, loc(1, 0, 0), "ABC", -5),
-#    new_identifier(TkSymbol, loc(1, 2, 0), "foo", -4),
-#    new_identifier(TkSymbol, loc(1, 3, 0), "ABC", -4),
-#    new_inumber(TkIntLit, loc(1, 4, 0), 3, Base10, -1, "3", -4),
-#    new_identifier(TkSymbol, loc(1, 5, 0), "ABC", -4),
-#    new_identifier(TkSymbol, loc(1, 6, 0), "bAz", -4),
-#    new_token(TkLparen, loc(1, 3, 30)),
-#    new_inumber(TkIntLit, loc(1, 3, 31), 2, Base10, -1, "2"),
-#    new_token(TkRparen, loc(1, 3, 32)),
-# ]
+run_test("Invalid macro name for `undef -> error", """
+`undef "foo"
+"""): [
+   new_error_token(1, 7, "Invalid token given as macro name '\"foo\"'."),
+]
+
+
+run_test("Macro name not on the same line as the `undef directive.", """
+`undef
+FOO
+"""): [
+   new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `undef directive."),
+]
+
+
+run_test("Function-like macro", """
+`define REG(width) reg [width:0]
+`REG(7) a_reg;
+""", [
+   new_identifier(TkReg, loc(-1, 0, 0), "reg"),
+   new_token(TkLbracket, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), 7, Base10, -1, "7"),
+   new_token(TkColon, loc(-1, 3, 0)),
+   new_inumber(TkIntLit, loc(-1, 4, 0), 0, Base10, -1, "0"),
+   new_token(TkRbracket, loc(-1, 5, 0)),
+   new_identifier(TkSymbol, loc(1, 2, 8), "a_reg"),
+   new_token(TkSemicolon, loc(1, 2, 13)),
+], [
+   MacroMap(
+      name: "REG",
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 1, 23), loc(1, 1, 23)),
+         (loc(1, 2, 5), loc(1, 1, 24)),
+         (loc(1, 1, 29), loc(1, 1, 29)),
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 1, 31), loc(1, 1, 31)),
+      ]
+   ),
+])
+
+
+run_test("Function-like macro, empty", """
+`define FOO(x, y)
+`FOO (1, 2)
+""", [])
+
+
+run_test("Incorrect spacing in function-like macro -> object-like", """
+`define NOT_A_FUNCTION_MACRO (value) {(value){1'b0}}
+`NOT_A_FUNCTION_MACRO(8);
+""", [
+   new_token(TkLparen, loc(-1, 0, 0)),
+   new_identifier(TkSymbol, loc(-1, 1, 0), "value"),
+   new_token(TkRparen, loc(-1, 2, 0)),
+   new_token(TkLbrace, loc(-1, 3, 0)),
+   new_token(TkLparen, loc(-1, 4, 0)),
+   new_identifier(TkSymbol, loc(-1, 5, 0), "value"),
+   new_token(TkRparen, loc(-1, 6, 0)),
+   new_token(TkLbrace, loc(-1, 7, 0)),
+   new_inumber(TkUIntLit, loc(-1, 8, 0), 0, Base2, 1, "0"),
+   new_token(TkRbrace, loc(-1, 9, 0)),
+   new_token(TkRbrace, loc(-1, 10, 0)),
+   new_token(TkLparen, loc(1, 2, 21)),
+   new_inumber(TkIntLit, loc(1, 2, 22), 8, Base10, -1, "8"),
+   new_token(TkRparen, loc(1, 2, 23)),
+   new_token(TkSemicolon, loc(1, 2, 24)),
+], [
+   MacroMap(
+      name: "NOT_A_FUNCTION_MACRO",
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 29), loc(1, 1, 29)),
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 1, 35), loc(1, 1, 35)),
+         (loc(1, 1, 37), loc(1, 1, 37)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 1, 39), loc(1, 1, 39)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 1, 45), loc(1, 1, 45)),
+         (loc(1, 1, 46), loc(1, 1, 46)),
+         (loc(1, 1, 50), loc(1, 1, 50)),
+         (loc(1, 1, 51), loc(1, 1, 51)),
+      ]
+   ),
+])
+
+
+run_test("Nested function- & object-like macros", """
+`define CONSTANT ABC
+`define bar(x, y) foo `CONSTANT x y
+`bar(`bar(3, `CONSTANT), bAz) (2)
+""", [
+   new_identifier(TkSymbol, loc(-4, 0, 0), "foo"),
+   new_identifier(TkSymbol, loc(-5, 0, 0), "ABC"),
+   new_identifier(TkSymbol, loc(-4, 2, 0), "foo"),
+   new_identifier(TkSymbol, loc(-4, 3, 0), "ABC"),
+   new_inumber(TkIntLit, loc(-4, 4, 0), 3, Base10, -1, "3"),
+   new_identifier(TkSymbol, loc(-4, 5, 0), "ABC"),
+   new_identifier(TkSymbol, loc(-4, 6, 0), "bAz"),
+   new_token(TkLparen, loc(1, 3, 30)),
+   new_inumber(TkIntLit, loc(1, 3, 31), 2, Base10, -1, "2"),
+   new_token(TkRparen, loc(1, 3, 32)),
+], [
+   MacroMap(
+      name: "CONSTANT",
+      expansion_loc: loc(1, 3, 13),
+      locations: @[
+         (loc(1, 1, 17), loc(1, 1, 17)),
+      ]
+   ),
+   MacroMap(
+      name: "bar",
+      expansion_loc: loc(1, 3, 5),
+      locations: @[
+         (loc(1, 2, 18), loc(1, 2, 18)),
+         (loc(1, 2, 22), loc(1, 2, 22)),
+         (loc(1, 3, 10), loc(1, 2, 32)),
+         (loc(-1, 0, 0), loc(1, 2, 34)),
+      ]
+   ),
+   MacroMap(
+      name: "CONSTANT",
+      expansion_loc: loc(-2, 1, 0),
+      locations: @[
+         (loc(1, 1, 17), loc(1, 1, 17)),
+      ]
+   ),
+   MacroMap(
+      name: "bar",
+      expansion_loc: loc(1, 3, 0),
+      locations: @[
+         (loc(1, 2, 18), loc(1, 2, 18)),
+         (loc(1, 2, 22), loc(1, 2, 22)),
+         (loc(-2, 0, 0), loc(1, 2, 32)),
+         (loc(-3, 0, 0), loc(1, 2, 32)),
+         (loc(-2, 2, 0), loc(1, 2, 32)),
+         (loc(-2, 3, 0), loc(1, 2, 32)),
+         (loc(1, 3, 25), loc(1, 2, 34)),
+      ]
+   ),
+   MacroMap(
+      name: "CONSTANT",
+      expansion_loc: loc(-4, 1, 0),
+      locations: @[
+         (loc(1, 1, 17), loc(1, 1, 17)),
+      ]
+   ),
+])
 
 # run_test("Complex macro (sv-parser case 4)", """
 # `define disp(clk, exp, msg) \
@@ -489,86 +601,181 @@ run_test("Propagate unknown directive tokens", """
 # ]
 
 
-# run_test("Direct recursion -> error", """
-# `define a `a b
-# `define foo `foo
-# `a
-# `foo
-# """): [
-#    new_error_token(1, 10, "Recursive definition of a."),
-#    new_error_token(2, 12, "Recursive definition of foo."),
-#    new_identifier(TkDirective, loc(1, 3, 0), "a"),
-#    new_identifier(TkDirective, loc(1, 4, 0), "foo"),
-# ]
+run_test("Direct recursion -> error", """
+`define a `a b
+`define foo `foo
+`a
+`foo
+"""): [
+   new_error_token(1, 10, "Recursive definition of a."),
+   new_error_token(2, 12, "Recursive definition of foo."),
+   new_identifier(TkDirective, loc(1, 3, 0), "a"),
+   new_identifier(TkDirective, loc(1, 4, 0), "foo"),
+]
 
 
-# run_test("Indirect recursion -> token propagates", """
-# `define b `c
-# `define c `d
-# `define d `e
-# `define e `b
-# `b"""): [
-#    # We get the `b token from `e since the preprocessor finds it at the end of
-#    # the expansion chain, unable to continue past it since `b is not enabled
-#    # for expansion in its own context. This is the way GCC does it and is not
-#    # incompatible with Verilog since recursive macros are not allowed outright.
-#    new_identifier(TkDirective, loc(1, 4, 10), "b"),
-# ]
+run_test("Indirect recursion -> token propagates", """
+`define b `c
+`define c `d
+`define d `e
+`define e `b
+`b""", [
+   # We get the `b token from `e since the preprocessor finds it at the end of
+   # the expansion chain, unable to continue past it since `b is not enabled
+   # for expansion in its own context. This is the way GCC does it and is not
+   # incompatible with Verilog since recursive macros are not allowed outright.
+   new_identifier(TkDirective, loc(-4, 0, 0), "b"),
+], [
+   MacroMap(
+      name: "b",
+      expansion_loc: loc(1, 5, 0),
+      locations: @[
+         (loc(1, 1, 10), loc(1, 1, 10)),
+      ]
+   ),
+   MacroMap(
+      name: "c",
+      expansion_loc: loc(-1, 0, 0),
+      locations: @[
+         (loc(1, 2, 10), loc(1, 2, 10)),
+      ]
+   ),
+   MacroMap(
+      name: "d",
+      expansion_loc: loc(-2, 0, 0),
+      locations: @[
+         (loc(1, 3, 10), loc(1, 3, 10)),
+      ]
+   ),
+   MacroMap(
+      name: "e",
+      expansion_loc: loc(-3, 0, 0),
+      locations: @[
+         (loc(1, 4, 10), loc(1, 4, 10)),
+      ]
+   ),
+])
 
 
-# run_test("Indirect recursion, longer replacement lists", """
-# `define b pre `c post
-# `define c pre `d post
-# `define d pre `e post
-# `define e pre `b post
-# `b"""): [
-#    new_identifier(TkSymbol, loc(1, 1, 10), "pre"),
-#    new_identifier(TkSymbol, loc(1, 2, 10), "pre"),
-#    new_identifier(TkSymbol, loc(1, 3, 10), "pre"),
-#    new_identifier(TkSymbol, loc(1, 4, 10), "pre"),
-#    new_identifier(TkDirective, loc(1, 4, 14), "b"),
-#    new_identifier(TkSymbol, loc(1, 4, 17), "post"),
-#    new_identifier(TkSymbol, loc(1, 3, 17), "post"),
-#    new_identifier(TkSymbol, loc(1, 2, 17), "post"),
-#    new_identifier(TkSymbol, loc(1, 1, 17), "post"),
-# ]
+run_test("Indirect recursion, longer replacement lists", """
+`define b pre `c post
+`define c pre `d post
+`define d pre `e post
+`define e pre `b post
+`b""", [
+   new_identifier(TkSymbol, loc(-1, 0, 0), "pre"),
+   new_identifier(TkSymbol, loc(-2, 0, 0), "pre"),
+   new_identifier(TkSymbol, loc(-3, 0, 0), "pre"),
+   new_identifier(TkSymbol, loc(-4, 0, 0), "pre"),
+   new_identifier(TkDirective, loc(-4, 1, 0), "b"),
+   new_identifier(TkSymbol, loc(-4, 2, 0), "post"),
+   new_identifier(TkSymbol, loc(-3, 2, 0), "post"),
+   new_identifier(TkSymbol, loc(-2, 2, 0), "post"),
+   new_identifier(TkSymbol, loc(-1, 2, 0), "post"),
+], [
+   MacroMap(
+      name: "b",
+      expansion_loc: loc(1, 5, 0),
+      locations: @[
+         (loc(1, 1, 10), loc(1, 1, 10)),
+         (loc(1, 1, 14), loc(1, 1, 14)),
+         (loc(1, 1, 17), loc(1, 1, 17)),
+      ]
+   ),
+   MacroMap(
+      name: "c",
+      expansion_loc: loc(-1, 1, 0),
+      locations: @[
+         (loc(1, 2, 10), loc(1, 2, 10)),
+         (loc(1, 2, 14), loc(1, 2, 14)),
+         (loc(1, 2, 17), loc(1, 2, 17)),
+      ]
+   ),
+   MacroMap(
+      name: "d",
+      expansion_loc: loc(-2, 1, 0),
+      locations: @[
+         (loc(1, 3, 10), loc(1, 3, 10)),
+         (loc(1, 3, 14), loc(1, 3, 14)),
+         (loc(1, 3, 17), loc(1, 3, 17)),
+      ]
+   ),
+   MacroMap(
+      name: "e",
+      expansion_loc: loc(-3, 1, 0),
+      locations: @[
+         (loc(1, 4, 10), loc(1, 4, 10)),
+         (loc(1, 4, 14), loc(1, 4, 14)),
+         (loc(1, 4, 17), loc(1, 4, 17)),
+      ]
+   ),
+])
 
 
-# run_test("Ignoring one-line comments", """
-# `define foo this \
-#    spans \
-#    // surprise!
-#    multiple \
-#    lines
-# `foo"""): [
-#    new_identifier(TkSymbol, loc(1, 1, 12), "this"),
-#    new_identifier(TkSymbol, loc(1, 2, 3), "spans"),
-#    new_identifier(TkSymbol, loc(1, 4, 3), "multiple"),
-#    new_identifier(TkSymbol, loc(1, 5, 3), "lines"),
-# ]
+run_test("Ignoring one-line comments", """
+`define foo this \
+   spans \
+   // surprise!
+   multiple \
+   lines
+`foo""", [
+   new_identifier(TkSymbol, loc(-1, 0, 0), "this"),
+   new_identifier(TkSymbol, loc(-1, 1, 0), "spans"),
+   new_identifier(TkSymbol, loc(-1, 2, 0), "multiple"),
+   new_identifier(TkSymbol, loc(-1, 3, 0), "lines"),
+], [
+   MacroMap(
+      name: "foo",
+      expansion_loc: loc(1, 6, 0),
+      locations: @[
+         (loc(1, 1, 12), loc(1, 1, 12)),
+         (loc(1, 2, 3), loc(1, 2, 3)),
+         (loc(1, 4, 3), loc(1, 4, 3)),
+         (loc(1, 5, 3), loc(1, 5, 3))
+      ]
+   ),
+])
+
+run_test("Ignoring one-line comments, next line is empty", """
+`define foo this \
+   // surprise!
+
+`foo""", [
+   new_identifier(TkSymbol, loc(-1, 0, 0), "this"),
+], [
+   MacroMap(
+      name: "foo",
+      expansion_loc: loc(1, 4, 0),
+      locations: @[
+         (loc(1, 1, 12), loc(1, 1, 12))
+      ]
+   ),
+])
 
 
-# run_test("Ignoring one-line comments, next line is empty", """
-# `define foo this \
-#    // surprise!
-
-# `foo"""): [
-#    new_identifier(TkSymbol, loc(1, 1, 12), "this"),
-# ]
-
-
-# run_test("Ignoring block comments", """
-# `define foo this \
-#    spans \
-#    /* surprise! */
-#    multiple \
-#    lines
-# `foo"""): [
-#    new_identifier(TkSymbol, loc(1, 1, 12), "this"),
-#    new_identifier(TkSymbol, loc(1, 2, 3), "spans"),
-#    new_identifier(TkSymbol, loc(1, 4, 3), "multiple"),
-#    new_identifier(TkSymbol, loc(1, 5, 3), "lines"),
-# ]
+run_test("Ignoring block comments", """
+`define foo this \
+   spans \
+   /* surprise! */
+   multiple \
+   lines
+`foo""", [
+   new_identifier(TkSymbol, loc(-1, 0, 0), "this"),
+   new_identifier(TkSymbol, loc(-1, 1, 0), "spans"),
+   new_identifier(TkSymbol, loc(-1, 2, 0), "multiple"),
+   new_identifier(TkSymbol, loc(-1, 3, 0), "lines"),
+], [
+   MacroMap(
+      name: "foo",
+      expansion_loc: loc(1, 6, 0),
+      locations: @[
+         (loc(1, 1, 12), loc(1, 1, 12)),
+         (loc(1, 2, 3), loc(1, 2, 3)),
+         (loc(1, 4, 3), loc(1, 4, 3)),
+         (loc(1, 5, 3), loc(1, 5, 3))
+      ]
+   ),
+])
 
 
 # run_test("Example from the standard", """
@@ -619,636 +826,644 @@ run_test("Propagate unknown directive tokens", """
 # ]
 
 
-# run_test("Function-like macro, missing opening parenthesis", """
-# `define FOO(x) x
-# `FOO s
-# """): [
-#    new_error_token(2, 5, "Expected token '(', got 's'."),
-# ]
-
-
-# run_test("Function-like macro, too few arguments", """
-# `define FOO(x, y) x and y
-# `FOO(1)
-# """): [
-#    new_error_token(2, 4, "Expected 2 arguments, got 1."),
-# ]
-
-
-# run_test("Function-like macro, too many arguments", """
-# `define FOO(x, y) x and y
-# `FOO(1, 2, 1, 5)
-# """): [
-#    new_error_token(2, 4, "Expected 2 arguments, got 4."),
-# ]
-
-
-# run_test("Function-like macro, unexpected end of file", """
-# `define FOO(x, y) x and y
-# `FOO(1, 2
-# """): [
-#    new_error_token(3, 0, "Unexpected end of file."),
-# ]
-
-
-# run_test("Function-like macro, missing closing parenthesis in parameter list", """
-# `define FOO(x, y
-# """): [
-#    new_error_token(2, 0, "Expected token ')', got '[EOF]'."),
-# ]
-
-
-# run_test("Include file", """
-# `include "test.vh"
-# wire [3:0] another_wire;
-# """): [
-#    new_identifier(TkWire, loc(1, 1, 0), "wire", 2),
-#    new_token(TkLbracket, loc(1, 1, 5), 2),
-#    new_inumber(TkIntLit, loc(1, 1, 6), 7, Base10, -1, "7", 2),
-#    new_token(TkColon, loc(1, 1, 7), 2),
-#    new_inumber(TkIntLit, loc(1, 1, 8), 0, Base10, -1, "0", 2),
-#    new_token(TkRbracket, loc(1, 1, 9), 2),
-#    new_identifier(TkSymbol, loc(1, 1, 11), "my_wire", 2),
-#    new_token(TkSemicolon, loc(1, 1, 18), 2),
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-#    new_token(TkLbracket, loc(1, 2, 5)),
-#    new_inumber(TkIntLit, loc(1, 2, 6), 3, Base10, -1, "3"),
-#    new_token(TkColon, loc(1, 2, 7)),
-#    new_inumber(TkIntLit, loc(1, 2, 8), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 2, 9)),
-#    new_identifier(TkSymbol, loc(1, 2, 11), "another_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 23)),
-# ]
-
-
-# run_test("Include file, depending on an include path", """
-# `include "test1.vh"
-# wire [3:0] another_wire;
-# """): [
-#    new_identifier(TkReg, loc(1, 1, 0), "reg", 2),
-#    new_identifier(TkSymbol, loc(1, 1, 4), "a_register", 2),
-#    new_token(TkSemicolon, loc(1, 1, 14), 2),
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-#    new_token(TkLbracket, loc(1, 2, 5)),
-#    new_inumber(TkIntLit, loc(1, 2, 6), 3, Base10, -1, "3"),
-#    new_token(TkColon, loc(1, 2, 7)),
-#    new_inumber(TkIntLit, loc(1, 2, 8), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 2, 9)),
-#    new_identifier(TkSymbol, loc(1, 2, 11), "another_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 23)),
-# ]
-
-
-# run_test("Nested include files", """
-# wire wire0;
-# `include "include/test2.vh"
-# wire last_wire;
-# """): [
-#    new_identifier(TkWire, loc(1, 1, 0), "wire"),
-#    new_identifier(TkSymbol, loc(1, 1, 5), "wire0"),
-#    new_token(TkSemicolon, loc(1, 1, 10)),
-#    new_identifier(TkWire, loc(1, 1, 0), "wire", 2),
-#    new_identifier(TkSymbol, loc(1, 1, 5), "wire2", 2),
-#    new_token(TkSemicolon, loc(1, 1, 10), 2),
-#    new_identifier(TkWire, loc(1, 1, 0), "wire", 3),
-#    new_identifier(TkSymbol, loc(1, 1, 5), "wire3", 3),
-#    new_token(TkSemicolon, loc(1, 1, 10), 3),
-#    new_identifier(TkWire, loc(1, 3, 0), "wire", 2),
-#    new_identifier(TkSymbol, loc(1, 3, 5), "next_to_last_wire", 2),
-#    new_token(TkSemicolon, loc(1, 3, 22), 2),
-#    new_identifier(TkWire, loc(1, 3, 0), "wire"),
-#    new_identifier(TkSymbol, loc(1, 3, 5), "last_wire"),
-#    new_token(TkSemicolon, loc(1, 3, 14)),
-# ]
-
-
-# run_test("Macro defined in an include file", """
-# `include "test4.vh"
-# wire [`WIDTH-1:0] my_wire;
-# """): [
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-#    new_token(TkLbracket, loc(1, 2, 5)),
-#    new_inumber(TkIntLit, loc(1, 1, 14), 8, Base10, -1, "8", 2),
-#    new_identifier(TkOperator, loc(1, 2, 12), "-"),
-#    new_inumber(TkIntLit, loc(1, 2, 13), 1, Base10, -1, "1"),
-#    new_token(TkColon, loc(1, 2, 14)),
-#    new_inumber(TkIntLit, loc(1, 2, 15), 0, Base10, -1, "0"),
-#    new_token(TkRbracket, loc(1, 2, 16)),
-#    new_identifier(TkSymbol, loc(1, 2, 18), "my_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 25)),
-# ]
-
-
-# run_test("File cannot be found for `include -> error", """
-# `include "test_invalid.vh"
-# wire
-# """): [
-#    new_error_token(1, 9, "Cannot open file 'test_invalid.vh'."),
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-# ]
-
-
-# run_test("Missing filename for `include -> error", """
-# `include
-# """): [
-#    new_error_token(2, 0, "Expected token StrLit, got '[EOF]'."),
-# ]
-
-
-# run_test("Filename not on the same line as the `include directive", """
-# `include
-# "test.vh"
-# """): [
-#    new_error_token(2, 0, "The argument token '\"test.vh\"' is not on the same line as the `include directive."),
-# ]
-
-
-# run_test("`ifdef: w/o `else, ignored", """
-# `ifdef FOO
-#    wire my_foo_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkReg, loc(1, 4, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 4, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 4, 5)),
-# ]
-
-
-# run_test("`ifdef: w/o `else, included", """
-# `define FOO
-# `ifdef FOO
-#    wire my_foo_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 3, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 3, 19)),
-#    new_identifier(TkReg, loc(1, 5, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 5, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 5, 5)),
-# ]
-
-
-# run_test("`ifdef: w/ `else, if-branch", """
-# `define FOO
-# `ifdef FOO
-#    wire my_foo_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 3, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 3, 19)),
-#    new_identifier(TkReg, loc(1, 7, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 7, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 7, 5)),
-# ]
-
-
-# run_test("`ifdef: w/ `else, else-branch", """
-# `ifdef FOO
-#    wire my_foo_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 4, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 4, 8), "my_else_wire"),
-#    new_token(TkSemicolon, loc(1, 4, 20)),
-#    new_identifier(TkReg, loc(1, 6, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 6, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 6, 5)),
-# ]
-
-
-# run_test("`ifdef: w/ `elsif, if-branch", """
-# `define FOO
-# `ifdef FOO
-#    wire my_foo_wire;
-# `elsif BAR
-#    wire my_bar_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 3, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 3, 19)),
-#    new_identifier(TkReg, loc(1, 9, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 9, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 9, 5)),
-# ]
-
-
-# run_test("`ifdef: w/ `elsif, elsif-branch", """
-# `define BAR
-# `ifdef FOO
-#    wire my_foo_wire;
-# `elsif BAR
-#    wire my_bar_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 5, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 5, 8), "my_bar_wire"),
-#    new_token(TkSemicolon, loc(1, 5, 19)),
-#    new_identifier(TkReg, loc(1, 9, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 9, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 9, 5)),
-# ]
-
-
-# run_test("`ifdef: w/ `elsif, else-branch", """
-# `ifdef FOO
-#    wire my_foo_wire;
-# `elsif BAR
-#    wire my_bar_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 6, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 6, 8), "my_else_wire"),
-#    new_token(TkSemicolon, loc(1, 6, 20)),
-#    new_identifier(TkReg, loc(1, 8, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 8, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 8, 5)),
-# ]
-
-
-# run_test("`ifndef: w/o `else, ignored", """
-# `define FOO
-# `ifndef FOO
-#    wire my_foo_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkReg, loc(1, 5, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 5, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 5, 5)),
-# ]
-
-
-# run_test("`ifndef: w/o `else, included", """
-# `ifndef FOO
-#    wire my_foo_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 2, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 2, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 19)),
-#    new_identifier(TkReg, loc(1, 4, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 4, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 4, 5)),
-# ]
-
-
-# run_test("`ifndef: w/ `else, if-branch", """
-# `ifndef FOO
-#    wire my_foo_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 2, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 2, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 19)),
-#    new_identifier(TkReg, loc(1, 6, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 6, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 6, 5)),
-# ]
-
-
-# run_test("`ifndef: w/ `else, else-branch", """
-# `define FOO
-# `ifndef FOO
-#    wire my_foo_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 5, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 5, 8), "my_else_wire"),
-#    new_token(TkSemicolon, loc(1, 5, 20)),
-#    new_identifier(TkReg, loc(1, 7, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 7, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 7, 5)),
-# ]
-
-
-# run_test("`ifndef: w/ `elsif, if-branch", """
-# `ifndef FOO
-#    wire my_foo_wire;
-# `elsif BAR
-#    wire my_bar_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 2, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 2, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 19)),
-#    new_identifier(TkReg, loc(1, 8, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 8, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 8, 5)),
-# ]
-
-
-# run_test("`ifndef: w/ `elsif, elsif-branch", """
-# `define FOO
-# `define BAR
-# `ifndef FOO
-#    wire my_foo_wire;
-# `elsif BAR
-#    wire my_bar_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 6, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 6, 8), "my_bar_wire"),
-#    new_token(TkSemicolon, loc(1, 6, 19)),
-#    new_identifier(TkReg, loc(1, 10, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 10, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 10, 5)),
-# ]
-
-
-# run_test("`ifndef: w/ `elsif, else-branch", """
-# `define FOO
-# `ifndef FOO
-#    wire my_foo_wire;
-# `elsif BAR
-#    wire my_bar_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# reg a;
-# """): [
-#    new_identifier(TkWire, loc(1, 7, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 7, 8), "my_else_wire"),
-#    new_token(TkSemicolon, loc(1, 7, 20)),
-#    new_identifier(TkReg, loc(1, 9, 0), "reg"),
-#    new_identifier(TkSymbol, loc(1, 9, 4), "a"),
-#    new_token(TkSemicolon, loc(1, 9, 5)),
-# ]
-
-
-# run_test("`ifdef: nested 1", """
-# `ifdef FOO
-#    wire my_foo_wire;
-#    `ifdef BAR
-#       wire my_bar_wire;
-#    `else
-#       wire my_bar_else_wire;
-#    `endif
-#    wire another_foo_wire;
-# `else
-#    wire my_foo_else_wire;
-#    `ifndef BAR
-#       wire my_not_bar_wire;
-#    `else
-#       wire my_bar_else_wire;
-#    `endif
-#    wire another_foo_else_wire;
-# `endif
-# """): [
-#    new_identifier(TkWire, loc(1, 10, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 10, 8), "my_foo_else_wire"),
-#    new_token(TkSemicolon, loc(1, 10, 24)),
-#    new_identifier(TkWire, loc(1, 12, 6), "wire"),
-#    new_identifier(TkSymbol, loc(1, 12, 11), "my_not_bar_wire"),
-#    new_token(TkSemicolon, loc(1, 12, 26)),
-#    new_identifier(TkWire, loc(1, 16, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 16, 8), "another_foo_else_wire"),
-#    new_token(TkSemicolon, loc(1, 16, 29)),
-# ]
-
-
-# run_test("`ifdef: nested 2", """
-# `define FOO
-# `ifdef FOO
-#    wire my_foo_wire;
-#    `ifdef BAR
-#       wire my_bar_wire;
-#    `else
-#       wire my_bar_else_wire;
-#    `endif
-#    wire another_foo_wire;
-# `else
-#    wire my_foo_else_wire;
-#    `ifndef BAR
-#       wire my_not_bar_wire;
-#    `else
-#       wire my_bar_else_wire;
-#    `endif
-#    wire another_foo_else_wire;
-# `endif
-# """): [
-#    new_identifier(TkWire, loc(1, 3, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 3, 19)),
-#    new_identifier(TkWire, loc(1, 7, 6), "wire"),
-#    new_identifier(TkSymbol, loc(1, 7, 11), "my_bar_else_wire"),
-#    new_token(TkSemicolon, loc(1, 7, 27)),
-#    new_identifier(TkWire, loc(1, 9, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 9, 8), "another_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 9, 24)),
-# ]
-
-
-# run_test("`ifdef: nested 3", """
-# `define BAR
-# `ifdef FOO
-#    wire my_foo_wire;
-#    `ifdef BAR
-#       wire my_bar_wire;
-#    `else
-#       wire my_bar_else_wire;
-#    `endif
-#    wire another_foo_wire;
-# `else
-#    wire my_foo_else_wire;
-#    `ifndef BAR
-#       wire my_not_bar_wire;
-#    `else
-#       wire my_bar_else_wire;
-#    `endif
-#    wire another_foo_else_wire;
-# `endif
-# """): [
-#    new_identifier(TkWire, loc(1, 11, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 11, 8), "my_foo_else_wire"),
-#    new_token(TkSemicolon, loc(1, 11, 24)),
-#    new_identifier(TkWire, loc(1, 15, 6), "wire"),
-#    new_identifier(TkSymbol, loc(1, 15, 11), "my_bar_else_wire"),
-#    new_token(TkSemicolon, loc(1, 15, 27)),
-#    new_identifier(TkWire, loc(1, 17, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 17, 8), "another_foo_else_wire"),
-#    new_token(TkSemicolon, loc(1, 17, 29)),
-# ]
-
-
-# run_test("Conditional include: if-branch", """
-# `define FOO
-# `ifdef FOO
-#    `include "test1.vh"
-# `else
-#    `include "test2.vh"
-# `endif
-# """): [
-#    new_identifier(TkReg, loc(1, 1, 0), "reg", 2),
-#    new_identifier(TkSymbol, loc(1, 1, 4), "a_register", 2),
-#    new_token(TkSemicolon, loc(1, 1, 14), 2),
-# ]
-
-
-# run_test("Conditional include: else-branch", """
-# `ifdef FOO
-#    `include "test1.vh"
-# `else
-#    `include "test2.vh"
-# `endif
-# """): [
-#    new_identifier(TkWire, loc(1, 1, 0), "wire", 2),
-#    new_identifier(TkSymbol, loc(1, 1, 5), "wire2", 2),
-#    new_token(TkSemicolon, loc(1, 1, 10), 2),
-#    new_identifier(TkWire, loc(1, 1, 0), "wire", 3),
-#    new_identifier(TkSymbol, loc(1, 1, 5), "wire3", 3),
-#    new_token(TkSemicolon, loc(1, 1, 10), 3),
-#    new_identifier(TkWire, loc(1, 3, 0), "wire", 2),
-#    new_identifier(TkSymbol, loc(1, 3, 5), "next_to_last_wire", 2),
-#    new_token(TkSemicolon, loc(1, 3, 22), 2),
-# ]
-
-
-# run_test("Invalid `ifdef token -> error", """
-# `ifdef "FOO"
-# """): [
-#    new_error_token(1, 7, "Expected token Symbol, got '\"FOO\"'."),
-# ]
-
-
-# run_test("Macro name not on the same line as the `ifdef directive", """
-# `ifdef
-# FOO
-# """): [
-#    new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `ifdef directive."),
-# ]
-
-
-# run_test("`ifdef unexpected end of file", """
-# `ifdef FOO
-#    wire ignored_wire;
-# """): [
-#    new_error_token(3, 0, "Unexpected end of file."),
-# ]
-
-
-# run_test("Unexpected `endif", """
-# `endif
-# wire some_wire;
-# """): [
-#    new_error_token(1, 0, "Unexpected token '`endif'."),
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-#    new_identifier(TkSymbol, loc(1, 2, 5), "some_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 14)),
-# ]
-
-
-# run_test("`ifdef/`else unexpected end of file", """
-# `ifdef FOO
-# `else
-# """): [
-#    new_error_token(3, 0, "Unexpected end of file."),
-# ]
-
-
-# run_test("`ifndef/`else unexpected end of file", """
-# `ifndef FOO
-# `else
-# """): [
-#    new_error_token(3, 0, "Unexpected end of file."),
-# ]
-
-
-# run_test("Unexpected `else", """
-# `else
-# wire some_wire;
-# """): [
-#    new_error_token(1, 0, "Unexpected token '`else'."),
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-#    new_identifier(TkSymbol, loc(1, 2, 5), "some_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 14)),
-# ]
-
-
-# run_test("Conditional directives, broken syntax", """
-# `ifdef FOO
-#    wire my_foo_wire;
-#    `ifndef BAR
-#       wire my_bar_wire
-#    `endif
-#    `endif
-# `else
-#    wire my_else_wire;
-# `endif
-# """): [
-#    new_error_token(7, 0, "Unexpected token '`else'."),
-#    new_identifier(TkWire, loc(1, 8, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 8, 8), "my_else_wire"),
-#    new_token(TkSemicolon, loc(1, 8, 20)),
-#    new_error_token(9, 0, "Unexpected token '`endif'."),
-# ]
-
-
-# run_test("Clear defines with `resetall", """
-# `define FOO
-# `ifdef FOO
-#    wire my_foo_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# `resetall
-# `ifdef FOO
-#    wire my_foo_wire;
-# `else
-#    wire my_else_wire;
-# `endif
-# """): [
-#    new_identifier(TkWire, loc(1, 3, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
-#    new_token(TkSemicolon, loc(1, 3, 19)),
-#    new_identifier(TkDirective, loc(1, 7, 0), "resetall"),
-#    new_identifier(TkWire, loc(1, 11, 3), "wire"),
-#    new_identifier(TkSymbol, loc(1, 11, 8), "my_else_wire"),
-#    new_token(TkSemicolon, loc(1, 11, 20)),
-# ]
-
-
-# run_test("`line directive unsupported", """
-# `line 2 "test.v" 1
-# wire my_wire;
-# """): [
-#    new_error_token(1, 0, "The `line directive is currently not supported."),
-#    new_identifier(TkWire, loc(1, 2, 0), "wire"),
-#    new_identifier(TkSymbol, loc(1, 2, 5), "my_wire"),
-#    new_token(TkSemicolon, loc(1, 2, 12)),
-# ]
+run_test("Function-like macro, missing opening parenthesis", """
+`define FOO(x) x
+`FOO s
+"""): [
+   new_error_token(2, 5, "Expected token '(', got 's'."),
+]
+
+
+run_test("Function-like macro, too few arguments", """
+`define FOO(x, y) x and y
+`FOO(1)
+"""): [
+   new_error_token(2, 4, "Expected 2 arguments, got 1."),
+]
+
+
+run_test("Function-like macro, too many arguments", """
+`define FOO(x, y) x and y
+`FOO(1, 2, 1, 5)
+"""): [
+   new_error_token(2, 4, "Expected 2 arguments, got 4."),
+]
+
+
+run_test("Function-like macro, unexpected end of file", """
+`define FOO(x, y) x and y
+`FOO(1, 2
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("Function-like macro, missing closing parenthesis in parameter list", """
+`define FOO(x, y
+"""): [
+   new_error_token(2, 0, "Expected token ')', got '[EOF]'."),
+]
+
+
+run_test("Include file", """
+`include "test.vh"
+wire [3:0] another_wire;
+"""): [
+   new_identifier(TkWire, loc(2, 1, 0), "wire"),
+   new_token(TkLbracket, loc(2, 1, 5)),
+   new_inumber(TkIntLit, loc(2, 1, 6), 7, Base10, -1, "7"),
+   new_token(TkColon, loc(2, 1, 7)),
+   new_inumber(TkIntLit, loc(2, 1, 8), 0, Base10, -1, "0"),
+   new_token(TkRbracket, loc(2, 1, 9)),
+   new_identifier(TkSymbol, loc(2, 1, 11), "my_wire"),
+   new_token(TkSemicolon, loc(2, 1, 18)),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_token(TkLbracket, loc(1, 2, 5)),
+   new_inumber(TkIntLit, loc(1, 2, 6), 3, Base10, -1, "3"),
+   new_token(TkColon, loc(1, 2, 7)),
+   new_inumber(TkIntLit, loc(1, 2, 8), 0, Base10, -1, "0"),
+   new_token(TkRbracket, loc(1, 2, 9)),
+   new_identifier(TkSymbol, loc(1, 2, 11), "another_wire"),
+   new_token(TkSemicolon, loc(1, 2, 23)),
+]
+
+
+run_test("Include file, depending on an include path", """
+`include "test1.vh"
+wire [3:0] another_wire;
+"""): [
+   new_identifier(TkReg, loc(2, 1, 0), "reg"),
+   new_identifier(TkSymbol, loc(2, 1, 4), "a_register"),
+   new_token(TkSemicolon, loc(2, 1, 14)),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_token(TkLbracket, loc(1, 2, 5)),
+   new_inumber(TkIntLit, loc(1, 2, 6), 3, Base10, -1, "3"),
+   new_token(TkColon, loc(1, 2, 7)),
+   new_inumber(TkIntLit, loc(1, 2, 8), 0, Base10, -1, "0"),
+   new_token(TkRbracket, loc(1, 2, 9)),
+   new_identifier(TkSymbol, loc(1, 2, 11), "another_wire"),
+   new_token(TkSemicolon, loc(1, 2, 23)),
+]
+
+
+run_test("Nested include files", """
+wire wire0;
+`include "include/test2.vh"
+wire last_wire;
+"""): [
+   new_identifier(TkWire, loc(1, 1, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 1, 5), "wire0"),
+   new_token(TkSemicolon, loc(1, 1, 10)),
+   new_identifier(TkWire, loc(2, 1, 0), "wire"),
+   new_identifier(TkSymbol, loc(2, 1, 5), "wire2"),
+   new_token(TkSemicolon, loc(2, 1, 10)),
+   new_identifier(TkWire, loc(3, 1, 0), "wire"),
+   new_identifier(TkSymbol, loc(3, 1, 5), "wire3"),
+   new_token(TkSemicolon, loc(3, 1, 10)),
+   new_identifier(TkWire, loc(2, 3, 0), "wire"),
+   new_identifier(TkSymbol, loc(2, 3, 5), "next_to_last_wire"),
+   new_token(TkSemicolon, loc(2, 3, 22)),
+   new_identifier(TkWire, loc(1, 3, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 5), "last_wire"),
+   new_token(TkSemicolon, loc(1, 3, 14)),
+]
+
+
+run_test("Macro defined in an include file", """
+`include "test4.vh"
+wire [`WIDTH-1:0] my_wire;
+""", [
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_token(TkLbracket, loc(1, 2, 5)),
+   new_inumber(TkIntLit, loc(-1, 0, 0), 8, Base10, -1, "8"),
+   new_identifier(TkOperator, loc(1, 2, 12), "-"),
+   new_inumber(TkIntLit, loc(1, 2, 13), 1, Base10, -1, "1"),
+   new_token(TkColon, loc(1, 2, 14)),
+   new_inumber(TkIntLit, loc(1, 2, 15), 0, Base10, -1, "0"),
+   new_token(TkRbracket, loc(1, 2, 16)),
+   new_identifier(TkSymbol, loc(1, 2, 18), "my_wire"),
+   new_token(TkSemicolon, loc(1, 2, 25)),
+], [
+   MacroMap(
+      name: "WIDTH",
+      expansion_loc: loc(1, 2, 6),
+      locations: @[
+         (loc(2, 1, 14), loc(2, 1, 14)),
+      ]
+   ),
+])
+
+
+run_test("File cannot be found for `include -> error", """
+`include "test_invalid.vh"
+wire
+"""): [
+   new_error_token(1, 9, "Cannot open file 'test_invalid.vh'."),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+]
+
+
+run_test("Missing filename for `include -> error", """
+`include
+"""): [
+   new_error_token(2, 0, "Expected token StrLit, got '[EOF]'."),
+]
+
+
+run_test("Filename not on the same line as the `include directive", """
+`include
+"test.vh"
+"""): [
+   new_error_token(2, 0, "The argument token '\"test.vh\"' is not on the same line as the `include directive."),
+]
+
+
+run_test("`ifdef: w/o `else, ignored", """
+`ifdef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkReg, loc(1, 4, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 4, 4), "a"),
+   new_token(TkSemicolon, loc(1, 4, 5)),
+]
+
+
+run_test("`ifdef: w/o `else, included", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 3, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 3, 19)),
+   new_identifier(TkReg, loc(1, 5, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 5, 4), "a"),
+   new_token(TkSemicolon, loc(1, 5, 5)),
+]
+
+
+run_test("`ifdef: w/ `else, if-branch", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 3, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 3, 19)),
+   new_identifier(TkReg, loc(1, 7, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 7, 4), "a"),
+   new_token(TkSemicolon, loc(1, 7, 5)),
+]
+
+
+run_test("`ifdef: w/ `else, else-branch", """
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 4, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 4, 8), "my_else_wire"),
+   new_token(TkSemicolon, loc(1, 4, 20)),
+   new_identifier(TkReg, loc(1, 6, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 6, 4), "a"),
+   new_token(TkSemicolon, loc(1, 6, 5)),
+]
+
+
+run_test("`ifdef: w/ `elsif, if-branch", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 3, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 3, 19)),
+   new_identifier(TkReg, loc(1, 9, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 9, 4), "a"),
+   new_token(TkSemicolon, loc(1, 9, 5)),
+]
+
+
+run_test("`ifdef: w/ `elsif, elsif-branch", """
+`define BAR
+`ifdef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 5, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 5, 8), "my_bar_wire"),
+   new_token(TkSemicolon, loc(1, 5, 19)),
+   new_identifier(TkReg, loc(1, 9, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 9, 4), "a"),
+   new_token(TkSemicolon, loc(1, 9, 5)),
+]
+
+
+run_test("`ifdef: w/ `elsif, else-branch", """
+`ifdef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 6, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 6, 8), "my_else_wire"),
+   new_token(TkSemicolon, loc(1, 6, 20)),
+   new_identifier(TkReg, loc(1, 8, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 8, 4), "a"),
+   new_token(TkSemicolon, loc(1, 8, 5)),
+]
+
+
+run_test("`ifndef: w/o `else, ignored", """
+`define FOO
+`ifndef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkReg, loc(1, 5, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 5, 4), "a"),
+   new_token(TkSemicolon, loc(1, 5, 5)),
+]
+
+
+run_test("`ifndef: w/o `else, included", """
+`ifndef FOO
+   wire my_foo_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 2, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 2, 19)),
+   new_identifier(TkReg, loc(1, 4, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 4, 4), "a"),
+   new_token(TkSemicolon, loc(1, 4, 5)),
+]
+
+
+run_test("`ifndef: w/ `else, if-branch", """
+`ifndef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 2, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 2, 19)),
+   new_identifier(TkReg, loc(1, 6, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 6, 4), "a"),
+   new_token(TkSemicolon, loc(1, 6, 5)),
+]
+
+
+run_test("`ifndef: w/ `else, else-branch", """
+`define FOO
+`ifndef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 5, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 5, 8), "my_else_wire"),
+   new_token(TkSemicolon, loc(1, 5, 20)),
+   new_identifier(TkReg, loc(1, 7, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 7, 4), "a"),
+   new_token(TkSemicolon, loc(1, 7, 5)),
+]
+
+
+run_test("`ifndef: w/ `elsif, if-branch", """
+`ifndef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 2, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 2, 19)),
+   new_identifier(TkReg, loc(1, 8, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 8, 4), "a"),
+   new_token(TkSemicolon, loc(1, 8, 5)),
+]
+
+
+run_test("`ifndef: w/ `elsif, elsif-branch", """
+`define FOO
+`define BAR
+`ifndef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 6, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 6, 8), "my_bar_wire"),
+   new_token(TkSemicolon, loc(1, 6, 19)),
+   new_identifier(TkReg, loc(1, 10, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 10, 4), "a"),
+   new_token(TkSemicolon, loc(1, 10, 5)),
+]
+
+
+run_test("`ifndef: w/ `elsif, else-branch", """
+`define FOO
+`ifndef FOO
+   wire my_foo_wire;
+`elsif BAR
+   wire my_bar_wire;
+`else
+   wire my_else_wire;
+`endif
+reg a;
+"""): [
+   new_identifier(TkWire, loc(1, 7, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 7, 8), "my_else_wire"),
+   new_token(TkSemicolon, loc(1, 7, 20)),
+   new_identifier(TkReg, loc(1, 9, 0), "reg"),
+   new_identifier(TkSymbol, loc(1, 9, 4), "a"),
+   new_token(TkSemicolon, loc(1, 9, 5)),
+]
+
+
+run_test("`ifdef: nested 1", """
+`ifdef FOO
+   wire my_foo_wire;
+   `ifdef BAR
+      wire my_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_wire;
+`else
+   wire my_foo_else_wire;
+   `ifndef BAR
+      wire my_not_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, loc(1, 10, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 10, 8), "my_foo_else_wire"),
+   new_token(TkSemicolon, loc(1, 10, 24)),
+   new_identifier(TkWire, loc(1, 12, 6), "wire"),
+   new_identifier(TkSymbol, loc(1, 12, 11), "my_not_bar_wire"),
+   new_token(TkSemicolon, loc(1, 12, 26)),
+   new_identifier(TkWire, loc(1, 16, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 16, 8), "another_foo_else_wire"),
+   new_token(TkSemicolon, loc(1, 16, 29)),
+]
+
+
+run_test("`ifdef: nested 2", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+   `ifdef BAR
+      wire my_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_wire;
+`else
+   wire my_foo_else_wire;
+   `ifndef BAR
+      wire my_not_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, loc(1, 3, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 3, 19)),
+   new_identifier(TkWire, loc(1, 7, 6), "wire"),
+   new_identifier(TkSymbol, loc(1, 7, 11), "my_bar_else_wire"),
+   new_token(TkSemicolon, loc(1, 7, 27)),
+   new_identifier(TkWire, loc(1, 9, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 9, 8), "another_foo_wire"),
+   new_token(TkSemicolon, loc(1, 9, 24)),
+]
+
+
+run_test("`ifdef: nested 3", """
+`define BAR
+`ifdef FOO
+   wire my_foo_wire;
+   `ifdef BAR
+      wire my_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_wire;
+`else
+   wire my_foo_else_wire;
+   `ifndef BAR
+      wire my_not_bar_wire;
+   `else
+      wire my_bar_else_wire;
+   `endif
+   wire another_foo_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, loc(1, 11, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 11, 8), "my_foo_else_wire"),
+   new_token(TkSemicolon, loc(1, 11, 24)),
+   new_identifier(TkWire, loc(1, 15, 6), "wire"),
+   new_identifier(TkSymbol, loc(1, 15, 11), "my_bar_else_wire"),
+   new_token(TkSemicolon, loc(1, 15, 27)),
+   new_identifier(TkWire, loc(1, 17, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 17, 8), "another_foo_else_wire"),
+   new_token(TkSemicolon, loc(1, 17, 29)),
+]
+
+
+run_test("Conditional include: if-branch", """
+`define FOO
+`ifdef FOO
+   `include "test1.vh"
+`else
+   `include "test2.vh"
+`endif
+"""): [
+   new_identifier(TkReg, loc(2, 1, 0), "reg"),
+   new_identifier(TkSymbol, loc(2, 1, 4), "a_register"),
+   new_token(TkSemicolon, loc(2, 1, 14)),
+]
+
+
+run_test("Conditional include: else-branch", """
+`ifdef FOO
+   `include "test1.vh"
+`else
+   `include "test2.vh"
+`endif
+"""): [
+   new_identifier(TkWire, loc(2, 1, 0), "wire"),
+   new_identifier(TkSymbol, loc(2, 1, 5), "wire2"),
+   new_token(TkSemicolon, loc(2, 1, 10)),
+   new_identifier(TkWire, loc(3, 1, 0), "wire"),
+   new_identifier(TkSymbol, loc(3, 1, 5), "wire3"),
+   new_token(TkSemicolon, loc(3, 1, 10)),
+   new_identifier(TkWire, loc(2, 3, 0), "wire"),
+   new_identifier(TkSymbol, loc(2, 3, 5), "next_to_last_wire"),
+   new_token(TkSemicolon, loc(2, 3, 22)),
+]
+
+
+run_test("Invalid `ifdef token -> error", """
+`ifdef "FOO"
+"""): [
+   new_error_token(1, 7, "Expected token Symbol, got '\"FOO\"'."),
+]
+
+
+run_test("Macro name not on the same line as the `ifdef directive", """
+`ifdef
+FOO
+"""): [
+   new_error_token(2, 0, "The argument token 'FOO' is not on the same line as the `ifdef directive."),
+]
+
+
+run_test("`ifdef unexpected end of file", """
+`ifdef FOO
+   wire ignored_wire;
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("Unexpected `endif", """
+`endif
+wire some_wire;
+"""): [
+   new_error_token(1, 0, "Unexpected token '`endif'."),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 5), "some_wire"),
+   new_token(TkSemicolon, loc(1, 2, 14)),
+]
+
+
+run_test("`ifdef/`else unexpected end of file", """
+`ifdef FOO
+`else
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("`ifndef/`else unexpected end of file", """
+`ifndef FOO
+`else
+"""): [
+   new_error_token(3, 0, "Unexpected end of file."),
+]
+
+
+run_test("Unexpected `else", """
+`else
+wire some_wire;
+"""): [
+   new_error_token(1, 0, "Unexpected token '`else'."),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 5), "some_wire"),
+   new_token(TkSemicolon, loc(1, 2, 14)),
+]
+
+
+run_test("Conditional directives, broken syntax", """
+`ifdef FOO
+   wire my_foo_wire;
+   `ifndef BAR
+      wire my_bar_wire
+   `endif
+   `endif
+`else
+   wire my_else_wire;
+`endif
+"""): [
+   new_error_token(7, 0, "Unexpected token '`else'."),
+   new_identifier(TkWire, loc(1, 8, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 8, 8), "my_else_wire"),
+   new_token(TkSemicolon, loc(1, 8, 20)),
+   new_error_token(9, 0, "Unexpected token '`endif'."),
+]
+
+
+run_test("Clear defines with `resetall", """
+`define FOO
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+`resetall
+`ifdef FOO
+   wire my_foo_wire;
+`else
+   wire my_else_wire;
+`endif
+"""): [
+   new_identifier(TkWire, loc(1, 3, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 8), "my_foo_wire"),
+   new_token(TkSemicolon, loc(1, 3, 19)),
+   new_identifier(TkDirective, loc(1, 7, 0), "resetall"),
+   new_identifier(TkWire, loc(1, 11, 3), "wire"),
+   new_identifier(TkSymbol, loc(1, 11, 8), "my_else_wire"),
+   new_token(TkSemicolon, loc(1, 11, 20)),
+]
+
+
+run_test("`line directive unsupported", """
+`line 2 "test.v" 1
+wire my_wire;
+"""): [
+   new_error_token(1, 0, "The `line directive is currently not supported."),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 5), "my_wire"),
+   new_token(TkSemicolon, loc(1, 2, 12)),
+]
 
 
 
