@@ -72,6 +72,7 @@ for filename in cli_state.input_files:
    let t_start = cpu_time()
    let root_node = parse_all(g)
    let t_diff_ms = (cpu_time() - t_start) * 1000
+   close_graph(g)
    close(fs)
 
    if ofs != nil:
