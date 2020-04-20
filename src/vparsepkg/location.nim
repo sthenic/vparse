@@ -1,7 +1,6 @@
 import strutils
 import json
 
-
 type
    # This data structure encodes the physical or virtual location of a token
    # in the source code. It is exactly 64-bits.
@@ -31,6 +30,27 @@ proc `$`*(l: Location): string =
 
 proc `%`*(l: Location): JsonNode =
    result = %*{"file": l.file, "line": l.line, "col": l.col + 1}
+
+
+proc pretty*(lpairs: openarray[LocationPair]): string =
+   result = "\n"
+   for i, p in lpairs:
+      add(result, format("""
+$1: x: $2, y: $3
+""", i, p.x, p.y))
+
+
+proc pretty*(map: MacroMap): string =
+   result = format("""
+name: '$1'
+expansion at: $2
+locations: $3
+""", map.name, $map.expansion_loc, indent(pretty(map.locations), 2))
+
+
+proc pretty*(maps: openarray[MacroMap]): string =
+   for m in maps:
+      add(result, pretty(m))
 
 
 proc init*(locs: PLocations) =
