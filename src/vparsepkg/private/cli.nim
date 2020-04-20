@@ -18,7 +18,7 @@ type
       stdout*: bool
       input_files*: seq[string]
       output_file*: string
-
+      include_paths*: seq[string]
 
 proc parse_cli*(): CLIState =
    var p = init_opt_parser()
@@ -55,6 +55,10 @@ proc parse_cli*(): CLIState =
             result.stdout = true
          of "json":
             result.json = true
+         of "I":
+            if val == "":
+               log.abort(CLIValueError, "Option -I expects a path.")
+            add(result.include_paths, val)
          else:
             log.abort(CLIValueError, "Unknown option '$1'.", key)
 

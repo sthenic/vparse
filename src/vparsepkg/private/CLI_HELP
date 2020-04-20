@@ -16,6 +16,9 @@ options:
   -h, --help                Print this help message and exit.
   -v, --version             Print the version information and exit.
 
+  -I=PATH,                  Add PATH to the list of include paths searched when
+                            an `include directive is encountered.
+
   -o=FILE, --output=FILE    If this option is present, the output AST is written
                             to FILE.
 
