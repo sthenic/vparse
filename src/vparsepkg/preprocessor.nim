@@ -17,7 +17,7 @@ type
       loc*: Location
       tokens*: seq[Token]
       parameters*: seq[Token]
-      is_enabled: bool
+      is_expandable: bool
 
    Context = object
       def: Define
@@ -135,7 +135,8 @@ proc handle_define(pp: var Preprocessor) =
    ## Handle the ``define`` directive.
    var def: Define
    def.loc = pp.tok.loc
-   def.is_enabled = true
+   def.is_expandable = true
+   def.is_undefined = false
 
    # Scan over `define.
    let def_line = pp.tok.loc.line
@@ -504,7 +505,7 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
 
    # Add the context entry to the top of the stack and disable the macro from
    # expanding until the context is popped.
-   def.is_enabled = false
+   def.is_expandable = false
    let context = Context(def: def, tokens: expansion_list, idx: 0)
    add(pp.context_stack, context)
 
@@ -569,7 +570,7 @@ proc pop_context_stack(pp: var Preprocessor, enable: bool = true) =
    # reenable the corresponding macro for expansion.
    while len(pp.context_stack) > 0 and is_context_exhausted(pp):
       let context = pop(pp.context_stack)
-      pp.defines[context.def.name.identifier.s].is_enabled = enable
+      pp.defines[context.def.name.identifier.s].is_expandable = enable
 
 
 proc inc_context_stack(pp: var Preprocessor) =
@@ -600,7 +601,7 @@ proc get_include_token(pp: var Preprocessor, tok: var Token) =
 
 proc is_macro_defined(pp: Preprocessor, tok: Token): bool =
    return tok.kind == TkDirective and tok.identifier.s in pp.defines and
-          pp.defines[tok.identifier.s].is_enabled
+          pp.defines[tok.identifier.s].is_expandable
 
 
 proc merge(x: var Table[string, Define], y: Table[string, Define]) =
