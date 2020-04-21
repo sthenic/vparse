@@ -306,7 +306,6 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
          add(result.sons, parse_attribute_instances(p))
 
       expect_token(p, result, TkLparen)
-
       get_token(p)
       while true:
          add(result.sons, parse_constant_expression(p))
@@ -1583,7 +1582,7 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
          get_token(p)
          if p.tok.kind == TkLparen:
             get_token(p)
-            while true:
+            while p.tok.kind != TkRparen:
                add(result.sons, parse_constant_expression(p))
                if p.tok.kind != TkComma:
                   break
@@ -2062,9 +2061,11 @@ proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
 proc parse_module_instance(p: var Parser): PNode =
    result = new_node(p, NkModuleInstance)
    # Parse the name of module instance.
-   expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NkIdentifier))
-   get_token(p)
+   if p.tok.kind == TKSymbol:
+      add(result.sons, new_identifier_node(p, NkIdentifier))
+      get_token(p)
+   else:
+      add(result.sons, new_node(p, NkEmpty))
    if p.tok.kind == TkLbracket:
       add(result.sons, parse_range(p))
    expect_token(p, result, TkLparen)
