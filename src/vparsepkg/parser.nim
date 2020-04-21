@@ -505,12 +505,14 @@ template parse_parameter_or_localparam_declaration_tree(p: var Parser, result: P
 
 proc parse_localparam_declaration(p: var Parser): PNode =
    result = new_node(p, NkLocalparamDecl)
+   expect_token(p, result, TkLocalparam)
    get_token(p)
    parse_parameter_or_localparam_declaration_tree(p, result)
 
 
 proc parse_parameter_declaration(p: var Parser): PNode =
    result = new_node(p, NkParameterDecl)
+   expect_token(p, result, TkParameter)
    get_token(p)
    parse_parameter_or_localparam_declaration_tree(p, result)
 
