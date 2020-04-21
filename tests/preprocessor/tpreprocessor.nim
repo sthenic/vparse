@@ -495,110 +495,176 @@ run_test("Nested function- & object-like macros", """
    ),
 ])
 
-# run_test("Complex macro (sv-parser case 4)", """
-# `define disp(clk, exp, msg) \
-#     always @(posedge clk) begin \
-#         if (!(exp)) begin \
-#             $display msg; \
-#         end \
-#     end \
+run_test("Complex macro (sv-parser case 4)", """
+`define disp(clk, exp, msg) \
+    always @(posedge clk) begin \
+        if (!(exp)) begin \
+            $display msg; \
+        end \
+    end \
 
-# module a ();
+module a ();
 
-# `disp(
-#     clk,
-#     !(a[i] && c[i]),
-#     ("xxx(()[]]{}}}", a[i], c[i])
-# );
-# endmodule
-# """): [
-#    new_identifier(TkModule, loc(1, 8, 0), "module"),
-#    new_identifier(TkSymbol, loc(1, 8, 7), "a"),
-#    new_token(TkLparen, loc(1, 8, 9)),
-#    new_token(TkRparen, loc(1, 8, 10)),
-#    new_token(TkSemicolon, loc(1, 8, 11)),
-#    new_identifier(TkAlways, loc(1, 2, 4), "always"),
-#    new_token(TkAt, loc(1, 2, 11)),
-#    new_token(TkLparen, loc(1, 2, 12)),
-#    new_identifier(TkPosedge, loc(1, 2, 13), "posedge"),
-#    new_identifier(TkSymbol, loc(1, 11, 4), "clk"),
-#    new_token(TkRparen, loc(1, 2, 24)),
-#    new_identifier(TkBegin, loc(1, 2, 26), "begin"),
-#    new_identifier(TkIf, loc(1, 3, 8), "if"),
-#    new_token(TkLparen, loc(1, 3, 11)),
-#    new_identifier(TkOperator, loc(1, 3, 12), "!"),
-#    new_token(TkLparen, loc(1, 3, 13)),
-#    new_identifier(TkOperator, loc(1, 12, 4), "!"),
-#    new_token(TkLparen, loc(1, 12, 5)),
-#    new_identifier(TkSymbol, loc(1, 12, 6), "a"),
-#    new_token(TkLbracket, loc(1, 12, 7)),
-#    new_identifier(TkSymbol, loc(1, 12, 8), "i"),
-#    new_token(TkRbracket, loc(1, 12, 9)),
-#    new_identifier(TkOperator, loc(1, 12, 11), "&&"),
-#    new_identifier(TkSymbol, loc(1, 12, 14), "c"),
-#    new_token(TkLbracket, loc(1, 12, 15)),
-#    new_identifier(TkSymbol, loc(1, 12, 16), "i"),
-#    new_token(TkRbracket, loc(1, 12, 17)),
-#    new_token(TkRparen, loc(1, 12, 18)),
-#    new_token(TkRparen, loc(1, 3, 17)),
-#    new_token(TkRparen, loc(1, 3, 18)),
-#    new_identifier(TkBegin, loc(1, 3, 20), "begin"),
-#    new_identifier(TkDollar, loc(1, 4, 12), "display"),
-#    new_token(TkLparen, loc(1, 13, 4)),
-#    new_string_literal(13, 5, "xxx(()[]]{}}}"),
-#    new_token(TkComma, loc(1, 13, 20)),
-#    new_identifier(TkSymbol, loc(1, 13, 22), "a"),
-#    new_token(TkLbracket, loc(1, 13, 23)),
-#    new_identifier(TkSymbol, loc(1, 13, 24), "i"),
-#    new_token(TkRbracket, loc(1, 13, 25)),
-#    new_token(TkComma, loc(1, 13, 26)),
-#    new_identifier(TkSymbol, loc(1, 13, 28), "c"),
-#    new_token(TkLbracket, loc(1, 13, 29)),
-#    new_identifier(TkSymbol, loc(1, 13, 30), "i"),
-#    new_token(TkRbracket, loc(1, 13, 31)),
-#    new_token(TkRparen, loc(1, 13, 32)),
-#    new_token(TkSemicolon, loc(1, 4, 24)),
-#    new_identifier(TkEnd, loc(1, 5, 8), "end"),
-#    new_identifier(TkEnd, loc(1, 6, 4), "end"),
-#    new_token(TkSemicolon, loc(1, 14, 1)),
-#    new_identifier(TkEndmodule, loc(1, 15, 0), "endmodule"),
-# ]
+`disp(
+    clk,
+    !(a[i] && c[i]),
+    ("xxx(()[]]{}}}", a[i], c[i])
+);
+endmodule
+""", [
+   new_identifier(TkModule, loc(1, 8, 0), "module"),
+   new_identifier(TkSymbol, loc(1, 8, 7), "a"),
+   new_token(TkLparen, loc(1, 8, 9)),
+   new_token(TkRparen, loc(1, 8, 10)),
+   new_token(TkSemicolon, loc(1, 8, 11)),
+   new_identifier(TkAlways, loc(-1, 0, 0), "always"),
+   new_token(TkAt, loc(-1, 1, 0)),
+   new_token(TkLparen, loc(-1, 2, 0)),
+   new_identifier(TkPosedge, loc(-1, 3, 0), "posedge"),
+   new_identifier(TkSymbol, loc(-1, 4, 0), "clk"),
+   new_token(TkRparen, loc(-1, 5, 0)),
+   new_identifier(TkBegin, loc(-1, 6, 0), "begin"),
+   new_identifier(TkIf, loc(-1, 7, 0), "if"),
+   new_token(TkLparen, loc(-1, 8, 0)),
+   new_identifier(TkOperator, loc(-1, 9, 0), "!"),
+   new_token(TkLparen, loc(-1, 10, 0)),
+   new_identifier(TkOperator, loc(-1, 11, 0), "!"),
+   new_token(TkLparen, loc(-1, 12, 0)),
+   new_identifier(TkSymbol, loc(-1, 13, 0), "a"),
+   new_token(TkLbracket, loc(-1, 14, 0)),
+   new_identifier(TkSymbol, loc(-1, 15, 0), "i"),
+   new_token(TkRbracket, loc(-1, 16, 0)),
+   new_identifier(TkOperator, loc(-1, 17, 0), "&&"),
+   new_identifier(TkSymbol, loc(-1, 18, 0), "c"),
+   new_token(TkLbracket, loc(-1, 19, 0)),
+   new_identifier(TkSymbol, loc(-1, 20, 0), "i"),
+   new_token(TkRbracket, loc(-1, 21, 0)),
+   new_token(TkRparen, loc(-1, 22, 0)),
+   new_token(TkRparen, loc(-1, 23, 0)),
+   new_token(TkRparen, loc(-1, 24, 0)),
+   new_identifier(TkBegin, loc(-1, 25, 0), "begin"),
+   new_identifier(TkDollar, loc(-1, 26, 0), "display"),
+   new_token(TkLparen, loc(-1, 27, 0)),
+   new_string_literal(loc(-1, 28, 0), "xxx(()[]]{}}}"),
+   new_token(TkComma, loc(-1, 29, 0)),
+   new_identifier(TkSymbol, loc(-1, 30, 0), "a"),
+   new_token(TkLbracket, loc(-1, 31, 0)),
+   new_identifier(TkSymbol, loc(-1, 32, 0), "i"),
+   new_token(TkRbracket, loc(-1, 33, 0)),
+   new_token(TkComma, loc(-1, 34, 0)),
+   new_identifier(TkSymbol, loc(-1, 35, 0), "c"),
+   new_token(TkLbracket, loc(-1, 36, 0)),
+   new_identifier(TkSymbol, loc(-1, 37, 0), "i"),
+   new_token(TkRbracket, loc(-1, 38, 0)),
+   new_token(TkRparen, loc(-1, 39, 0)),
+   new_token(TkSemicolon, loc(-1, 40, 0)),
+   new_identifier(TkEnd, loc(-1, 41, 0), "end"),
+   new_identifier(TkEnd, loc(-1, 42, 0), "end"),
+   new_token(TkSemicolon, loc(1, 14, 1)),
+   new_identifier(TkEndmodule, loc(1, 15, 0), "endmodule"),
+], [
+   MacroMap(
+      name: "disp",
+      expansion_loc: loc(1, 10, 0),
+      locations: @[
+         (loc(1, 2, 4), loc(1, 2, 4)),
+         (loc(1, 2, 11), loc(1, 2, 11)),
+         (loc(1, 2, 12), loc(1, 2, 12)),
+         (loc(1, 2, 13), loc(1, 2, 13)),
+         (loc(1, 11, 4), loc(1, 2, 21)),
+         (loc(1, 2, 24), loc(1, 2, 24)),
+         (loc(1, 2, 26), loc(1, 2, 26)),
+         (loc(1, 3, 8), loc(1, 3, 8)),
+         (loc(1, 3, 11), loc(1, 3, 11)),
+         (loc(1, 3, 12), loc(1, 3, 12)),
+         (loc(1, 3, 13), loc(1, 3, 13)),
+         (loc(1, 12, 4), loc(1, 3, 14)),
+         (loc(1, 12, 5), loc(1, 3, 14)),
+         (loc(1, 12, 6), loc(1, 3, 14)),
+         (loc(1, 12, 7), loc(1, 3, 14)),
+         (loc(1, 12, 8), loc(1, 3, 14)),
+         (loc(1, 12, 9), loc(1, 3, 14)),
+         (loc(1, 12, 11), loc(1, 3, 14)),
+         (loc(1, 12, 14), loc(1, 3, 14)),
+         (loc(1, 12, 15), loc(1, 3, 14)),
+         (loc(1, 12, 16), loc(1, 3, 14)),
+         (loc(1, 12, 17), loc(1, 3, 14)),
+         (loc(1, 12, 18), loc(1, 3, 14)),
+         (loc(1, 3, 17), loc(1, 3, 17)),
+         (loc(1, 3, 18), loc(1, 3, 18)),
+         (loc(1, 3, 20), loc(1, 3, 20)),
+         (loc(1, 4, 12), loc(1, 4, 12)),
+         (loc(1, 13, 4), loc(1, 4, 21)),
+         (loc(1, 13, 5), loc(1, 4, 21)),
+         (loc(1, 13, 20), loc(1, 4, 21)),
+         (loc(1, 13, 22), loc(1, 4, 21)),
+         (loc(1, 13, 23), loc(1, 4, 21)),
+         (loc(1, 13, 24), loc(1, 4, 21)),
+         (loc(1, 13, 25), loc(1, 4, 21)),
+         (loc(1, 13, 26), loc(1, 4, 21)),
+         (loc(1, 13, 28), loc(1, 4, 21)),
+         (loc(1, 13, 29), loc(1, 4, 21)),
+         (loc(1, 13, 30), loc(1, 4, 21)),
+         (loc(1, 13, 31), loc(1, 4, 21)),
+         (loc(1, 13, 32), loc(1, 4, 21)),
+         (loc(1, 4, 24), loc(1, 4, 24)),
+         (loc(1, 5, 8), loc(1, 5, 8)),
+         (loc(1, 6, 4), loc(1, 6, 4)),
+      ]
+   ),
+])
 
-# run_test("String literals in macros (sv-parser case 5)", """
-# module a;
-# `define HI Hello
-# `define LO "`HI, world"
-# `define H(x) "Hello, x"
-# initial begin
-# $display("`HI, world");
-# $display(`LO);
-# $display(`H(world));
-# end
-# endmodule
-# """): [
-#    new_identifier(TkModule, loc(1, 1, 0), "module"),
-#    new_identifier(TkSymbol, loc(1, 1, 7), "a"),
-#    new_token(TkSemicolon, loc(1, 1, 8)),
-#    new_identifier(TkInitial, loc(1, 5, 0), "initial"),
-#    new_identifier(TkBegin, loc(1, 5, 8), "begin"),
-#    new_identifier(TkDollar, loc(1, 6, 0), "display"),
-#    new_token(TkLparen, loc(1, 6, 8)),
-#    new_string_literal(6, 9, "`HI, world"),
-#    new_token(TkRparen, loc(1, 6, 21)),
-#    new_token(TkSemicolon, loc(1, 6, 22)),
-#    new_identifier(TkDollar, loc(1, 7, 0), "display"),
-#    new_token(TkLparen, loc(1, 7, 8)),
-#    new_string_literal(3, 11, "`HI, world"),
-#    new_token(TkRparen, loc(1, 7, 12)),
-#    new_token(TkSemicolon, loc(1, 7, 13)),
-#    new_identifier(TkDollar, loc(1, 8, 0), "display"),
-#    new_token(TkLparen, loc(1, 8, 8)),
-#    new_string_literal(4, 13, "Hello, x"),
-#    new_token(TkRparen, loc(1, 8, 18)),
-#    new_token(TkSemicolon, loc(1, 8, 19)),
-#    new_identifier(TkEnd, loc(1, 9, 0), "end"),
-#    new_identifier(TkEndmodule, loc(1, 10, 0), "endmodule"),
-# ]
+
+run_test("String literals in macros (sv-parser case 5)", """
+module a;
+`define HI Hello
+`define LO "`HI, world"
+`define H(x) "Hello, x"
+initial begin
+$display("`HI, world");
+$display(`LO);
+$display(`H(world));
+end
+endmodule
+""", [
+   new_identifier(TkModule, loc(1, 1, 0), "module"),
+   new_identifier(TkSymbol, loc(1, 1, 7), "a"),
+   new_token(TkSemicolon, loc(1, 1, 8)),
+   new_identifier(TkInitial, loc(1, 5, 0), "initial"),
+   new_identifier(TkBegin, loc(1, 5, 8), "begin"),
+   new_identifier(TkDollar, loc(1, 6, 0), "display"),
+   new_token(TkLparen, loc(1, 6, 8)),
+   new_string_literal(loc(1, 6, 9), "`HI, world"),
+   new_token(TkRparen, loc(1, 6, 21)),
+   new_token(TkSemicolon, loc(1, 6, 22)),
+   new_identifier(TkDollar, loc(1, 7, 0), "display"),
+   new_token(TkLparen, loc(1, 7, 8)),
+   new_string_literal(loc(-1, 0, 0), "`HI, world"),
+   new_token(TkRparen, loc(1, 7, 12)),
+   new_token(TkSemicolon, loc(1, 7, 13)),
+   new_identifier(TkDollar, loc(1, 8, 0), "display"),
+   new_token(TkLparen, loc(1, 8, 8)),
+   new_string_literal(loc(-2, 0, 0), "Hello, x"),
+   new_token(TkRparen, loc(1, 8, 18)),
+   new_token(TkSemicolon, loc(1, 8, 19)),
+   new_identifier(TkEnd, loc(1, 9, 0), "end"),
+   new_identifier(TkEndmodule, loc(1, 10, 0), "endmodule"),
+], [
+   MacroMap(
+      name: "LO",
+      expansion_loc: loc(1, 7, 9),
+      locations: @[
+         (loc(1, 3, 11), loc(1, 3, 11)),
+      ]
+   ),
+   MacroMap(
+      name: "H",
+      expansion_loc: loc(1, 8, 9),
+      locations: @[
+         (loc(1, 4, 13), loc(1, 4, 13)),
+      ]
+   ),
+])
 
 
 run_test("Direct recursion -> error", """
@@ -778,52 +844,78 @@ run_test("Ignoring block comments", """
 ])
 
 
-# run_test("Example from the standard", """
-# `define wordsize 8
-# reg [1:`wordsize] data;
+run_test("Example from the standard", """
+`define wordsize 8
+reg [1:`wordsize] data;
 
-# //define a nand with variable delay
-# `define var_nand(dly) nand #dly
+//define a nand with variable delay
+`define var_nand(dly) nand #dly
 
-# `var_nand(2) g121 (q21, n10, n11);
-# `var_nand(5) g122 (q22, n10, n11);
-# """): [
-#    new_identifier(TkReg, loc(1, 2, 0), "reg"),
-#    new_token(TkLbracket, loc(1, 2, 4)),
-#    new_inumber(TkIntLit, loc(1, 2, 5), 1, Base10, -1, "1"),
-#    new_token(TkColon, loc(1, 2, 6)),
-#    new_inumber(TkIntLit, loc(1, 1, 17), 8, Base10, -1, "8"),
-#    new_token(TkRbracket, loc(1, 2, 16)),
-#    new_identifier(TkSymbol, loc(1, 2, 18), "data"),
-#    new_token(TkSemicolon, loc(1, 2, 22)),
-#    new_comment(TkComment, loc(1, 4, 0), "define a nand with variable delay"),
+`var_nand(2) g121 (q21, n10, n11);
+`var_nand(5) g122 (q22, n10, n11);
+""", [
+   new_identifier(TkReg, loc(1, 2, 0), "reg"),
+   new_token(TkLbracket, loc(1, 2, 4)),
+   new_inumber(TkIntLit, loc(1, 2, 5), 1, Base10, -1, "1"),
+   new_token(TkColon, loc(1, 2, 6)),
+   new_inumber(TkIntLit, loc(-1, 0, 0), 8, Base10, -1, "8"),
+   new_token(TkRbracket, loc(1, 2, 16)),
+   new_identifier(TkSymbol, loc(1, 2, 18), "data"),
+   new_token(TkSemicolon, loc(1, 2, 22)),
+   new_comment(TkComment, loc(1, 4, 0), "define a nand with variable delay"),
 
-#    new_identifier(TkNand, loc(1, 5, 22), "nand"),
-#    new_token(TkHash, loc(1, 5, 27)),
-#    new_inumber(TkIntLit, loc(1, 7, 10), 2, Base10, -1, "2"),
-#    new_identifier(TkSymbol, loc(1, 7, 13), "g121"),
-#    new_token(TkLparen, loc(1, 7, 18)),
-#    new_identifier(TkSymbol, loc(1, 7, 19), "q21"),
-#    new_token(TkComma, loc(1, 7, 22)),
-#    new_identifier(TkSymbol, loc(1, 7, 24), "n10"),
-#    new_token(TkComma, loc(1, 7, 27)),
-#    new_identifier(TkSymbol, loc(1, 7, 29), "n11"),
-#    new_token(TkRparen, loc(1, 7, 32)),
-#    new_token(TkSemicolon, loc(1, 7, 33)),
+   new_identifier(TkNand, loc(-2, 0, 0), "nand"),
+   new_token(TkHash, loc(-2, 1, 0)),
+   new_inumber(TkIntLit, loc(-2, 2, 0), 2, Base10, -1, "2"),
+   new_identifier(TkSymbol, loc(1, 7, 13), "g121"),
+   new_token(TkLparen, loc(1, 7, 18)),
+   new_identifier(TkSymbol, loc(1, 7, 19), "q21"),
+   new_token(TkComma, loc(1, 7, 22)),
+   new_identifier(TkSymbol, loc(1, 7, 24), "n10"),
+   new_token(TkComma, loc(1, 7, 27)),
+   new_identifier(TkSymbol, loc(1, 7, 29), "n11"),
+   new_token(TkRparen, loc(1, 7, 32)),
+   new_token(TkSemicolon, loc(1, 7, 33)),
 
-#    new_identifier(TkNand, loc(1, 5, 22), "nand"),
-#    new_token(TkHash, loc(1, 5, 27)),
-#    new_inumber(TkIntLit, loc(1, 8, 10), 5, Base10, -1, "5"),
-#    new_identifier(TkSymbol, loc(1, 8, 13), "g122"),
-#    new_token(TkLparen, loc(1, 8, 18)),
-#    new_identifier(TkSymbol, loc(1, 8, 19), "q22"),
-#    new_token(TkComma, loc(1, 8, 22)),
-#    new_identifier(TkSymbol, loc(1, 8, 24), "n10"),
-#    new_token(TkComma, loc(1, 8, 27)),
-#    new_identifier(TkSymbol, loc(1, 8, 29), "n11"),
-#    new_token(TkRparen, loc(1, 8, 32)),
-#    new_token(TkSemicolon, loc(1, 8, 33)),
-# ]
+   new_identifier(TkNand, loc(-3, 0, 0), "nand"),
+   new_token(TkHash, loc(-3, 1, 0)),
+   new_inumber(TkIntLit, loc(-3, 2, 0), 5, Base10, -1, "5"),
+   new_identifier(TkSymbol, loc(1, 8, 13), "g122"),
+   new_token(TkLparen, loc(1, 8, 18)),
+   new_identifier(TkSymbol, loc(1, 8, 19), "q22"),
+   new_token(TkComma, loc(1, 8, 22)),
+   new_identifier(TkSymbol, loc(1, 8, 24), "n10"),
+   new_token(TkComma, loc(1, 8, 27)),
+   new_identifier(TkSymbol, loc(1, 8, 29), "n11"),
+   new_token(TkRparen, loc(1, 8, 32)),
+   new_token(TkSemicolon, loc(1, 8, 33)),
+], [
+   MacroMap(
+      name: "wordsize",
+      expansion_loc: loc(1, 2, 7),
+      locations: @[
+         (loc(1, 1, 17), loc(1, 1, 17))
+      ]
+   ),
+   MacroMap(
+      name: "var_nand",
+      expansion_loc: loc(1, 7, 0),
+      locations: @[
+         (loc(1, 5, 22), loc(1, 5, 22)),
+         (loc(1, 5, 27), loc(1, 5, 27)),
+         (loc(1, 7, 10), loc(1, 5, 28))
+      ]
+   ),
+   MacroMap(
+      name: "var_nand",
+      expansion_loc: loc(1, 8, 0),
+      locations: @[
+         (loc(1, 5, 22), loc(1, 5, 22)),
+         (loc(1, 5, 27), loc(1, 5, 27)),
+         (loc(1, 8, 10), loc(1, 5, 28))
+      ]
+   ),
+])
 
 
 run_test("Function-like macro, missing opening parenthesis", """
