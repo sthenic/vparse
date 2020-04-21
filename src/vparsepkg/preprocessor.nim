@@ -14,7 +14,7 @@ export lexer
 type
    Define* = object
       name*: Token
-      origin*: Location
+      loc*: Location
       tokens*: seq[Token]
       parameters*: seq[Token]
       is_enabled: bool
@@ -134,7 +134,7 @@ proc immediately_follows(x, y: Token): bool =
 proc handle_define(pp: var Preprocessor) =
    ## Handle the ``define`` directive.
    var def: Define
-   def.origin = pp.tok.loc
+   def.loc = pp.tok.loc
    def.is_enabled = true
 
    # Scan over `define.
@@ -150,7 +150,7 @@ proc handle_define(pp: var Preprocessor) =
       get_token(pp)
       return
    def.name = pp.tok
-   var last_tok_line = def.origin.line
+   var last_tok_line = def.loc.line
 
    if def.name.identifier.s in Directives:
       add_error_token(pp, RedefineProtected, def.name)
