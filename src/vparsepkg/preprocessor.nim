@@ -136,7 +136,6 @@ proc handle_define(pp: var Preprocessor) =
    var def: Define
    def.loc = pp.tok.loc
    def.is_expandable = true
-   def.is_undefined = false
 
    # Scan over `define.
    let def_line = pp.tok.loc.line
