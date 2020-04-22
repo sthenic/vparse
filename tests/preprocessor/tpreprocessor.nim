@@ -102,6 +102,7 @@ run_test("Object-like macro", """
 ], [
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 2, 0),
       locations: @[
          (loc(1, 1, 13), loc(1, 1, 13)),
@@ -137,6 +138,7 @@ run_test("Object-like macro, multiline", """
 ], [
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 3, 0),
       locations: @[
          (loc(1, 1, 13), loc(1, 1, 13)),
@@ -163,6 +165,7 @@ run_test("Object-like macro, multiline but next line is empty", """
 ], [
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 4, 0),
       locations: @[
          (loc(1, 1, 13), loc(1, 1, 13)),
@@ -187,6 +190,7 @@ run_test("Nested object-like macro", """
 ], [
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(1, 3, 0),
       locations: @[
          (loc(1, 2, 13), loc(1, 2, 13)),
@@ -199,6 +203,7 @@ run_test("Nested object-like macro", """
    ),
    MacroMap(
       name: "HIGH",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(-1, 2, 0),
       locations: @[
          (loc(1, 1, 13), loc(1, 1, 13)),
@@ -216,6 +221,7 @@ run_test("Nested object-like macros, immediate expansion", """
 ], [
    MacroMap(
       name: "BAR",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(1, 3, 0),
       locations: @[
          (loc(1, 2, 12), loc(1, 2, 12)),
@@ -223,6 +229,7 @@ run_test("Nested object-like macros, immediate expansion", """
    ),
    MacroMap(
       name: "FOO",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(-1, 0, 0),
       locations: @[
          (loc(1, 1, 12), loc(1, 1, 12)),
@@ -240,6 +247,7 @@ run_test("Nested object-like macros, reverse order of definition", """
 ], [
    MacroMap(
       name: "BAR",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 3, 0),
       locations: @[
          (loc(1, 1, 12), loc(1, 1, 12)),
@@ -247,6 +255,7 @@ run_test("Nested object-like macros, reverse order of definition", """
    ),
    MacroMap(
       name: "FOO",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(-1, 0, 0),
       locations: @[
          (loc(1, 2, 12), loc(1, 2, 12)),
@@ -287,6 +296,7 @@ run_test("Object-like macro, redefinition", """
 ], [
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 2, 0),
       locations: @[
          (loc(1, 1, 13), loc(1, 1, 13)),
@@ -299,6 +309,7 @@ run_test("Object-like macro, redefinition", """
    ),
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 3, 8),
       expansion_loc: loc(1, 4, 0),
       locations: @[
          (loc(1, 3, 13), loc(1, 3, 13)),
@@ -331,6 +342,7 @@ run_test("`undef macro before usage", """
 ], [
    MacroMap(
       name: "WIRE",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 2, 0),
       locations: @[
          (loc(1, 1, 13), loc(1, 1, 13)),
@@ -374,6 +386,7 @@ run_test("Function-like macro", """
 ], [
    MacroMap(
       name: "REG",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 2, 0),
       locations: @[
          (loc(1, 1, 19), loc(1, 1, 19)),
@@ -415,6 +428,7 @@ run_test("Incorrect spacing in function-like macro -> object-like", """
 ], [
    MacroMap(
       name: "NOT_A_FUNCTION_MACRO",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 2, 0),
       locations: @[
          (loc(1, 1, 29), loc(1, 1, 29)),
@@ -451,6 +465,7 @@ run_test("Nested function- & object-like macros", """
 ], [
    MacroMap(
       name: "CONSTANT",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 3, 13),
       locations: @[
          (loc(1, 1, 17), loc(1, 1, 17)),
@@ -458,6 +473,7 @@ run_test("Nested function- & object-like macros", """
    ),
    MacroMap(
       name: "bar",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(1, 3, 5),
       locations: @[
          (loc(1, 2, 18), loc(1, 2, 18)),
@@ -468,6 +484,7 @@ run_test("Nested function- & object-like macros", """
    ),
    MacroMap(
       name: "CONSTANT",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(-2, 1, 0),
       locations: @[
          (loc(1, 1, 17), loc(1, 1, 17)),
@@ -475,6 +492,7 @@ run_test("Nested function- & object-like macros", """
    ),
    MacroMap(
       name: "bar",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(1, 3, 0),
       locations: @[
          (loc(1, 2, 18), loc(1, 2, 18)),
@@ -488,6 +506,7 @@ run_test("Nested function- & object-like macros", """
    ),
    MacroMap(
       name: "CONSTANT",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(-4, 1, 0),
       locations: @[
          (loc(1, 1, 17), loc(1, 1, 17)),
@@ -565,6 +584,7 @@ endmodule
 ], [
    MacroMap(
       name: "disp",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 10, 0),
       locations: @[
          (loc(1, 2, 4), loc(1, 2, 4)),
@@ -652,6 +672,7 @@ endmodule
 ], [
    MacroMap(
       name: "LO",
+      define_loc: loc(1, 3, 8),
       expansion_loc: loc(1, 7, 9),
       locations: @[
          (loc(1, 3, 11), loc(1, 3, 11)),
@@ -659,6 +680,7 @@ endmodule
    ),
    MacroMap(
       name: "H",
+      define_loc: loc(1, 4, 8),
       expansion_loc: loc(1, 8, 9),
       locations: @[
          (loc(1, 4, 13), loc(1, 4, 13)),
@@ -694,6 +716,7 @@ run_test("Indirect recursion -> token propagates", """
 ], [
    MacroMap(
       name: "b",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 5, 0),
       locations: @[
          (loc(1, 1, 10), loc(1, 1, 10)),
@@ -701,6 +724,7 @@ run_test("Indirect recursion -> token propagates", """
    ),
    MacroMap(
       name: "c",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(-1, 0, 0),
       locations: @[
          (loc(1, 2, 10), loc(1, 2, 10)),
@@ -708,6 +732,7 @@ run_test("Indirect recursion -> token propagates", """
    ),
    MacroMap(
       name: "d",
+      define_loc: loc(1, 3, 8),
       expansion_loc: loc(-2, 0, 0),
       locations: @[
          (loc(1, 3, 10), loc(1, 3, 10)),
@@ -715,6 +740,7 @@ run_test("Indirect recursion -> token propagates", """
    ),
    MacroMap(
       name: "e",
+      define_loc: loc(1, 4, 8),
       expansion_loc: loc(-3, 0, 0),
       locations: @[
          (loc(1, 4, 10), loc(1, 4, 10)),
@@ -741,6 +767,7 @@ run_test("Indirect recursion, longer replacement lists", """
 ], [
    MacroMap(
       name: "b",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 5, 0),
       locations: @[
          (loc(1, 1, 10), loc(1, 1, 10)),
@@ -750,6 +777,7 @@ run_test("Indirect recursion, longer replacement lists", """
    ),
    MacroMap(
       name: "c",
+      define_loc: loc(1, 2, 8),
       expansion_loc: loc(-1, 1, 0),
       locations: @[
          (loc(1, 2, 10), loc(1, 2, 10)),
@@ -759,6 +787,7 @@ run_test("Indirect recursion, longer replacement lists", """
    ),
    MacroMap(
       name: "d",
+      define_loc: loc(1, 3, 8),
       expansion_loc: loc(-2, 1, 0),
       locations: @[
          (loc(1, 3, 10), loc(1, 3, 10)),
@@ -768,6 +797,7 @@ run_test("Indirect recursion, longer replacement lists", """
    ),
    MacroMap(
       name: "e",
+      define_loc: loc(1, 4, 8),
       expansion_loc: loc(-3, 1, 0),
       locations: @[
          (loc(1, 4, 10), loc(1, 4, 10)),
@@ -779,7 +809,7 @@ run_test("Indirect recursion, longer replacement lists", """
 
 
 run_test("Ignoring one-line comments", """
-`define foo this \
+`define  foo this \
    spans \
    // surprise!
    multiple \
@@ -792,9 +822,10 @@ run_test("Ignoring one-line comments", """
 ], [
    MacroMap(
       name: "foo",
+      define_loc: loc(1, 1, 9),
       expansion_loc: loc(1, 6, 0),
       locations: @[
-         (loc(1, 1, 12), loc(1, 1, 12)),
+         (loc(1, 1, 13), loc(1, 1, 13)),
          (loc(1, 2, 3), loc(1, 2, 3)),
          (loc(1, 4, 3), loc(1, 4, 3)),
          (loc(1, 5, 3), loc(1, 5, 3))
@@ -811,6 +842,7 @@ run_test("Ignoring one-line comments, next line is empty", """
 ], [
    MacroMap(
       name: "foo",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 4, 0),
       locations: @[
          (loc(1, 1, 12), loc(1, 1, 12))
@@ -833,6 +865,7 @@ run_test("Ignoring block comments", """
 ], [
    MacroMap(
       name: "foo",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 6, 0),
       locations: @[
          (loc(1, 1, 12), loc(1, 1, 12)),
@@ -892,6 +925,7 @@ reg [1:`wordsize] data;
 ], [
    MacroMap(
       name: "wordsize",
+      define_loc: loc(1, 1, 8),
       expansion_loc: loc(1, 2, 7),
       locations: @[
          (loc(1, 1, 17), loc(1, 1, 17))
@@ -899,6 +933,7 @@ reg [1:`wordsize] data;
    ),
    MacroMap(
       name: "var_nand",
+      define_loc: loc(1, 5, 8),
       expansion_loc: loc(1, 7, 0),
       locations: @[
          (loc(1, 5, 22), loc(1, 5, 22)),
@@ -908,6 +943,7 @@ reg [1:`wordsize] data;
    ),
    MacroMap(
       name: "var_nand",
+      define_loc: loc(1, 5, 8),
       expansion_loc: loc(1, 8, 0),
       locations: @[
          (loc(1, 5, 22), loc(1, 5, 22)),
@@ -1038,6 +1074,7 @@ wire [`WIDTH-1:0] my_wire;
 ], [
    MacroMap(
       name: "WIDTH",
+      define_loc: loc(2, 1, 8),
       expansion_loc: loc(1, 2, 6),
       locations: @[
          (loc(2, 1, 14), loc(2, 1, 14)),

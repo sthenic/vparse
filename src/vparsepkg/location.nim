@@ -12,10 +12,13 @@ type
    LocationPair* = tuple[x, y: Location]
 
    MacroMap* = object
+      # The name of the macro.
       name*: string
-      # Location of the macro expansion point.
+      # Location of the macro.
+      define_loc*: Location
+      # Location of the expansion point which created this map object.
       expansion_loc*: Location
-      # Location pairs of the tokens.
+      # Location pairs of the tokens in this macro.
       locations*: seq[LocationPair]
 
    PLocations* = ref Locations
@@ -58,28 +61,30 @@ proc detailed_compare*(x, y: MacroMap) =
       echo format("Name differs: $1 != $2\n", x.name, y.name)
       return
 
-   echo x.name
    const INDENT = 2
+   if x.define_loc != y.define_loc:
+      echo indent(format("($1) Define location differs: $2 != $3\n",
+                         x.name, x.define_loc, y.define_loc), INDENT)
+
    if x.expansion_loc != y.expansion_loc:
-      echo indent(format("Expansion location differs: $1 != $2\n",
-                         x.expansion_loc, y.expansion_loc), INDENT)
-      return
+      echo indent(format("($1) Expansion location differs: $2 != $3\n",
+                         x.name, x.expansion_loc, y.expansion_loc), INDENT)
 
    for i in 0..<min(len(x.locations), len(y.locations)):
       let xloc = x.locations[i]
       let yloc = y.locations[i]
 
       if xloc.x != yloc.x:
-         echo indent(format("Location $1 differs(x): $2 != $3", i, xloc.x,
-                     yloc.x), INDENT)
+         echo indent(format("($1) Location $2 differs(x): $3 != $4", x.name, i,
+                     xloc.x, yloc.x), INDENT)
 
       if xloc.y != yloc.y:
-         echo indent(format("Location $1 differs(y): $2 != $3", i, xloc.y,
-                     yloc.y), INDENT)
+         echo indent(format("($1) Location $2 differs(y): $3 != $4", x.name, i,
+                     xloc.y, yloc.y), INDENT)
 
    if len(x.locations) != len(y.locations):
-      echo indent(format("Location length differs: LHS($1) != RHS($2)",
-                  len(x.locations), len(y.locations)), INDENT)
+      echo indent(format("($1) Location length differs: LHS($2) != RHS($3)",
+                  x.name, len(x.locations), len(y.locations)), INDENT)
 
 
 proc detailed_compare*(x, y: openarray[MacroMap]) =

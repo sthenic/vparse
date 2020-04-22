@@ -134,12 +134,12 @@ proc immediately_follows(x, y: Token): bool =
 proc handle_define(pp: var Preprocessor) =
    ## Handle the ``define`` directive.
    var def: Define
-   def.loc = pp.tok.loc
    def.is_expandable = true
 
    # Scan over `define.
    let def_line = pp.tok.loc.line
    get_token(pp)
+   def.loc = pp.tok.loc
    # Expect the macro name on the same line as the `define directive.
    if pp.tok.kind != TkSymbol:
       add_error_token(pp, InvalidMacroName, pp.tok)
@@ -464,6 +464,7 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
    var macro_map: MacroMap
    macro_map.locations = new_seq_of_cap[LocationPair](len(def.tokens))
    macro_map.name = def.name.identifier.s
+   macro_map.define_loc = def.loc
    macro_map.expansion_loc = loc
 
    var expansion_list: seq[Token]
