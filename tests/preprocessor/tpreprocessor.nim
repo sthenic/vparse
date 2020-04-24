@@ -20,7 +20,8 @@ template run_test(title, stimuli: string, token_reference: openarray[Token],
    var tok: Token
    init(tok)
    init(locations)
-   open_preprocessor(pp, cache, new_string_stream(stimuli), "", locations, ["include"], [])
+   open_preprocessor(pp, cache, new_string_stream(stimuli), "", locations,
+                     ["include"], ["EXTERNAL_FOO", "EXTERNAL_BAR=wire"])
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -1593,6 +1594,37 @@ wire my_wire;
    new_identifier(TkSymbol, loc(1, 2, 5), "my_wire"),
    new_token(TkSemicolon, loc(1, 2, 12)),
 ]
+
+
+run_test("External define: ifdef", """
+`ifdef EXTERNAL_FOO
+wire foo;
+`else
+wire not_foo;
+`endif
+"""): [
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 5), "foo"),
+   new_token(TkSemicolon, loc(1, 2, 8)),
+]
+
+
+run_test("External define: object-like macro", """
+`EXTERNAL_BAR foo;
+""", [
+   new_identifier(TkWire, loc(-1, 0, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 1, 14), "foo"),
+   new_token(TkSemicolon, loc(1, 1, 17)),
+], [
+   MacroMap(
+      name: "EXTERNAL_BAR",
+      define_loc: loc(0, 1, 0),
+      expansion_loc: loc(1, 1, 0),
+      locations: @[
+         (loc(0, 1, 13), loc(0, 1, 13)),
+      ]
+   )
+])
 
 
 # FIXME: Test with include file that uses a define from the outside syntax.
