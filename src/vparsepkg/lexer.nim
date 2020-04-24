@@ -872,3 +872,12 @@ proc open_lexer*(l: var Lexer, cache: IdentifierCache, s: Stream,
 
 proc close_lexer*(l: var Lexer) =
    lexbase.close(l)
+
+
+proc get_all_tokens*(l: var Lexer): seq[Token] =
+   var tok: Token
+   while true:
+      get_token(l, tok)
+      if tok.kind == TkEndOfFile:
+         break
+      add(result, tok)
