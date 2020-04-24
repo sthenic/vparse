@@ -66,7 +66,8 @@ for filename in cli_state.input_files:
       continue
 
    let cache = new_ident_cache()
-   open_graph(g, cache, fs, filename, cli_state.include_paths)
+   open_graph(g, cache, fs, filename, cli_state.include_paths,
+              cli_state.external_defines)
    log.info("Parsing source file '$1'", filename)
 
    let t_start = cpu_time()

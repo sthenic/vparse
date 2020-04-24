@@ -16,10 +16,12 @@ type
 
 
 proc open_graph*(g: var Graph, cache: IdentifierCache, s: Stream,
-                 filename: string, include_paths: openarray[string]) =
+                 filename: string, include_paths: openarray[string],
+                 external_defines: openarray[string]) =
    new g.locations
    init(g.locations)
-   open_parser(g.parser, cache, s, filename, g.locations, include_paths)
+   open_parser(g.parser, cache, s, filename, g.locations, include_paths,
+               external_defines)
 
 
 proc close_graph*(g: var Graph) =

@@ -19,6 +19,8 @@ type
       input_files*: seq[string]
       output_file*: string
       include_paths*: seq[string]
+      external_defines*: seq[string]
+
 
 proc parse_cli*(): CLIState =
    var p = init_opt_parser()
@@ -59,6 +61,10 @@ proc parse_cli*(): CLIState =
             if val == "":
                log.abort(CLIValueError, "Option -I expects a path.")
             add(result.include_paths, val)
+         of "D":
+            if val == "":
+               log.abort(CLIValueError, "Option -D expects a value.")
+            add(result.external_defines, val)
          else:
             log.abort(CLIValueError, "Unknown option '$1'.", key)
 

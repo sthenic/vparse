@@ -79,10 +79,34 @@ proc get_token(pp: var Preprocessor, ignore_comments = false) =
       get_token(pp.lex, pp.tok)
 
 
+proc handle_external_define(pp: var Preprocessor, external_define: string) =
+   # Open a local lexer to extract the tokens so we can initialize a define
+   # entry for the incoming external define. An external define is normally
+   # specified as a command line option or via a global configuration state.
+   # The file id is '0' for these types of entries.
+   var lex: Lexer
+   var s = split(external_define, '=', maxsplit = 1).join(" ")
+   open_lexer(lex, pp.lex.cache, new_string_stream(s), "", 0)
+
+   # Read out the define name as a token.
+   var tok: Token
+   get_token(lex, tok)
+
+   # External defines only support object-like macros.
+   var def: Define
+   def.is_expandable = true
+   def.name = tok
+   def.loc = tok.loc
+   def.tokens = get_all_tokens(lex)
+   pp.defines[def.name.identifier.s] = def
+   close_lexer(lex)
+
+
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         s: Stream, filename: string,
                         locations: PLocations,
-                        include_paths: openarray[string]) =
+                        include_paths: openarray[string],
+                        external_defines: openarray[string]) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
    init(pp.pp_tok)
@@ -97,6 +121,9 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    add(pp.include_paths, include_paths)
    open_lexer(pp.lex, cache, s, filename, add_to_index(pp.locations, filename))
    get_token(pp.lex, pp.tok)
+
+   for def in external_defines:
+      handle_external_define(pp, def)
 
 
 proc close_preprocessor*(pp: var Preprocessor) =
@@ -265,7 +292,7 @@ proc handle_include(pp: var Preprocessor) =
    let fs = new_file_stream(full_path)
    new pp.pp_include
    open_preprocessor(pp.pp_include[], pp.lex.cache, fs, full_path,
-                     pp.locations, pp.include_paths)
+                     pp.locations, pp.include_paths, [])
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 

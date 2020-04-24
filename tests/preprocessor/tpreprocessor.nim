@@ -20,7 +20,7 @@ template run_test(title, stimuli: string, token_reference: openarray[Token],
    var tok: Token
    init(tok)
    init(locations)
-   open_preprocessor(pp, cache, new_string_stream(stimuli), "", locations, ["include"])
+   open_preprocessor(pp, cache, new_string_stream(stimuli), "", locations, ["include"], [])
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -1594,6 +1594,8 @@ wire my_wire;
    new_token(TkSemicolon, loc(1, 2, 12)),
 ]
 
+
+# FIXME: Test with include file that uses a define from the outside syntax.
 
 
 # Print summary
