@@ -52,6 +52,12 @@ const
    RedefineProtected = "Attempting to redefine protected macro name $1."
 
 
+proc merge(x: var Table[string, Define], y: Table[string, Define]) =
+   # TODO: Perhaps generate a warning if a define overwrites another entry?
+   for k, v in pairs(y):
+      x[k] = v
+
+
 proc new_preprocessor_error(loc: Location, msg: string,
                             args: varargs[string, `$`]): ref PreprocessorError =
    new result
@@ -288,11 +294,13 @@ proc handle_include(pp: var Preprocessor) =
       add_error_token(pp, loc, CannotOpenFile, filename)
       return
 
-   # Create a new preprocessor for the include file.
+   # Create a new preprocessor for the include file. All the defines known at
+   # this point gets passed on to the preprocessor handling the include file.
    let fs = new_file_stream(full_path)
    new pp.pp_include
    open_preprocessor(pp.pp_include[], pp.lex.cache, fs, full_path,
                      pp.locations, pp.include_paths, [])
+   merge(pp.pp_include[].defines, pp.defines)
    get_token(pp.pp_include[], pp.pp_tok)
    # FIXME: Ensure that the next token is on a different line?
 
@@ -629,12 +637,6 @@ proc get_include_token(pp: var Preprocessor, tok: var Token) =
 proc is_macro_defined(pp: Preprocessor, tok: Token): bool =
    return tok.kind == TkDirective and tok.identifier.s in pp.defines and
           pp.defines[tok.identifier.s].is_expandable
-
-
-proc merge(x: var Table[string, Define], y: Table[string, Define]) =
-   # TODO: Perhaps generate a warning if a define overwrites another entry?
-   for k, v in pairs(y):
-      x[k] = v
 
 
 proc prepare_token(pp: var Preprocessor) =

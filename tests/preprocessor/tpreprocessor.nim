@@ -1084,6 +1084,35 @@ wire [`WIDTH-1:0] my_wire;
 ])
 
 
+run_test("Macro used in an include file", """
+`define FOO reg [3:0]
+`include "test5.vh"
+""", [
+   new_identifier(TkReg, loc(-1, 0, 0), "reg"),
+   new_token(TkLbracket, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), 3, Base10, -1, "3"),
+   new_token(TkColon, loc(-1, 3, 0)),
+   new_inumber(TkIntLit, loc(-1, 4, 0), 0, Base10, -1, "0"),
+   new_token(TkRbracket, loc(-1, 5, 0)),
+   new_identifier(TkSymbol, loc(2, 1, 5), "my_reg"),
+   new_token(TkSemicolon, loc(2, 1, 11)),
+], [
+   MacroMap(
+      name: "FOO",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(2, 1, 0),
+      locations: @[
+         (loc(1, 1, 12), loc(1, 1, 12)),
+         (loc(1, 1, 16), loc(1, 1, 16)),
+         (loc(1, 1, 17), loc(1, 1, 17)),
+         (loc(1, 1, 18), loc(1, 1, 18)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 1, 20), loc(1, 1, 20)),
+      ]
+   ),
+])
+
+
 run_test("File cannot be found for `include -> error", """
 `include "test_invalid.vh"
 wire
