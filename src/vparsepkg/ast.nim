@@ -122,6 +122,10 @@ const
 
    ErrorTypes* = {NkTokenError, NkTokenErrorSync, NkCritical}
 
+   PrimitiveTypes* =
+      ErrorTypes + IdentifierTypes + IntegerTypes + OperatorTypes +
+      {NkRealLit, NkStrLit, NkWildcard}
+
    DeclarationTypes* =
       {NkNetDecl, NkRegDecl, NkPortDecl, NkRealDecl, NkTaskDecl, NkTimeDecl,
        NkEventDecl, NkInoutDecl, NkInputDecl, NkOutputDecl, NkGenvarDecl,
@@ -136,7 +140,7 @@ type
       case kind*: NodeKind
       of NkStrLit:
          s*: string
-      of NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit:
+      of IntegerTypes:
          inumber*: BiggestInt
          iraw*: string
          base*: NumericalBase
@@ -330,7 +334,7 @@ proc has_errors*(n: PNode): bool =
    case n.kind
    of ErrorTypes:
       return true
-   of IdentifierTypes, IntegerTypes, NkRealLit, OperatorTypes, NkStrLit, NkWildcard:
+   of PrimitiveTypes - ErrorTypes:
       return false
    else:
       for i in 0..<len(n.sons):
