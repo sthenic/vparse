@@ -12,7 +12,8 @@ export parser
 type
    Graph* = object
       parser: Parser
-      locations: PLocations
+      locations*: PLocations
+      root_node*: PNode
 
 
 proc open_graph*(g: var Graph, cache: IdentifierCache, s: Stream,
@@ -22,6 +23,7 @@ proc open_graph*(g: var Graph, cache: IdentifierCache, s: Stream,
    init(g.locations)
    open_parser(g.parser, cache, s, filename, g.locations, include_paths,
                external_defines)
+   g.root_node = parse_all(g.parser)
 
 
 proc close_graph*(g: var Graph) =
@@ -29,4 +31,4 @@ proc close_graph*(g: var Graph) =
 
 
 proc parse_all*(g: var Graph): PNode =
-   result = parse_all(g.parser)
+   result = g.root_node
