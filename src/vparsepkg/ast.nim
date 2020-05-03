@@ -108,18 +108,25 @@ type
 
 
 const
-   IdentifierTypes =
+   IdentifierTypes* =
       {NkIdentifier, NkAttributeName, NkModuleIdentifier, NkPortIdentifier,
        NkParameterIdentifier, NkSpecparamIdentifier, NkType,
        NkFunctionIdentifier, NkGenvarIdentifier, NkDirection, NkNetType,
        NkAttributeName}
-   IntegerTypes =
+
+   IntegerTypes* =
       {NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit}
 
    # FIXME: Unused right now
-   OperatorTypes = {NkUnaryOperator, NkBinaryOperator}
+   OperatorTypes* = {NkUnaryOperator, NkBinaryOperator}
 
-   ErrorTypes = {NkTokenError, NkTokenErrorSync, NkCritical}
+   ErrorTypes* = {NkTokenError, NkTokenErrorSync, NkCritical}
+
+   DeclarationTypes* =
+      {NkNetDecl, NkRegDecl, NkPortDecl, NkRealDecl, NkTaskDecl, NkTimeDecl,
+       NkEventDecl, NkInoutDecl, NkInputDecl, NkOutputDecl, NkGenvarDecl,
+       NkModuleDecl, NkIntegerDecl, NkDefparamDecl, NkFunctionDecl,
+       NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl, NkLocalparamDecl}
 
 type
    PNode* = ref TNode
