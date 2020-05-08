@@ -179,6 +179,22 @@ proc look_ahead(p: Parser, curr: TokenKind, next: set[TokenKind]): bool =
    result = p.tok.kind == curr and p.next_tok.kind in next
 
 
+proc add_attributes(n: var PNode, attributes: seq[PNode]) =
+   # This proc safely prepends attributes to the node n. By 'safely' we mean
+   # that if the node n is a primitive node, this is an error and we wrap both
+   # the attributes and the primitve node in an error node. Otherwise, we just
+   # prepend the attributes to the list of sons.
+   if len(attributes) > 0:
+      if n.kind in PrimitiveTypes:
+         # TODO: Better node type?
+         let error_node = new_node(NkExpectError, n.loc)
+         add(error_node.sons, attributes)
+         add(error_node.sons, n)
+         n = error_node
+      else:
+         n.sons = attributes & n.sons
+
+
 # Forward declarations
 proc parse_constant_expression(p: var Parser): PNode
 proc parse_constant_range_expression(p: var Parser): PNode
@@ -1123,8 +1139,7 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
       result = unexpected_token(p)
       return
 
-   if len(attributes) > 0:
-      result.sons = attributes & result.sons
+   add_attributes(result, attributes)
 
 
 proc parse_variable_lvalue(p: var Parser): PNode =
@@ -1603,8 +1618,7 @@ proc parse_statement(p: var Parser, attributes: seq[PNode]): PNode =
       result = unexpected_token(p)
       return
 
-   if len(attributes) > 0:
-      result.sons = attributes & result.sons
+   add_attributes(result, attributes)
 
 
 proc parse_statement(p: var Parser): PNode =
@@ -2157,8 +2171,7 @@ proc parse_module_or_generate_item(p: var Parser, attributes: seq[PNode]): PNode
    else:
       result = parse_module_or_generate_item_declaration(p)
 
-   if len(attributes) > 0:
-      result.sons = attributes & result.sons
+   add_attributes(result, attributes)
 
 
 proc parse_module_or_generate_item(p: var Parser): PNode =
