@@ -198,6 +198,11 @@ proc pretty*(n: PNode, indent: int = 0): string =
       add(result, sons_str)
 
 
+proc pretty*(nodes: openarray[PNode]): string =
+   for n in nodes:
+      add(result, pretty(n))
+
+
 proc `%`*(n: PNode): JsonNode =
    if n == nil:
       return
