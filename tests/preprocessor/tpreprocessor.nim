@@ -20,8 +20,9 @@ template run_test(title, stimuli: string, token_reference: openarray[Token],
    var tok: Token
    init(tok)
    init(locations)
-   open_preprocessor(pp, cache, new_string_stream(stimuli), "", locations,
-                     ["include"], ["EXTERNAL_FOO", "EXTERNAL_BAR=wire"])
+   open_preprocessor(pp, cache, new_string_stream(stimuli),
+                     new_file_map("", InvalidLocation),
+                     locations, ["include"], ["EXTERNAL_FOO", "EXTERNAL_BAR=wire"])
    while true:
       get_token(pp, tok)
       if tok.kind == TkEndOfFile:
@@ -1657,6 +1658,17 @@ run_test("External define: object-like macro", """
 
 
 # FIXME: Test with include file that uses a define from the outside syntax.
+# FIXME: Validate file maps for all test cases. Also add a test like:
+#
+#  File 1            File 2           File 3
+#  --------------    --------------   --------------
+#
+#  `include file3    `include file3   <syntax error>
+#  `include file2
+#  `include file3
+#
+#  Two entries should exist for file 3 in the index, representing the two
+#  include directives.
 
 
 # Print summary

@@ -865,6 +865,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
 proc open_lexer*(l: var Lexer, cache: IdentifierCache, s: Stream,
                  filename: string, file: int) =
    lexbase.open(l, s)
+   # FIXME: The filename is unused, remove?
    l.filename = filename
    l.cache = cache
    l.file = file

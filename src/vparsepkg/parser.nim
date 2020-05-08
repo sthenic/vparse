@@ -72,8 +72,11 @@ proc open_parser*(p: var Parser, cache: IdentifierCache,
                   external_defines: openarray[string]) =
    init(p.tok)
    init(p.next_tok)
-   open_preprocessor(p.pp, cache, s, filename, locations, include_paths,
-                     external_defines)
+   # The file map passed to the preprocessor by the parser specifies an invalid
+   # location since it is the origin, i.e. the file was not opened as a result
+   # of parsing the syntax.
+   open_preprocessor(p.pp, cache, s, new_file_map(filename, InvalidLocation),
+                     locations, include_paths, external_defines)
    get_token(p)
 
 

@@ -21,10 +21,20 @@ type
       # Location pairs of the tokens in this macro.
       locations*: seq[LocationPair]
 
+   FileMap* = object
+      # The full path of the file.
+      filename*: string
+      # If this file is the result of an `include, this field holds the location
+      # of that directive.
+      loc*: Location
+
    PLocations* = ref Locations
    Locations* = object
-      files*: seq[string]
+      file_maps*: seq[FileMap]
       macro_maps*: seq[MacroMap]
+
+const
+   InvalidLocation* = Location(file: 0, line: 0, col: 0)
 
 
 proc `$`*(l: Location): string =
@@ -95,20 +105,33 @@ proc detailed_compare*(x, y: openarray[MacroMap]) =
       echo format("Length differs: LHS($1) != RHS($2)", len(x), len(y))
 
 
+proc pretty*(map: FileMap): string =
+   result = format("""
+filename: '$1'
+location: $2
+""", map.filename, $map.loc)
+
+
+proc pretty*(maps: openarray[FileMap]): string =
+   for m in maps:
+      add(result, pretty(m) & "\n")
+
+
+proc new_file_map*(filename: string, loc: Location): FileMap =
+   result.filename = filename
+   result.loc = loc
+
+
 proc init*(locs: PLocations) =
-   locs.files = new_seq_of_cap[string](32)
+   locs.file_maps = new_seq_of_cap[FileMap](32)
    locs.macro_maps = new_seq_of_cap[MacroMap](64)
 
 
 # FIXME: Maybe return int32 to match the 'file' member of Location.
-proc add_to_index*(locs: PLocations, filename: string): int =
-   ## Add a file to the graph's file index and return its index.
-   let idx = find(locs.files, filename)
-   if idx < 0:
-      add(locs.files, filename)
-      result = high(locs.files) + 1
-   else:
-      result = idx + 1
+proc add_file_map*(locs: PLocations, file_map: FileMap): int =
+   ## Add a file map to the file index and return its location in the index. If
+   add(locs.file_maps, file_map)
+   result = high(locs.file_maps) + 1
 
 
 proc add_macro_map*(locs: PLocations, macro_map: MacroMap) =

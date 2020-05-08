@@ -109,7 +109,7 @@ proc handle_external_define(pp: var Preprocessor, external_define: string) =
 
 
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
-                        s: Stream, filename: string,
+                        s: Stream, file_map: FileMap,
                         locations: PLocations,
                         include_paths: openarray[string],
                         external_defines: openarray[string]) =
@@ -125,7 +125,8 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    pp.locations = locations
 
    add(pp.include_paths, include_paths)
-   open_lexer(pp.lex, cache, s, filename, add_to_index(pp.locations, filename))
+   open_lexer(pp.lex, cache, s, file_map.filename,
+              add_file_map(pp.locations, file_map))
    get_token(pp.lex, pp.tok)
 
    for def in external_defines:
@@ -274,14 +275,14 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
 
 proc handle_include(pp: var Preprocessor) =
    # Skip over `include.
-   let include_line = pp.tok.loc.line
+   let include_loc = pp.tok.loc
    get_token(pp)
 
    if pp.tok.kind != TkStrLit:
       add_error_token(pp, ExpectedToken, TkStrLit, pp.tok)
       get_token(pp)
       return
-   elif pp.tok.loc.line != include_line:
+   elif pp.tok.loc.line != include_loc.line:
       add_error_token(pp, DirectiveArgLine, pp.tok, "`include")
       get_token(pp)
       return
@@ -296,9 +297,13 @@ proc handle_include(pp: var Preprocessor) =
 
    # Create a new preprocessor for the include file. All the defines known at
    # this point gets passed on to the preprocessor handling the include file.
+   # We also create a file map entry which includes the location of the `include
+   # directive. This will allow any token consumer to trace tokens across files,
+   # similar to what macro maps allow.
    let fs = new_file_stream(full_path)
    new pp.pp_include
-   open_preprocessor(pp.pp_include[], pp.lex.cache, fs, full_path,
+   open_preprocessor(pp.pp_include[], pp.lex.cache, fs,
+                     new_file_map(full_path, include_loc),
                      pp.locations, pp.include_paths, [])
    merge(pp.pp_include[].defines, pp.defines)
    get_token(pp.pp_include[], pp.pp_tok)
