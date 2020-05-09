@@ -16,6 +16,7 @@ type
       json*: bool
       pretty*: bool
       stdout*: bool
+      maps*: bool
       input_files*: seq[string]
       output_file*: string
       include_paths*: seq[string]
@@ -57,6 +58,8 @@ proc parse_cli*(): CLIState =
             result.stdout = true
          of "json":
             result.json = true
+         of "maps":
+            result.maps = true
          of "I":
             if val == "":
                log.abort(CLIValueError, "Option -I expects a path.")

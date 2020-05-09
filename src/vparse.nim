@@ -76,8 +76,6 @@ when is_main_module:
       let t_start = cpu_time()
       let root_node = parse_all(g)
       let t_diff_ms = (cpu_time() - t_start) * 1000
-      close_graph(g)
-      close(fs)
 
       if ofs != nil:
          if cli_state.json:
@@ -96,6 +94,11 @@ when is_main_module:
                echo $(%root_node)
          else:
             echo pretty(root_node)
+            if cli_state.maps:
+               echo "File maps\n---------"
+               echo pretty(g.locations.file_maps)
+               echo "Macro maps\n----------"
+               echo pretty(g.locations.macro_maps)
 
       log.info("Parse completed in ", fgGreen, styleBright,
                format_float(t_diff_ms, ffDecimal, 1), " ms", resetStyle, ".")
@@ -104,5 +107,8 @@ when is_main_module:
       if has_errors(root_node):
          log.error("The AST contains errors.")
          exit_val = -EPARSE
+
+      close_graph(g)
+      close(fs)
 
    quit(exit_val)
