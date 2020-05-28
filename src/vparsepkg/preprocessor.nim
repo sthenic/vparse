@@ -683,7 +683,7 @@ proc prepare_token(pp: var Preprocessor) =
          if len(pp.error_tokens) > 0:
             break
 
-         # If by handling a directive the context stack is no longer empty, we
+         # If by handling a directive, the context stack is no longer empty, we
          # perform a recursive call to run the code block above. A macro
          # invocation may be the first context token.
          if len(pp.context_stack) > 0:
@@ -695,7 +695,7 @@ proc prepare_token(pp: var Preprocessor) =
             # If we've reached the end of the file, check if it's expected.
             # We could be waiting for an `endif. After we've added the error
             # token we set the semaphore to zero to avoid to keep on generating
-            # errors indefinately.
+            # errors indefinitely.
             if pp.endif_semaphore > 0:
                add_error_token(pp, UnexpectedEndOfFile)
                pp.endif_semaphore = 0
@@ -724,7 +724,7 @@ proc get_token*(pp: var Preprocessor, tok: var Token) =
    if pp.pp_include != nil:
       get_include_token(pp, tok)
    elif len(pp.error_tokens) > 0:
-      tok = pp.error_tokens.pop()
+      tok = pop(pp.error_tokens)
    elif len(pp.context_stack) > 0:
       get_context_token(pp, tok)
    else:
