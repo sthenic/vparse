@@ -6,8 +6,8 @@ import os
 import ./log
 
 type
-   CLIValueError* = object of Exception
-   CLIState* = object
+   CliValueError* = object of ValueError
+   CliState* = object
       has_arguments*: bool
       input_from_stdin*: bool
       is_ok*: bool
@@ -23,7 +23,7 @@ type
       external_defines*: seq[string]
 
 
-proc parse_cli*(): CLIState =
+proc parse_cli*(): CliState =
    var p = init_opt_parser()
    for kind, key, val in p.getopt():
       case kind:
@@ -50,7 +50,7 @@ proc parse_cli*(): CLIState =
             result.is_ok = true
          of "output", "o":
             if val == "":
-               log.abort(CLIValueError, "Option --output/-o expects a filename.")
+               log.abort(CliValueError, "Option --output/-o expects a filename.")
             result.output_file = val
          of "pretty":
             result.pretty = true
@@ -62,15 +62,15 @@ proc parse_cli*(): CLIState =
             result.maps = true
          of "I":
             if val == "":
-               log.abort(CLIValueError, "Option -I expects a path.")
+               log.abort(CliValueError, "Option -I expects a path.")
             add(result.include_paths, val)
          of "D":
             if val == "":
-               log.abort(CLIValueError, "Option -D expects a value.")
+               log.abort(CliValueError, "Option -D expects a value.")
             add(result.external_defines, val)
          else:
-            log.abort(CLIValueError, "Unknown option '$1'.", key)
+            log.abort(CliValueError, "Unknown option '$1'.", key)
 
       of cmdEnd:
-         log.abort(CLIValueError, "Failed to parse options and arguments " &
+         log.abort(CliValueError, "Failed to parse options and arguments " &
                   "This should not have happened.")
