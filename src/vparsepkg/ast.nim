@@ -130,7 +130,8 @@ const
       {NkNetDecl, NkRegDecl, NkPortDecl, NkRealDecl, NkTaskDecl, NkTimeDecl,
        NkEventDecl, NkInoutDecl, NkInputDecl, NkOutputDecl, NkGenvarDecl,
        NkModuleDecl, NkIntegerDecl, NkDefparamDecl, NkFunctionDecl,
-       NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl, NkLocalparamDecl}
+       NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl, NkLocalparamDecl,
+       NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}
 
 type
    PNode* = ref TNode
