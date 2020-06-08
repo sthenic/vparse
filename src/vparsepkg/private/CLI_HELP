@@ -26,7 +26,7 @@ options:
 
   --pretty                  Prettify the JSON output.
 
-  --stdout                  Write the output to stdout.
+  --stdout                  Write the AST to stdout.
 
   --maps                    Add the file maps and macro maps to the output.
                             This option requires '--stdout'.

@@ -1,5 +1,5 @@
 import ./vparsepkg/graph
-import ./vparsepkg/private/[cli, log]
+import ./vparsepkg/private/[cli, log, analyze]
 
 import strutils
 import streams
@@ -15,9 +15,9 @@ when is_main_module:
       VERSION_STR = static_read("./vparsepkg/private/VERSION").strip()
       # Exit codes: negative values are errors.
       ESUCCESS = 0
-      EINVAL = 1
-      EFILE = 2
-      EPARSE = 3
+      EINVAL = -1
+      EFILE = -2
+      EPARSE = -3
 
       STATIC_HELP_TEXT = static_read("./vparsepkg/private/CLI_HELP")
 
@@ -28,14 +28,14 @@ when is_main_module:
    try:
       cli_state = parse_cli()
    except CliValueError:
-      quit(-EINVAL)
+      quit(EINVAL)
 
    # Parse CLI object state.
    if not cli_state.is_ok:
       # Invalid input combination (but otherwise correctly formatted arguments
       # and options).
       echo HELP_TEXT
-      quit(-EINVAL)
+      quit(EINVAL)
    elif cli_state.print_help:
       # Show help text and exit.
       echo HELP_TEXT
@@ -49,7 +49,7 @@ when is_main_module:
 
    if len(cli_state.input_files) == 0:
       log.error("No input files, aborting.")
-      quit(-EINVAL)
+      quit(EINVAL)
 
    var ofs: FileStream = nil
    if len(cli_state.output_file) != 0:
@@ -103,10 +103,13 @@ when is_main_module:
       log.info("Parse completed in ", fgGreen, styleBright,
                format_float(t_diff_ms, ffDecimal, 1), " ms", resetStyle, ".")
 
-      # TODO: Analyze errors and present a summary.
       if has_errors(root_node):
          log.error("The AST contains errors.")
-         exit_val = -EPARSE
+         write_errors(stdout, root_node)
+         write(stdout, "\n")
+         exit_val = EPARSE
+      else:
+         log.info("No errors.\n")
 
       close_graph(g)
       close(fs)
