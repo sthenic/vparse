@@ -28,3 +28,5 @@ options:
 
   --stdout                  Write the output to stdout.
 
+  --maps                    Add the file maps and macro maps to the output.
+                            This option requires '--stdout'.
