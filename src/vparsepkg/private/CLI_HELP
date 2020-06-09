@@ -16,10 +16,25 @@ options:
   -h, --help                Print this help message and exit.
   -v, --version             Print the version information and exit.
 
-  -I=PATH,                  Add PATH to the list of include paths searched when
+  -I:PATH,                  Add PATH to the list of include paths searched when
                             an `include directive is encountered.
 
-  -o=FILE, --output=FILE    If this option is present, the output AST is written
+  -D:DEFINE                 Add DEFINE as a global macro, as if it had been
+                            added with the `define compiler directive. The input
+                            is split at the first equals sign (=) where the
+                            head constitutes the macro name (and an optional
+                            parameter list) and the tail constitutes the macro's
+                            replacement list.
+
+                            Use double quotes (") to include whitespace in the
+                            replacement list.
+
+                            For example:
+                              -D:FOO
+                              -D:WIDTH=8
+                              -D:"ONES(x) = {(x){1'b1}}"
+
+  -o:FILE, --output:FILE    If this option is present, the output AST is written
                             to FILE.
 
   --json                    The output AST is JSON-formatted.
