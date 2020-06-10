@@ -69,12 +69,11 @@ when is_main_module:
          continue
 
       let cache = new_ident_cache()
-      open_graph(g, cache, fs, filename, cli_state.include_paths, cli_state.defines)
       log.info("Parsing source file '$1'", filename)
-
       let t_start = cpu_time()
-      let root_node = parse_all(g)
+      open_graph(g, cache, fs, filename, cli_state.include_paths, cli_state.defines)
       let t_diff_ms = (cpu_time() - t_start) * 1000
+      let root_node = parse_all(g)
 
       if ofs != nil:
          if cli_state.json:
