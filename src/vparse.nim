@@ -1,5 +1,5 @@
 import ./vparsepkg/graph
-import ./vparsepkg/private/[cli, log, analyze]
+import ./vparsepkg/private/[cli, log]
 
 import strutils
 import streams
@@ -69,8 +69,7 @@ when is_main_module:
          continue
 
       let cache = new_ident_cache()
-      open_graph(g, cache, fs, filename, cli_state.include_paths,
-                 cli_state.external_defines)
+      open_graph(g, cache, fs, filename, cli_state.include_paths, cli_state.defines)
       log.info("Parsing source file '$1'", filename)
 
       let t_start = cpu_time()
@@ -105,8 +104,6 @@ when is_main_module:
 
       if has_errors(root_node):
          log.error("The AST contains errors.")
-         write_errors(stdout, root_node)
-         write(stdout, "\n")
          exit_val = EPARSE
       else:
          log.info("No errors.\n")

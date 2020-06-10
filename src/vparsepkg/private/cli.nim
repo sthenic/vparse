@@ -20,7 +20,7 @@ type
       input_files*: seq[string]
       output_file*: string
       include_paths*: seq[string]
-      external_defines*: seq[string]
+      defines*: seq[string]
 
 
 proc parse_cli*(): CliState =
@@ -67,7 +67,7 @@ proc parse_cli*(): CliState =
          of "D":
             if val == "":
                log.abort(CliValueError, "Option -D expects a value.")
-            add(result.external_defines, val)
+            add(result.defines, val)
          else:
             log.abort(CliValueError, "Unknown option '$1'.", key)
 
