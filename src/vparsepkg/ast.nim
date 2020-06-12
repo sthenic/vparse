@@ -390,3 +390,36 @@ proc new_error_node*(kind: NodeKind, loc: Location, raw, msg: string,
    result = new_node(kind, loc)
    result.msg = format(msg, args)
    result.eraw = raw
+
+
+proc find_first*(n: PNode, kinds: NodeKinds): PNode =
+   ## Return the first son in ``n`` whose kind is in ``kinds``. If a matching
+   ## node cannot be found, ``nil`` is returned.
+   result = nil
+   if n.kind notin PrimitiveTypes:
+      for s in n.sons:
+         if s.kind in kinds:
+            return s
+
+
+template find_first*(n: PNode, kind: NodeKind): PNode =
+   ## Return the first son in ``n`` whose kind is ``kind``. If a matching node
+   ## cannot be found, ``nil`` is returned.
+   find_first(n, {kind})
+
+
+template walk_sons_common(n: PNode, kinds: NodeKinds) =
+   if n.kind notin PrimitiveTypes:
+      for s in n.sons:
+         if s.kind in kinds:
+            yield s
+
+
+iterator walk_sons*(n: PNode, kinds: NodeKinds): PNode {.inline.} =
+   ## Walk the sons in ``n`` whose kind is in ``kinds``.
+   walk_sons_common(n, kinds)
+
+
+iterator walk_sons*(n: PNode, kind: NodeKind): PNode {.inline.} =
+   ## Walk the sons in ``n`` whose kind is ``kind``.
+   walk_sons_common(n, {kind})
