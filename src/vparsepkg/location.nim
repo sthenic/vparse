@@ -56,9 +56,10 @@ $1: x: $2, y: $3
 proc pretty*(map: MacroMap): string =
    result = format("""
 name: '$1'
-expansion at: $2
-locations: $3
-""", map.name, $map.expansion_loc, indent(pretty(map.locations), 2))
+defined at: $2
+expansion at: $3
+locations: $4
+""", map.name, $map.define_loc, $map.expansion_loc, indent(pretty(map.locations), 2))
 
 
 proc pretty*(maps: openarray[MacroMap]): string =
@@ -140,3 +141,13 @@ proc add_macro_map*(locs: PLocations, macro_map: MacroMap) =
 
 proc next_macro_map_index*(locs: PLocations): int =
    result = -high(locs.macro_maps) - 2
+
+
+proc to_physical*(macro_maps: seq[MacroMap], loc: Location): Location =
+   ## Given a sequence of macro maps: ``macro_maps``, translate the virtual location ``loc`` into
+   ## a physical location.
+   result = loc
+   while true:
+      if result.file > 0:
+         break
+      result = macro_maps[-(result.file + 1)].locations[result.line].x
