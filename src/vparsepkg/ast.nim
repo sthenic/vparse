@@ -408,6 +408,22 @@ template find_first*(n: PNode, kind: NodeKind): PNode =
    find_first(n, {kind})
 
 
+proc find_first_index*(n: PNode, kinds: NodeKinds): int =
+   ## Return the index of the first son in ``n`` whose kind is in ``kinds``.
+   ## If a matching node cannot be found, ``-1`` is returned.
+   result = -1
+   if n.kind notin PrimitiveTypes:
+      for i, s in n.sons:
+         if s.kind in kinds:
+            return i
+
+
+template find_first_index*(n: PNode, kind: NodeKind): int =
+   ## Return the index of the first son in ``n`` whose kind is ``kind``.
+   ## If a matching node cannot be found, ``-1`` is returned.
+   find_first_index(n, {kind})
+
+
 template walk_sons_common(n: PNode, kinds: NodeKinds) =
    if n.kind notin PrimitiveTypes:
       for s in n.sons:
@@ -423,3 +439,15 @@ iterator walk_sons*(n: PNode, kinds: NodeKinds): PNode {.inline.} =
 iterator walk_sons*(n: PNode, kind: NodeKind): PNode {.inline.} =
    ## Walk the sons in ``n`` whose kind is ``kind``.
    walk_sons_common(n, {kind})
+
+
+iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
+   ## Walk the sons in ``n`` between indexes ``start`` and ``stop``. If ``stop`` is omitted,
+   ## the iterator continues until the last son has been returned.
+   if n.kind notin PrimitiveTypes:
+      var lstop = stop
+      var lstart = start
+      if stop < 0 or stop > high(n.sons):
+         lstop = high(n.sons)
+      for i in start..lstop:
+         yield n.sons[i]
