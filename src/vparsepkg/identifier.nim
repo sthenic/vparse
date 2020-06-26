@@ -112,3 +112,12 @@ proc new_ident_cache*(): IdentifierCache =
    result.nof_identifiers = 0
    for word in SpecialWords:
       discard result.get_identifier(word)
+
+
+iterator walk_identifiers*(cache: IdentifierCache, skip_special_words: bool = true): PIdentifier =
+   for identifier in cache.buckets:
+      if not is_nil(identifier):
+         if skip_special_words and identifier.s in SpecialWords:
+            continue
+         else:
+            yield identifier
