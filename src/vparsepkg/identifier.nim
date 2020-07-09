@@ -1,5 +1,5 @@
 # Identifier handling (heavily influenced by the Nim compiler)
-
+import strutils
 import hashes
 import ./special_words
 
@@ -121,3 +121,9 @@ iterator walk_identifiers*(cache: IdentifierCache, skip_special_words: bool = tr
             continue
          else:
             yield identifier
+
+
+iterator walk_identifiers_starting_with*(cache: IdentifierCache, prefix: string): PIdentifier =
+   for id in walk_identifiers(cache):
+      if starts_with(id.s, prefix):
+         yield id
