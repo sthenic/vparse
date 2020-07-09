@@ -133,6 +133,7 @@ const
        NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl, NkLocalparamDecl,
        NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}
 
+
 type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
@@ -162,6 +163,22 @@ type
          discard
       else:
          sons*: TNodeSeq
+
+   # An AST context item represents a specific node and its position in the
+   # parent node's list of sons.
+   AstContextItem* = object
+      pos*: int
+      n*: PNode
+
+   AstContext* = seq[AstContextItem]
+
+
+proc init*(c: var AstContext, len: int) =
+   c = new_seq_of_cap[AstContextItem](len)
+
+
+proc add*(c: var AstContext, pos: int, n: PNode) =
+   add(c, AstContextItem(pos: pos, n: n))
 
 
 proc pretty*(n: PNode, indent: int = 0): string =
@@ -450,5 +467,330 @@ iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
       var lstart = start
       if stop < 0 or stop > high(n.sons):
          lstop = high(n.sons)
-      for i in start..lstop:
+      for i in lstart..lstop:
          yield n.sons[i]
+
+
+iterator walk_ports*(n: PNode): PNode {.inline.} =
+   ## Walk the ports of a module. The node ``n`` is expected to be a ``NkModuleDecl``.
+   ## This iterator yields nodes of type ``NkPortDecl`` or ``NkPort``.
+   if n.kind == NkModuleDecl:
+      for s in n.sons:
+         if s.kind in {NkListOfPortDeclarations, NkListOfPorts}:
+            for p in s.sons:
+               if p.kind in {NkPortDecl, NkPort}:
+                  yield p
+
+
+iterator walk_parameter_ports*(n: PNode): PNode {.inline.} =
+   ## Walk the parameter ports of a module. The node ``n`` is expected to be a ``NkModuleDecl``.
+   ## This iterator yields nodes of type ``NkParameterDecl``.
+   if n.kind == NkModuleDecl:
+      for s in n.sons:
+         if s.kind == NkModuleParameterPortList:
+            for p in s.sons:
+               if p.kind == NkParameterDecl:
+                  yield p
+
+
+proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
+                      added_length: int = 0): PNode =
+   ## Descend into ``n``, searching for the identifier at the target location
+   ## ``loc``. If an identifier is found, ``context`` will specify the AST
+   ## context from the node ``n`` down to the matching identifier, i.e. the
+   ## tree where its declaration is likely to be found. The length of the
+   ## identifier may be extended by specifying a nonzero value for
+   ## ``added_length``. This effectively grows the bounding box on the right.
+   ##  If the search yields no result, ``nil`` is returned.
+   case n.kind
+   of IdentifierTypes:
+      # If the node is an identifier type, check if the location is pointing to
+      # anywhere within the identifier. Otherwise, we skip it. If end_cursor is
+      # true, we make the identifier appear to be one character longer than its
+      # natural length.
+      if in_bounds(loc, n.loc, len(n.identifier.s) + added_length):
+         result = n
+      else:
+         result = nil
+   of PrimitiveTypes - IdentifierTypes:
+      result = nil
+   else:
+      # TODO: Perhaps we can improve the search here? Skipping entire subtrees
+      #       depending on the location of the first node within?
+      for i, s in n.sons:
+         add(context, i, n)
+         result = find_identifier(s, loc, context, added_length)
+         if not is_nil(result):
+            return
+         discard pop(context)
+
+
+proc find_identifier_physical*(n: PNode, macro_maps: seq[MacroMap], loc: Location,
+                               context: var AstContext, added_length: int = 0): PNode =
+   ## Find the identifier at the physical location ``loc``, i.e. ``loc.file`` > 0
+   ## is assumed.
+   var lookup_loc = loc
+   var start_col = 0
+   for i, map in macro_maps:
+      for j, lpair in map.locations:
+         # The macro map's location database only stores the locations of the
+         # first character in the token and not the length of the token. Given
+         # that the location we're given as an input argument may point to
+         # anywhere within the token, we have to guess what to translate the
+         # physical location to.
+         if loc.file == lpair.x.file and loc.line == lpair.x.line and loc.col >= lpair.x.col:
+            lookup_loc = new_location(-(i + 1), j, 0)
+            start_col = lpair.x.col
+
+         # We don't break out of the loops since a better location may present
+         # itself by looking at later macro maps. The macro maps are organized
+         # in the order they appear in the source file, i.e. left to right, top
+         # to bottom.
+
+   if lookup_loc.file < 0:
+      unroll_location(macro_maps, lookup_loc)
+
+   # Make the lookup.
+   result = find_identifier(n, lookup_loc, context, added_length)
+
+   # If we made the lookup using a virtual location, we have to be ready to roll
+   # back the lookup result if it turns out that the input location points
+   # beyond the identifier.
+   if not is_nil(result) and lookup_loc.file < 0 and loc.col > (start_col + len(result.identifier.s) - 1):
+      result = nil
+
+
+proc find_declaration*(n: PNode, identifier: PIdentifier, return_identifier: bool = false): PNode =
+   ## Descend into ``n``, searching for the AST node that declares ``identifier``.
+   ## If ``return_identifier`` is true, the matching identifier node *within*
+   ## the declaration is returned instead of the parent declaration node.
+   ## If the search fails, ``nil`` is returned.
+   result = nil
+   # We have to hande each type of declaration node individually in order to find
+   # the correct identifier node.
+   case n.kind
+   of NkPortDecl:
+      let id = find_first(n, NkPortIdentifier)
+      if not is_nil(id) and id.identifier.s == identifier.s:
+         if return_identifier:
+            result = id
+         else:
+            result = n
+
+   of NkTaskDecl, NkFunctionDecl, NkGenvarDecl:
+      let id = find_first(n, NkIdentifier)
+      if not is_nil(id) and id.identifier.s == identifier.s:
+         if return_identifier:
+            result = id
+         else:
+            result = n
+
+   of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
+      for s in n.sons:
+         case s.kind
+         of NkArrayIdentifer, NkAssignment:
+            let id = find_first(s, NkIdentifier)
+            if not is_nil(id) and id.identifier.s == identifier.s:
+               if return_identifier:
+                  result = id
+               else:
+                  result = n
+               break
+         of NkIdentifier:
+            if s.identifier.s == identifier.s:
+               if return_identifier:
+                  result = s
+               else:
+                  result = n
+               break
+         else:
+            discard
+
+   of NkParameterDecl, NkLocalparamDecl:
+      # When we find a NkParamAssignment node, the first son is expected to be
+      # the identifier.
+      for s in walk_sons(n, NkParamAssignment):
+         let id = find_first(s, NkParameterIdentifier)
+         if not is_nil(id) and id.identifier.s == identifier.s:
+            if return_identifier:
+               result = id
+            else:
+               result = n
+            break
+
+   of NkSpecparamDecl:
+      # When we find a NkAssignment node, the first son is expected to be the
+      # identifier.
+      for s in walk_sons(n, NkAssignment):
+         let id = find_first(s, NkIdentifier)
+         if not is_nil(id) and id.identifier.s == identifier.s:
+            if return_identifier:
+               result = id
+            else:
+               result = n
+            break
+
+   of NkModuleDecl:
+      # This path is never taken since a the lookup of a module declaration is
+      # handled by find_module_declaration() which performs a lookup.
+      let id = find_first(n, NkModuleIdentifier)
+      if not is_nil(id) and id.identifier.s == identifier.s:
+         if return_identifier:
+            result = id
+         else:
+            result = n
+
+   of PrimitiveTypes + {NkDefparamDecl}:
+      # Defparam declarations specifically targets an existing parameter and
+      # changes its value. Looking up a declaration should never lead to this
+      # node.
+      discard
+
+   else:
+      for s in n.sons:
+         result = find_declaration(s, identifier)
+         if not is_nil(result):
+            break
+
+
+proc find_declaration*(context: AstContext, identifier: PIdentifier): tuple[n: PNode, context: AstContextItem] =
+   ## Traverse the AST ``context`` bottom-up, descending into any declaration
+   ## nodes found along the way searching for the declaration of ``identifier``.
+   ## The proc returns a tuple with the declaration node together with the
+   ## context in which it applies. If the search fails, the declaration node is
+   ## set to ``nil``.
+   result.n = nil
+   for i in countdown(high(context), 0):
+      let context_item = context[i]
+      if context_item.n.kind notin PrimitiveTypes:
+         for pos in countdown(context_item.pos, 0):
+            let s = context_item.n.sons[pos]
+            if s.kind in DeclarationTypes - {NkDefparamDecl}:
+               result.n = find_declaration(s, identifier)
+               if not is_nil(result.n):
+                  if context_item.n.kind in {NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}:
+                     # If the declaration was enclosed in any of the list types,
+                     # its scope stretches from the parent node and onwards.
+                     result.context = context[i-1]
+                  else:
+                     result.context.pos = pos
+                     result.context.n = context[i].n
+                  return
+
+
+proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNode] =
+   ## Descend into ``n`` searching for all declaration nodes. If ``return_identifiers``
+   ## is true, the identifier nodes *within* the declaration are added to the result
+   ## instead of the parent declaration node.
+   case n.kind
+   of NkPortDecl:
+      if return_identifiers:
+         let id = find_first(n, NkPortIdentifier)
+         if not is_nil(id):
+            add(result, id)
+      else:
+         add(result, n)
+
+   of NkTaskDecl, NkFunctionDecl, NkGenvarDecl:
+      if return_identifiers:
+         let id = find_first(n, NkIdentifier)
+         if not is_nil(id):
+            add(result, id)
+      else:
+         add(result, n)
+
+   of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
+      if return_identifiers:
+         for s in n.sons:
+            case s.kind
+            of NkArrayIdentifer, NkAssignment:
+               let id = find_first(s, NkIdentifier)
+               if not is_nil(id):
+                  add(result, id)
+            of NkIdentifier:
+               add(result, s)
+               break
+            else:
+               discard
+      else:
+         add(result, n)
+
+   of NkParameterDecl, NkLocalparamDecl:
+      if return_identifiers:
+         for s in walk_sons(n, NkParamAssignment):
+            let id = find_first(s, NkParameterIdentifier)
+            if not is_nil(id):
+               add(result, id)
+      else:
+         add(result, n)
+
+   of NkSpecparamDecl:
+      if return_identifiers:
+         for s in walk_sons(n, NkAssignment):
+            let id = find_first(s, NkIdentifier)
+            if not is_nil(id):
+               add(result, id)
+      else:
+         add(result, n)
+
+   of NkModuleDecl:
+      if return_identifiers:
+         let idx = find_first_index(n, NkModuleIdentifier)
+         if idx > -1:
+            add(result, n.sons[idx])
+         for s in walk_sons(n, idx + 1):
+            add(result, find_all_declarations(s, return_identifiers))
+      else:
+         add(result, n)
+         for s in n.sons:
+            add(result, find_all_declarations(s, return_identifiers))
+
+   of PrimitiveTypes + {NkDefparamDecl}:
+      discard
+
+   else:
+      for s in n.sons:
+         add(result, find_all_declarations(s, return_identifiers))
+
+
+proc find_all_declarations*(context: AstContext, return_identifiers: bool): seq[PNode] =
+   ## Find all declaration nodes in the given ``context``. If ``return_identifiers``
+   ## is true, the identifier nodes *within* the declaration are added to the result
+   ## instead of the parent declaration node.
+   for context_item in context:
+      if context_item.n.kind notin PrimitiveTypes:
+         for pos in 0..<context_item.pos:
+            add(result, find_all_declarations(context_item.n.sons[pos]))
+
+
+proc find_references*(n: PNode, identifier: PIdentifier): seq[PNode] =
+   ## Descend into ``n``, finding all references to the ``identifier``,
+   ## i.e. matching identifier nodes.
+   case n.kind
+   of IdentifierTypes:
+      if n.identifier.s == identifier.s:
+         add(result, n)
+   of PrimitiveTypes - IdentifierTypes:
+      discard
+   of NkPortConnection:
+      # For port connections, we have to skip the first identifier since that's
+      # the name of the port.
+      for s in walk_sons(n, find_first_index(n, NkIdentifier) + 1):
+         add(result, find_references(s, identifier))
+   else:
+      for s in n.sons:
+         add(result, find_references(s, identifier))
+
+
+proc find_all_module_instantiations*(n: PNode): seq[PNode] =
+   ## Descend into ``n``, finding all module instantiations.
+   case n.kind
+   of PrimitiveTypes:
+      discard
+   of NkModuleInstantiation:
+      let id = find_first(n, NkIdentifier)
+      if not is_nil(id):
+         add(result, id)
+   else:
+      for s in n.sons:
+         add(result, find_all_module_instantiations(s))
