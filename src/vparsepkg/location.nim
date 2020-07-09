@@ -161,10 +161,31 @@ proc next_macro_map_index*(locs: PLocations): int =
 
 
 proc to_physical*(macro_maps: seq[MacroMap], loc: Location): Location =
-   ## Given a sequence of macro maps: ``macro_maps``, translate the virtual location ``loc`` into
-   ## a physical location.
+   ## Given a sequence of macro maps: ``macro_maps``, translate the virtual
+   ## location ``loc`` into a physical location.
    result = loc
    while true:
       if result.file > 0:
          break
       result = macro_maps[-(result.file + 1)].locations[result.line].x
+
+
+proc unroll_location*(macro_maps: seq[MacroMap], loc: var Location) =
+   ## Given a sequence of macro maps: ``macro_maps``, unroll the virtual
+   ## (``loc.file < 0``) location ``loc`` to reach the corresponding
+   ## virtual location that will appear in the AST. Unrolling is required
+   ## for nested macros.
+   for i, map in macro_maps:
+      for j, lpair in map.locations:
+         if loc == lpair.x:
+            loc = new_location(-(i + 1), j, 0)
+
+
+proc in_bounds*(x, y: Location, len: int): bool =
+   ## Provided that the two locations ``x`` and ``y``
+   ## reside in the same file and on the same line,
+   ## this proc returns true if ``x.col`` falls within
+   ## the bounding box bounded by ``y.col`` and
+   ## ``y.col + len``.
+   result = x.file == y.file and x.line == y.line and
+            x.col >= y.col and x.col <= (y.col + len - 1)
