@@ -206,7 +206,7 @@ proc handle_define(pp: var Preprocessor) =
       of TkEndOfFile:
          break
       of TkComment, TkBlockComment:
-         # A one=line comment is not included in the replacement list but tokens
+         # A one-line comment is not included in the replacement list but tokens
          # on the next line may be included if we've scanned over a backslash
          # before this token.
          last_tok_line = pp.tok.loc.line
@@ -317,9 +317,10 @@ proc handle_else(pp: var Preprocessor) =
       return
 
    # If we're in this proc then the preprocessor has encountered an `else
-   # while tokens from an _active_ `ifdef/`ifndef/`elif branch. Now we have
-   # to remove all the subsequent tokens from the stream until we hit the end
-   # of the file (an error condition) or a closing `endif directive.
+   # while reading tokens from an _active_ `ifdef/`ifndef/`elif branch. Now
+   # we have to remove all the subsequent tokens from the stream until we
+   # hit the end of the file (an error condition) or a closing `endif
+   # directive.
    let semaphore_reference = pp.endif_semaphore
    while true:
       get_token(pp)
