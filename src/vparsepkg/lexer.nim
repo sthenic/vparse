@@ -269,23 +269,6 @@ proc init*(t: var Token) =
    t.loc.col = 0
 
 
-proc new_location*(file, line, col: int): Location =
-   if line < int(high(uint16)):
-      result.line = uint16(line)
-   else:
-      result.line = high(uint16)
-
-   if col < int(high(int16)):
-      result.col = int16(col)
-   else:
-      result.col = -1
-
-   if file < int(high(int32)):
-      result.file = int32(file)
-   else:
-      result.file = 0
-
-
 proc new_error_token*(loc: Location, msg: string, args: varargs[string, `$`]): Token =
    init(result)
    result.kind = TkError

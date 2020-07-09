@@ -37,6 +37,23 @@ const
    InvalidLocation* = Location(file: 0, line: 0, col: 0)
 
 
+proc new_location*(file, line, col: int): Location =
+   if line < int(high(uint16)):
+      result.line = uint16(line)
+   else:
+      result.line = high(uint16)
+
+   if col < int(high(int16)):
+      result.col = int16(col)
+   else:
+      result.col = -1
+
+   if file < int(high(int32)):
+      result.file = int32(file)
+   else:
+      result.file = 0
+
+
 proc `$`*(l: Location): string =
    result = format("($1:$2:$3)", l.file, l.line, l.col + 1)
 
