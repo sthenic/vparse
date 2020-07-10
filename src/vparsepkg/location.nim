@@ -160,22 +160,22 @@ proc next_macro_map_index*(locs: PLocations): int =
    result = -high(locs.macro_maps) - 2
 
 
-proc to_physical*(macro_maps: seq[MacroMap], loc: Location): Location =
-   ## Given a sequence of macro maps: ``macro_maps``, translate the virtual
+proc to_physical*(locs: PLocations, loc: Location): Location =
+   ## Given a location database: ``locs``, translate the virtual
    ## location ``loc`` into a physical location.
    result = loc
    while true:
       if result.file > 0:
          break
-      result = macro_maps[-(result.file + 1)].locations[result.line].x
+      result = locs.macro_maps[-(result.file + 1)].locations[result.line].x
 
 
-proc unroll_location*(macro_maps: seq[MacroMap], loc: var Location) =
-   ## Given a sequence of macro maps: ``macro_maps``, unroll the virtual
+proc unroll_location*(locs: PLocations, loc: var Location) =
+   ## Given a location database: ``locs``, unroll the virtual
    ## (``loc.file < 0``) location ``loc`` to reach the corresponding
    ## virtual location that will appear in the AST. Unrolling is required
    ## for nested macros.
-   for i, map in macro_maps:
+   for i, map in locs.macro_maps:
       for j, lpair in map.locations:
          if loc == lpair.x:
             loc = new_location(-(i + 1), j, 0)

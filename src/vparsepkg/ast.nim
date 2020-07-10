@@ -507,7 +507,7 @@ proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
    ## tree where its declaration is likely to be found. The length of the
    ## identifier may be extended by specifying a nonzero value for
    ## ``added_length``. This effectively grows the bounding box on the right.
-   ##  If the search yields no result, ``nil`` is returned.
+   ## If the search yields no result, ``nil`` is returned.
    case n.kind
    of IdentifierTypes:
       # If the node is an identifier type, check if the location is pointing to
@@ -531,13 +531,16 @@ proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
          discard pop(context)
 
 
-proc find_identifier_physical*(n: PNode, macro_maps: seq[MacroMap], loc: Location,
-                               context: var AstContext, added_length: int = 0): PNode =
-   ## Find the identifier at the physical location ``loc``, i.e. ``loc.file`` > 0
-   ## is assumed.
+proc find_identifier_physical*(n: PNode, locs: PLocations, loc: Location, context: var AstContext,
+                               added_length: int = 0): PNode =
+   ## Descend into ``n``, searching for the identifier at the physical location
+   ## ``loc``, i.e. ``loc.file`` > 0 is assumed. The length of the identifier
+   ## may be extended by specifying a nonzero value for ``added_length``.
+   ## This effectively grows the bounding box on the right. If the search yields
+   ## no result, ``nil`` is returned.
    var lookup_loc = loc
    var start_col = 0
-   for i, map in macro_maps:
+   for i, map in locs.macro_maps:
       for j, lpair in map.locations:
          # The macro map's location database only stores the locations of the
          # first character in the token and not the length of the token. Given
@@ -554,7 +557,7 @@ proc find_identifier_physical*(n: PNode, macro_maps: seq[MacroMap], loc: Locatio
          # to bottom.
 
    if lookup_loc.file < 0:
-      unroll_location(macro_maps, lookup_loc)
+      unroll_location(locs, lookup_loc)
 
    # Make the lookup.
    result = find_identifier(n, lookup_loc, context, added_length)
