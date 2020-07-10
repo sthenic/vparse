@@ -1,15 +1,15 @@
 import ./vparsepkg/graph
-import ./vparsepkg/private/[cli, log]
-
-import strutils
-import streams
-import times
-import terminal
-import json
-
 export graph
 
 when is_main_module:
+   import ./vparsepkg/private/[cli, log]
+
+   import strutils
+   import streams
+   import times
+   import terminal
+   import json
+
    const
       # Version information
       VERSION_STR = static_read("./vparsepkg/private/VERSION").strip()
