@@ -493,6 +493,12 @@ iterator walk_parameter_ports*(n: PNode): PNode {.inline.} =
                   yield p
 
 
+iterator walk_nodes_starting_with*(nodes: openarray[PNode], prefix: string): PNode =
+   for n in nodes:
+      if n.kind in IdentifierTypes and starts_with(n.identifier.s, prefix):
+         yield n
+
+
 proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
                       added_length: int = 0): PNode =
    ## Descend into ``n``, searching for the identifier at the target location
@@ -628,12 +634,13 @@ proc find_declaration*(n: PNode, identifier: PIdentifier, select_identifier: boo
 
    else:
       for s in n.sons:
-         result = find_declaration(s, identifier)
+         result = find_declaration(s, identifier, select_identifier)
          if not is_nil(result):
             break
 
 
-proc find_declaration*(context: AstContext, identifier: PIdentifier): tuple[n: PNode, context: AstContextItem] =
+proc find_declaration*(context: AstContext, identifier: PIdentifier, select_identifier: bool = false):
+      tuple[n: PNode, context: AstContextItem] =
    ## Traverse the AST ``context`` bottom-up, descending into any declaration
    ## nodes found along the way searching for the declaration of ``identifier``.
    ## The proc returns a tuple with the declaration node together with the
@@ -646,7 +653,7 @@ proc find_declaration*(context: AstContext, identifier: PIdentifier): tuple[n: P
          for pos in countdown(context_item.pos, 0):
             let s = context_item.n.sons[pos]
             if s.kind in DeclarationTypes - {NkDefparamDecl}:
-               result.n = find_declaration(s, identifier)
+               result.n = find_declaration(s, identifier, select_identifier)
                if not is_nil(result.n):
                   if context_item.n.kind in {NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}:
                      # If the declaration was enclosed in any of the list types,
@@ -733,14 +740,14 @@ proc find_all_declarations*(n: PNode, select_identifiers: bool = false): seq[PNo
          add(result, find_all_declarations(s, select_identifiers))
 
 
-proc find_all_declarations*(context: AstContext, select_identifiers: bool): seq[PNode] =
+proc find_all_declarations*(context: AstContext, select_identifiers: bool = false): seq[PNode] =
    ## Find all declaration nodes in the given ``context``. If ``select_identifiers``
    ## is true, the identifier nodes *within* the declaration are added to the result
    ## instead of the parent declaration node.
    for context_item in context:
       if context_item.n.kind notin PrimitiveTypes:
          for pos in 0..<context_item.pos:
-            add(result, find_all_declarations(context_item.n.sons[pos]))
+            add(result, find_all_declarations(context_item.n.sons[pos], select_identifiers))
 
 
 proc find_references*(n: PNode, identifier: PIdentifier): seq[PNode] =
