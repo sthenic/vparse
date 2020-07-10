@@ -560,30 +560,29 @@ proc find_identifier_physical*(n: PNode, macro_maps: seq[MacroMap], loc: Locatio
       result = nil
 
 
-proc find_declaration*(n: PNode, identifier: PIdentifier, return_identifier: bool = false): PNode =
+proc find_declaration*(n: PNode, identifier: PIdentifier, select_identifier: bool = false): PNode =
    ## Descend into ``n``, searching for the AST node that declares ``identifier``.
-   ## If ``return_identifier`` is true, the matching identifier node *within*
+   ## If ``select_identifier`` is true, the matching identifier node *within*
    ## the declaration is returned instead of the parent declaration node.
    ## If the search fails, ``nil`` is returned.
    result = nil
+   template return_when_found(declaration, identifier: PNode) =
+      if select_identifier:
+         return identifier
+      else:
+         return declaration
    # We have to hande each type of declaration node individually in order to find
    # the correct identifier node.
    case n.kind
    of NkPortDecl:
       let id = find_first(n, NkPortIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
-         if return_identifier:
-            result = id
-         else:
-            result = n
+         return_when_found(n, id)
 
    of NkTaskDecl, NkFunctionDecl, NkGenvarDecl:
       let id = find_first(n, NkIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
-         if return_identifier:
-            result = id
-         else:
-            result = n
+         return_when_found(n, id)
 
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
       for s in n.sons:
@@ -591,18 +590,10 @@ proc find_declaration*(n: PNode, identifier: PIdentifier, return_identifier: boo
          of NkArrayIdentifer, NkAssignment:
             let id = find_first(s, NkIdentifier)
             if not is_nil(id) and id.identifier.s == identifier.s:
-               if return_identifier:
-                  result = id
-               else:
-                  result = n
-               break
+               return_when_found(n, id)
          of NkIdentifier:
             if s.identifier.s == identifier.s:
-               if return_identifier:
-                  result = s
-               else:
-                  result = n
-               break
+               return_when_found(n, s)
          else:
             discard
 
@@ -612,11 +603,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier, return_identifier: boo
       for s in walk_sons(n, NkParamAssignment):
          let id = find_first(s, NkParameterIdentifier)
          if not is_nil(id) and id.identifier.s == identifier.s:
-            if return_identifier:
-               result = id
-            else:
-               result = n
-            break
+            return_when_found(n, id)
 
    of NkSpecparamDecl:
       # When we find a NkAssignment node, the first son is expected to be the
@@ -624,21 +611,14 @@ proc find_declaration*(n: PNode, identifier: PIdentifier, return_identifier: boo
       for s in walk_sons(n, NkAssignment):
          let id = find_first(s, NkIdentifier)
          if not is_nil(id) and id.identifier.s == identifier.s:
-            if return_identifier:
-               result = id
-            else:
-               result = n
-            break
+            return_when_found(n, id)
 
    of NkModuleDecl:
       # This path is never taken since a the lookup of a module declaration is
       # handled by find_module_declaration() which performs a lookup.
       let id = find_first(n, NkModuleIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
-         if return_identifier:
-            result = id
-         else:
-            result = n
+         return_when_found(n, id)
 
    of PrimitiveTypes + {NkDefparamDecl}:
       # Defparam declarations specifically targets an existing parameter and
@@ -678,13 +658,13 @@ proc find_declaration*(context: AstContext, identifier: PIdentifier): tuple[n: P
                   return
 
 
-proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNode] =
-   ## Descend into ``n`` searching for all declaration nodes. If ``return_identifiers``
+proc find_all_declarations*(n: PNode, select_identifiers: bool = false): seq[PNode] =
+   ## Descend into ``n`` searching for all declaration nodes. If ``select_identifiers``
    ## is true, the identifier nodes *within* the declaration are added to the result
    ## instead of the parent declaration node.
    case n.kind
    of NkPortDecl:
-      if return_identifiers:
+      if select_identifiers:
          let id = find_first(n, NkPortIdentifier)
          if not is_nil(id):
             add(result, id)
@@ -692,7 +672,7 @@ proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNo
          add(result, n)
 
    of NkTaskDecl, NkFunctionDecl, NkGenvarDecl:
-      if return_identifiers:
+      if select_identifiers:
          let id = find_first(n, NkIdentifier)
          if not is_nil(id):
             add(result, id)
@@ -700,7 +680,7 @@ proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNo
          add(result, n)
 
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
-      if return_identifiers:
+      if select_identifiers:
          for s in n.sons:
             case s.kind
             of NkArrayIdentifer, NkAssignment:
@@ -716,7 +696,7 @@ proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNo
          add(result, n)
 
    of NkParameterDecl, NkLocalparamDecl:
-      if return_identifiers:
+      if select_identifiers:
          for s in walk_sons(n, NkParamAssignment):
             let id = find_first(s, NkParameterIdentifier)
             if not is_nil(id):
@@ -725,7 +705,7 @@ proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNo
          add(result, n)
 
    of NkSpecparamDecl:
-      if return_identifiers:
+      if select_identifiers:
          for s in walk_sons(n, NkAssignment):
             let id = find_first(s, NkIdentifier)
             if not is_nil(id):
@@ -734,27 +714,27 @@ proc find_all_declarations*(n: PNode, return_identifiers: bool = false): seq[PNo
          add(result, n)
 
    of NkModuleDecl:
-      if return_identifiers:
+      if select_identifiers:
          let idx = find_first_index(n, NkModuleIdentifier)
          if idx > -1:
             add(result, n.sons[idx])
          for s in walk_sons(n, idx + 1):
-            add(result, find_all_declarations(s, return_identifiers))
+            add(result, find_all_declarations(s, select_identifiers))
       else:
          add(result, n)
          for s in n.sons:
-            add(result, find_all_declarations(s, return_identifiers))
+            add(result, find_all_declarations(s, select_identifiers))
 
    of PrimitiveTypes + {NkDefparamDecl}:
       discard
 
    else:
       for s in n.sons:
-         add(result, find_all_declarations(s, return_identifiers))
+         add(result, find_all_declarations(s, select_identifiers))
 
 
-proc find_all_declarations*(context: AstContext, return_identifiers: bool): seq[PNode] =
-   ## Find all declaration nodes in the given ``context``. If ``return_identifiers``
+proc find_all_declarations*(context: AstContext, select_identifiers: bool): seq[PNode] =
+   ## Find all declaration nodes in the given ``context``. If ``select_identifiers``
    ## is true, the identifier nodes *within* the declaration are added to the result
    ## instead of the parent declaration node.
    for context_item in context:
