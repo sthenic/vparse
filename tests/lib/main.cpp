@@ -1,6 +1,5 @@
 #include "../../include/vparse.h"
 
-#include "CppUTest/TestHarness.h"
 #include "CppUTest/CommandLineTestRunner.h"
 
 TEST_GROUP(Main)

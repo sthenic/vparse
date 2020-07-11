@@ -1,6 +1,6 @@
 BIN = main
 CXX = g++
-CXXFLAGS = \
+CXXFLAGS += \
 	-Wall -Wextra
 
 LDFLAGS = \

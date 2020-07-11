@@ -49,4 +49,5 @@ task parsertests, "Run the parser test suite":
 task libtests, "Run the library test suite":
    exec("nimble build_lib")
    with_dir("tests/lib"):
+      exec("make clean")
       exec("make test")
