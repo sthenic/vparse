@@ -6,23 +6,32 @@ bin = @["vparse"]
 install_ext = @["nim"]
 license = "MIT"
 
-skip_dirs = @["tests"]
+skip_dirs = @["tests", "include"]
 
 requires "nim >= 1.2.0"
+
+task build_lib, "Build a dynamic library":
+   exec("nimble c --hints:off --app:lib -d:lib -d:release src/vparse.nim")
+   mvfile("src/" & todll("vparse"), todll("vparse"))
+
 
 task test, "Run the test suite":
    exec("nimble lexertests")
    exec("nimble preprocessortests")
    exec("nimble parsertests")
+   exec("nimble libtests")
+
 
 task lexertests, "Run the lexer test suite":
    with_dir("tests/lexer"):
       exec("nim c --hints:off -r tidentifier")
       exec("nim c --hints:off -r tlexer")
 
+
 task preprocessortests, "Run the preprocessor test suite":
    with_dir("tests/preprocessor"):
       exec("nim c --hints:off -r tpreprocessor")
+
 
 task parsertests, "Run the parser test suite":
    with_dir("tests/parser"):
@@ -35,3 +44,9 @@ task parsertests, "Run the parser test suite":
       exec("nim c --hints:off -r tblockingnonblockingassignment")
       exec("nim c --hints:off -r tnetdeclaration")
       exec("nim c --hints:off -r tdirective")
+
+
+task libtests, "Run the library test suite":
+   exec("nimble build_lib")
+   with_dir("tests/lib"):
+      exec("make test")

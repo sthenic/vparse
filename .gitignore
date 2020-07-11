@@ -2,3 +2,5 @@ nimcache/
 .vscode/
 *.code-workspace
 vparse
+libvparse.so
+*.v

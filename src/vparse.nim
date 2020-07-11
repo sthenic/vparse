@@ -1,5 +1,8 @@
 when is_main_module:
-   include ./vparsepkg/private/app
+   when not defined(lib):
+      include ./vparsepkg/private/app
+   else:
+      include ./vparsepkg/private/lib
 else:
    import ./vparsepkg/graph
    export graph
