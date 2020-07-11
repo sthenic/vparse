@@ -8,7 +8,7 @@ license = "MIT"
 
 skip_dirs = @["tests", "include"]
 
-requires "nim >= 1.2.0"
+requires "nim >= 1.2.4"
 
 task build_lib, "Build a dynamic library":
    exec("nimble c --hints:off --app:lib -d:lib -d:release src/vparse.nim")
