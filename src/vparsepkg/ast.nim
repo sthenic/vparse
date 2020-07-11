@@ -166,10 +166,12 @@ type
 
    # An AST context item represents a specific node and its position in the
    # parent node's list of sons.
+   PAstContextItem* = ref AstContextItem
    AstContextItem* = object
       pos*: int
       n*: PNode
 
+   PAstContext* = ref AstContext
    AstContext* = seq[AstContextItem]
 
 

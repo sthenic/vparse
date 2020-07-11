@@ -11,7 +11,7 @@ module module3 #(
 );
 
     reg my_reg = 1'b0; wire one = 1'b1;
-    `include "src3.vh"
+    `include "include/src3.vh"
 
     reg [WIDTH_FROM_HEADER-1:0] wider_reg = 0;
 
