@@ -840,7 +840,6 @@ proc get_token*(l: var Lexer, tok: var Token) =
       if c in OpChars:
          handle_operator(l, tok)
       else:
-         echo "Invalid token: '", c, "' (", int(c), ")"
          tok.kind = TkInvalid
          inc(l.bufpos)
 
