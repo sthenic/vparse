@@ -9,10 +9,18 @@ license = "MIT"
 skip_dirs = @["tests", "include"]
 
 requires "nim >= 1.2.4"
+requires "nimpy >= 0.1.0"
 
 task build_lib, "Build the dynamic library":
    exec("nim c --hints:off --app:lib -d:lib -d:release src/vparse.nim")
    mvfile("src/" & todll("vparse"), todll("vparse"))
+
+
+task build_pylib, "Build the Python bindings":
+   when defined(windows):
+      exec("nim c --hints:off --threads:on --app:lib -d:lib -d:release --out:vparse.pyd src/vparse.nim")
+   else:
+      exec("nim c --hints:off --threads:on --app:lib -d:pylib --out:vparse.so src/vparse.nim")
 
 
 task test, "Run the test suite":
