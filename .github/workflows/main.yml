@@ -27,9 +27,6 @@ jobs:
       with:
         nim-version: '1.2.4'
 
-    - name: Install CppUTest
-      run: sudo apt install -y cpputest
-
     - name: Build
       run: nimble build -y
 

@@ -11,10 +11,6 @@ skip_dirs = @["tests", "include"]
 requires "nim >= 1.2.4"
 requires "nimpy >= 0.1.0"
 
-task build_lib, "Build the dynamic library":
-   exec("nim c --hints:off --app:lib -d:lib -d:release src/vparse.nim")
-   mvfile("src/" & todll("vparse"), todll("vparse"))
-
 
 task build_pylib, "Build the Python bindings":
    when defined(windows):
@@ -27,7 +23,6 @@ task test, "Run the test suite":
    exec("nimble lexertests")
    exec("nimble preprocessortests")
    exec("nimble parsertests")
-   exec("nimble libtests")
 
 
 task lexertests, "Run the lexer test suite":
@@ -52,10 +47,3 @@ task parsertests, "Run the parser test suite":
       exec("nim c --hints:off -r tblockingnonblockingassignment")
       exec("nim c --hints:off -r tnetdeclaration")
       exec("nim c --hints:off -r tdirective")
-
-
-task libtests, "Run the library test suite":
-   exec("nimble build_lib")
-   with_dir("tests/lib"):
-      exec("make clean")
-      exec("make test")
