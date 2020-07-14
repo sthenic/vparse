@@ -6,7 +6,7 @@ bin = @["vparse"]
 install_ext = @["nim"]
 license = "MIT"
 
-skip_dirs = @["tests", "include"]
+skip_dirs = @["tests"]
 
 requires "nim >= 1.2.4"
 requires "nimpy >= 0.1.0"
