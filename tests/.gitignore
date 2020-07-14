@@ -1,8 +1,6 @@
 # Exclude everything in the subdirs, except .nim files.
 */*
-!lib/src
 !*.nim
-!*.cpp
-!Makefile
 !*.v
+!*.vh
 !*.py

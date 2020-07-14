@@ -14,7 +14,7 @@ requires "nimpy >= 0.1.0"
 
 task build_pylib, "Build the Python bindings":
    when defined(windows):
-      exec("nim c --hints:off --threads:on --app:lib -d:lib -d:release --out:vparse.pyd src/vparse.nim")
+      exec("nim c --hints:off --threads:on --app:lib -d:pylib -d:release --out:vparse.pyd src/vparse.nim")
    else:
       exec("nim c --hints:off --threads:on --app:lib -d:pylib --out:vparse.so src/vparse.nim")
 
