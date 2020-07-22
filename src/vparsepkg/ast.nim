@@ -125,7 +125,7 @@ const
 
    PrimitiveTypes* =
       ErrorTypes + IdentifierTypes + IntegerTypes + OperatorTypes +
-      {NkRealLit, NkStrLit, NkWildcard}
+      {NkRealLit, NkStrLit, NkWildcard, NkComment}
 
    DeclarationTypes* =
       {NkNetDecl, NkRegDecl, NkPortDecl, NkRealDecl, NkTaskDecl, NkTimeDecl,
