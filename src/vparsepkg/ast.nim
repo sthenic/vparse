@@ -26,6 +26,7 @@ type
       NkParenthesis,
       NkDirection,
       NkWildcard, # Symbolizes a '*' in an event expression.
+      NkComment,
       # Custom node types
       NkRangedIdentifier, # FIXME: Still useful? Same as NkArrayIdentifier?
       NkArrayIdentifer,
@@ -141,7 +142,7 @@ type
    TNode {.final.} = object
       loc*: Location
       case kind*: NodeKind
-      of NkStrLit:
+      of NkStrLit, NkComment:
          s*: string
       of IntegerTypes:
          inumber*: BiggestInt
@@ -206,7 +207,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
          add(args, n.eraw)
       add(msg, "\n")
       add(result, format(msg, args))
-   of NkStrLit:
+   of NkStrLit, NkComment:
       add(result, format(": $1\n", n.s))
    of NkWildcard:
       add(result, "\n")
@@ -263,7 +264,7 @@ proc `%`*(n: PNode): JsonNode =
          "message": n.msg,
          "raw": n.eraw
       }
-   of NkStrLit:
+   of NkStrLit, NkComment:
       result = %*{
          "kind": $n.kind,
          "loc": n.loc,
@@ -303,7 +304,7 @@ proc `==`*(x, y: PNode): bool =
    of OperatorTypes:
       # FIXME: Unused right now
       result = x.op == y.op
-   of NkStrLit:
+   of NkStrLit, NkComment:
       result = x.s == y.s
    of ErrorTypes, NkWildcard:
       return true
@@ -402,6 +403,11 @@ proc new_fnumber_node*(kind: NodeKind, loc: Location, fnumber: BiggestFloat,
 
 proc new_str_lit_node*(loc: Location, s: string): PNode =
    result = new_node(NkStrLit, loc)
+   result.s = s
+
+
+proc new_comment_node*(loc: Location, s: string): PNode =
+   result = new_node(NkComment, loc)
    result.s = s
 
 

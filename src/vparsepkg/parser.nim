@@ -10,7 +10,9 @@ type
    Parser* = object
       pp: Preprocessor
       tok: Token
+      comment: Token
       next_tok: Token
+      next_comment: Token
 
    # Enumeration for strength types used in net declarations.
    Strength = enum
@@ -47,17 +49,18 @@ proc handle_directive(p: var Parser) =
 
 
 proc get_token(p: var Parser) =
-   # FIXME: Properly handle comments. If we want to be able to recreate the
-   #        source file, the comments also need to be nodes in the AST.
-   #        If it's too complicated to insert the nodes into the AST, maybe we
-   #        can keep the comments in a separate list and then mix them into the
-   #        tree at the end?
    p.tok = p.next_tok
+   p.comment = p.next_comment
    if p.next_tok.kind != TkEndOfFile:
+      # Reset the comment token so that it's only valid for the immediately
+      # following non-comment token.
+      init(p.next_comment)
       get_token(p.pp, p.next_tok)
       while true:
          case p.next_tok.kind
          of TkComment, TkBlockComment:
+            # Remember the comment token, then skip ahead.
+            p.next_comment = p.next_tok
             get_token(p.pp, p.next_tok)
          of TkDirective:
             handle_directive(p)
@@ -71,7 +74,9 @@ proc open_parser*(p: var Parser, cache: IdentifierCache,
                   include_paths: openarray[string],
                   external_defines: openarray[string]) =
    init(p.tok)
+   init(p.comment)
    init(p.next_tok)
+   init(p.next_comment)
    # The file map passed to the preprocessor by the parser specifies an invalid
    # location since it is the origin, i.e. the file was not opened as a result
    # of parsing the syntax.
@@ -112,6 +117,11 @@ proc new_fnumber_node(p: Parser, kind: NodeKind, fnumber: BiggestFloat,
 proc new_str_lit_node(p: Parser): PNode =
    result = new_node(p, NkStrLit)
    result.s = p.tok.literal
+
+
+proc new_comment_node(p: Parser): PNode =
+   result = new_node(NkComment, p.comment.loc)
+   result.s = p.comment.literal
 
 
 proc new_error_node(p: Parser, kind: NodeKind, msg: string,
@@ -976,6 +986,10 @@ proc parse_drive_strength(p: var Parser): PNode =
 
 proc parse_net_declaration(p: var Parser): PNode =
    result = new_node(p, NkNetDecl)
+   # If the declaration is immediately preceeded by a comment token, it gets
+   # included in the AST under the assumption that it's a docstring.
+   if p.comment.kind != TkInvalid:
+      add(result.sons, new_comment_node(p))
 
    case p.tok.kind
    of NetTypeTokens:

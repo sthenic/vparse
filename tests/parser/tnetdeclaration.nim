@@ -412,6 +412,56 @@ run_test("Complex trireg",
    ])
 
 
+run_test("Net declaration preceeded by a comment (oneline)", """
+// This is a comment.
+wire [31:0] mywire;
+"""):
+   new_node(NkNetDecl, li(2, 1), @[
+      new_comment_node(li(1, 1), "This is a comment."),
+      new_identifier_node(NkType, li(2, 1), "wire"),
+      new_node(NkRange, li(2, 6), @[
+         new_inumber_node(NkIntLit, li(2, 7), 31, "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(2, 10), 0, "0", Base10, -1)
+      ]),
+      new_identifier_node(NkIdentifier, li(2, 13), "mywire"),
+   ])
+
+
+run_test("Net declaration preceeded by a comment (block)", """
+/* This is a comment
+   spanning
+   multiple lines */
+wire [31:0] mywire;
+"""):
+   new_node(NkNetDecl, li(4, 1), @[
+      new_comment_node(li(1, 1), """This is a comment
+   spanning
+   multiple lines"""),
+      new_identifier_node(NkType, li(4, 1), "wire"),
+      new_node(NkRange, li(4, 6), @[
+         new_inumber_node(NkIntLit, li(4, 7), 31, "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(4, 10), 0, "0", Base10, -1)
+      ]),
+      new_identifier_node(NkIdentifier, li(4, 13), "mywire"),
+   ])
+
+
+run_test("Net declaration preceeded by a comment (one ignored)", """
+// Ignored line
+// Included line
+wire [31:0] mywire;
+"""):
+   new_node(NkNetDecl, li(3, 1), @[
+      new_comment_node(li(2, 1), "Included line"),
+      new_identifier_node(NkType, li(3, 1), "wire"),
+      new_node(NkRange, li(3, 6), @[
+         new_inumber_node(NkIntLit, li(3, 7), 31, "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(3, 10), 0, "0", Base10, -1)
+      ]),
+      new_identifier_node(NkIdentifier, li(3, 13), "mywire"),
+   ])
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
