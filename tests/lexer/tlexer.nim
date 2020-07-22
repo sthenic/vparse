@@ -61,7 +61,7 @@ Test suite: Lexer
 run_test("One line comment", """
 // ** This is a one line comment **
 """, @[
-   new_comment(TkComment, loc(1, 1, 0), " ** This is a one line comment **")
+   new_comment(TkComment, loc(1, 1, 0), "** This is a one line comment **")
 ])
 
 

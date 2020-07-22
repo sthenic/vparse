@@ -356,6 +356,7 @@ proc handle_comment(l: var Lexer, tok: var Token) =
          add(tok.literal, l.buf[pos])
          inc(pos)
       pos = handle_crlf(l, pos)
+      tok.literal = strip(tok.literal)
    of '*':
       # Grab everything until '*/' is encountered, refilling the buffer
       # as we go.
