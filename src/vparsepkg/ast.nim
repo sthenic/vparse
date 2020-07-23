@@ -891,14 +891,18 @@ proc `$`*(n: PNode): string =
          discard
 
       var seen_identifier = false
-      for i, s in n.sons:
+      var nof_nodes = 0
+      for s in n.sons:
+         if s.kind == NkComment:
+            continue
          if s.kind in {NkIdentifier, NkParamAssignment, NkAssignment}:
             if seen_identifier:
                add(result, ',')
             seen_identifier = true
-         if i > 0:
+         if nof_nodes > 0:
             add(result, ' ')
          add(result, $s)
+         inc(nof_nodes)
       # TODO: Whether to add a semicolon or not depends on the syntax enclosing
       #       the declaration so that will have to be handled outside this case.
    of NkChargeStrength, NkDriveStrength:
