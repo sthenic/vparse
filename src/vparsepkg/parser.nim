@@ -184,6 +184,11 @@ template unexpected_token(p: Parser, result: PNode): untyped =
    return
 
 
+template add_comment(p: Parser, result: PNode) =
+   if p.comment.kind != TkInvalid:
+      add(result.sons, new_comment_node(p))
+
+
 proc look_ahead(p: Parser, curr, next: TokenKind): bool =
    result = p.tok.kind == curr and p.next_tok.kind == next
 
@@ -988,8 +993,7 @@ proc parse_net_declaration(p: var Parser): PNode =
    result = new_node(p, NkNetDecl)
    # If the declaration is immediately preceeded by a comment token, it gets
    # included in the AST under the assumption that it's a docstring.
-   if p.comment.kind != TkInvalid:
-      add(result.sons, new_comment_node(p))
+   add_comment(p, result)
 
    case p.tok.kind
    of NetTypeTokens:
@@ -1090,10 +1094,13 @@ proc parse_event_declaration(p: var Parser): PNode =
 
 proc parse_variable_declaration(p: var Parser): PNode =
    # Parse declarations of identifiers that may have a variable type. This
-   # includes reg, integer, real, realtime and time.
+   # includes reg, integer, real, realtime and time. If the declaration is
+   # immediately preceeded by a comment token, it gets included in the AST under
+   # the assumption that it's a docstring.
    case p.tok.kind
    of TkReg:
       result = new_node(p, NkRegDecl)
+      add_comment(p, result)
       get_token(p)
 
       if p.tok.kind == TkSigned:
@@ -1104,15 +1111,19 @@ proc parse_variable_declaration(p: var Parser): PNode =
          add(result.sons, parse_range(p))
    of TkInteger:
       result = new_node(p, NkIntegerDecl)
+      add_comment(p, result)
       get_token(p)
    of TkReal:
       result = new_node(p, NkRealDecl)
+      add_comment(p, result)
       get_token(p)
    of TkRealtime:
       result = new_node(p, NkRealtimeDecl)
+      add_comment(p, result)
       get_token(p)
    of TkTime:
       result = new_node(p, NkTimeDecl)
+      add_comment(p, result)
       get_token(p)
    else:
       result = unexpected_token(p)
