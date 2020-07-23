@@ -14,6 +14,7 @@ export lexer
 type
    Define* = object
       name*: Token
+      comment*: Token
       loc*: Location
       tokens*: seq[Token]
       parameters*: seq[Token]
@@ -118,6 +119,7 @@ proc handle_external_define(pp: var Preprocessor, external_define: string) =
 
    # External defines only support object-like macros.
    var def: Define
+   init(def.comment)
    def.is_expandable = true
    def.name = tok
    def.loc = tok.loc
@@ -192,6 +194,7 @@ proc handle_define(pp: var Preprocessor) =
    ## Handle the ``define`` directive.
    var def: Define
    def.is_expandable = true
+   def.comment = pp.comment
 
    # Scan over `define.
    let def_line = pp.tok.loc.line
@@ -530,6 +533,8 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
    macro_map.name = def.name.identifier.s
    macro_map.define_loc = def.loc
    macro_map.expansion_loc = loc
+   if def.comment.kind in {TkComment, TkBlockComment}:
+      macro_map.comment = def.comment.literal
 
    var expansion_list: seq[Token]
    if len(def.parameters) > 0:

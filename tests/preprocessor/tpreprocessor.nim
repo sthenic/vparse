@@ -934,6 +934,7 @@ reg [1:`wordsize] data;
    ),
    MacroMap(
       name: "var_nand",
+      comment: "define a nand with variable delay",
       define_loc: loc(1, 5, 8),
       expansion_loc: loc(1, 7, 0),
       locations: @[
@@ -944,6 +945,7 @@ reg [1:`wordsize] data;
    ),
    MacroMap(
       name: "var_nand",
+      comment: "define a nand with variable delay",
       define_loc: loc(1, 5, 8),
       expansion_loc: loc(1, 8, 0),
       locations: @[
@@ -1651,6 +1653,37 @@ run_test("External define: object-like macro", """
       expansion_loc: loc(1, 1, 0),
       locations: @[
          (loc(0, 1, 13), loc(0, 1, 13)),
+      ]
+   )
+])
+
+
+run_test("Attached comment", """
+/* This is a docstring for the `AND` macro. */
+`define AND(x, y) (x & y)
+wire always_zero = `AND(1'b1, 1'b0);
+""", [
+   new_identifier(TkWire, loc(1, 3, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 3, 5), "always_zero"),
+   new_token(TkEquals, loc(1, 3, 17)),
+   new_token(TkLparen, loc(-1, 0, 0)),
+   new_inumber(TkUIntLit, loc(-1, 1, 0), 1, Base2, 1, "1"),
+   new_identifier(TkOperator, loc(-1, 2, 0), "&"),
+   new_inumber(TkUIntLit, loc(-1, 3, 0), 0, Base2, 1, "0"),
+   new_token(TkRparen, loc(-1, 4, 0)),
+   new_token(TkSemicolon, loc(1, 3, 35)),
+], [
+   MacroMap(
+      name: "AND",
+      comment: "This is a docstring for the `AND` macro.",
+      define_loc: loc(1, 2, 8),
+      expansion_loc: loc(1, 3, 19),
+      locations: @[
+         (loc(1, 2, 18), loc(1, 2, 18)),
+         (loc(1, 3, 24), loc(1, 2, 19)),
+         (loc(1, 2, 21), loc(1, 2, 21)),
+         (loc(1, 3, 30), loc(1, 2, 23)),
+         (loc(1, 2, 24), loc(1, 2, 24)),
       ]
    )
 ])

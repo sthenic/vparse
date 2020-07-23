@@ -14,7 +14,9 @@ type
    MacroMap* = object
       # The name of the macro.
       name*: string
-      # Location of the macro.
+      # The immediately preceding comment at the define location.
+      comment*: string
+      # Location of the macro definition.
       define_loc*: Location
       # Location of the expansion point which created this map object.
       expansion_loc*: Location
@@ -90,6 +92,10 @@ proc detailed_compare*(x, y: MacroMap) =
       return
 
    const INDENT = 2
+   if x.comment != y.comment:
+      echo indent(format("($1) Comment differs: '$2' != '$3'\n ",
+                         x.name, x.comment, y.comment), INDENT)
+
    if x.define_loc != y.define_loc:
       echo indent(format("($1) Define location differs: $2 != $3\n",
                          x.name, x.define_loc, y.define_loc), INDENT)
