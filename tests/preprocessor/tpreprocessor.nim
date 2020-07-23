@@ -897,7 +897,6 @@ reg [1:`wordsize] data;
    new_token(TkRbracket, loc(1, 2, 16)),
    new_identifier(TkSymbol, loc(1, 2, 18), "data"),
    new_token(TkSemicolon, loc(1, 2, 22)),
-   new_comment(TkComment, loc(1, 4, 0), "define a nand with variable delay"),
 
    new_identifier(TkNand, loc(-2, 0, 0), "nand"),
    new_token(TkHash, loc(-2, 1, 0)),

@@ -29,6 +29,7 @@ type
       tok: Token
       next_tok: Token
       pp_tok: Token
+      comment: Token
       endif_semaphore: int
       defines: Table[string, Define]
       include_paths: seq[string]
@@ -79,14 +80,27 @@ proc get_token*(pp: var Preprocessor, tok: var Token)
 
 
 proc get_token(pp: var Preprocessor, ignore_comments = false) =
-   # Internal token consumer. Reads a token from the lexer and stores the result
-   # in the local ``tok`` variable. If ``ignore_comments`` is ``true``, comments
-   # are removed from the stream.
+   ## Internal token consumer. Reads a token from the lexer and stores the result
+   ## in the local ``tok`` variable. If ``ignore_comments`` is ``true``, comments
+   ## are removed from the stream.
+   # Comments immediately preceding `define directives are always removed under
+   # the assumption that they document the directive. This feature requires us
+   # to maintain a look-ahead buffer of one token.
+   init(pp.comment)
    pp.tok = pp.next_tok
    if pp.next_tok.kind != TkEndOfFile:
       get_token(pp.lex, pp.next_tok)
-      while ignore_comments and pp.next_tok.kind in {TkComment, TkBlockComment}:
-         get_token(pp.lex, pp.next_tok)
+      if ignore_comments:
+         while pp.next_tok.kind in {TkComment, TkBlockComment}:
+            get_token(pp.lex, pp.next_tok)
+      elif pp.tok.kind in {TkComment, TkBlockComment}:
+         # We've just assigned a comment to the internal token register. If the
+         # next token is a `define, we have to redirect the comment token to
+         # the comment register instead, removing it from the token stream.
+         if pp.next_tok.kind == TkDirective and pp.next_tok.identifier.s == "define":
+            pp.comment = pp.tok
+            pp.tok = pp.next_tok
+            get_token(pp.lex, pp.next_tok)
 
 
 proc handle_external_define(pp: var Preprocessor, external_define: string) =
@@ -121,6 +135,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    init(pp.tok)
    init(pp.next_tok)
    init(pp.pp_tok)
+   init(pp.comment)
    pp.endif_semaphore = 0
    pp.defines = init_table[string, Define](64)
    pp.include_paths = new_seq_of_cap[string](len(pp.include_paths))
