@@ -2352,6 +2352,10 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
       parse_proc = parse_constant_expression
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl:
       parse_proc = parse_variable_declaration
+   of NkLocalparamDecl:
+      parse_proc = parse_localparam_declaration
+   of NkParameterDecl:
+      parse_proc = parse_parameter_declaration
    of NkEventDecl:
       parse_proc = parse_event_declaration
    of NkNetDecl:

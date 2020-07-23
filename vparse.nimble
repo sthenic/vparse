@@ -23,6 +23,7 @@ task test, "Run the test suite":
    exec("nimble lexertests")
    exec("nimble preprocessortests")
    exec("nimble parsertests")
+   exec("nimble asttests")
 
 
 task lexertests, "Run the lexer test suite":
@@ -47,3 +48,8 @@ task parsertests, "Run the parser test suite":
       exec("nim c --hints:off -r tblockingnonblockingassignment")
       exec("nim c --hints:off -r tnetdeclaration")
       exec("nim c --hints:off -r tdirective")
+
+
+task asttests, "Run the AST test suite":
+   with_dir("tests/ast"):
+      exec("nim c --hints:off -r tast")

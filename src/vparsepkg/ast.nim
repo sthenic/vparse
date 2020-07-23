@@ -53,7 +53,7 @@ type
       # Delays A.2.2.3
       NkDelay,
       # Declaration assignments A.2.4
-      NkParamAssignment, NkNetDeclAssignment,
+      NkParamAssignment, NkNetDeclAssignment, # FIXME: NkNetDeclAssignment unused
       # Declaration ranges A.2.5
       NkRange,
       # Function declarations A.2.6
@@ -792,3 +792,131 @@ proc find_all_module_instantiations*(n: PNode): seq[PNode] =
    else:
       for s in n.sons:
          add(result, find_all_module_instantiations(s))
+
+
+proc `$`*(n: PNode): string =
+   if n == nil:
+      return
+
+   case n.kind:
+   of IdentifierTypes:
+      result = n.identifier.s
+
+   of NkRangedIdentifier:
+      for i, s in n.sons:
+         add(result, $s)
+
+   of NkConstantRangeExpression:
+      add(result, '[')
+      add(result, $n.sons[0])
+      if len(n.sons) > 1:
+         add(result, ':')
+         add(result, $n.sons[1])
+      add(result, ']')
+
+   of IntegerTypes:
+      if n.size != -1:
+         result = $n.size
+         case n.base
+         of Base2:
+            add(result, "'b")
+         of Base8:
+            add(result, "'o")
+         of Base10:
+            add(result, "'d")
+         of Base16:
+            add(result, "'h")
+      add(result, n.iraw)
+
+   of NkRealLit:
+      result = n.fraw
+
+   of NkStrLit:
+      result = '"' & n.s & '"'
+
+   of NkWildcard:
+      result = "*"
+
+   of NkInfix:
+      add(result, $n.sons[1])
+      add(result, ' ' & $n.sons[0] & ' ')
+      add(result, $n.sons[2])
+
+   of NkRange:
+      add(result, '[')
+      add(result, $n.sons[0])
+      add(result, ':')
+      add(result, $n.sons[1])
+      add(result, ']')
+
+   of NkAssignment, NkParamAssignment:
+      add(result, $n.sons[0])
+      add(result, " = ")
+      add(result, $n.sons[1])
+
+   of ErrorTypes, NkComment, OperatorTypes:
+      # FIXME: OperatorTypes are unused right now.
+      discard
+
+   of NkDelay:
+      add(result, '#')
+      if n.sons[0].kind == NkParenthesis:
+         add(result, '(')
+         for i, s in n.sons[0].sons:
+            if i > 0:
+               add(result, ", ")
+            add(result, $s)
+         add(result, ')')
+      else:
+         for s in n.sons:
+            add(result, $s)
+
+   of DeclarationTypes:
+      case n.kind
+      of NkRegDecl:
+         add(result, "reg ")
+      of NkIntegerDecl:
+         add(result, "integer ")
+      of NkRealDecl:
+         add(result, "real ")
+      of NkRealtimeDecl:
+         add(result, "realtime ")
+      of NkTimeDecl:
+         add(result, "time ")
+      of NkLocalparamDecl:
+         add(result, "localparam ")
+      of NkParameterDecl:
+         add(result, "parameter ")
+      else:
+         discard
+
+      var seen_identifier = false
+      for i, s in n.sons:
+         if s.kind in {NkIdentifier, NkParamAssignment, NkAssignment}:
+            if seen_identifier:
+               add(result, ',')
+            seen_identifier = true
+         if i > 0:
+            add(result, ' ')
+         add(result, $s)
+      # TODO: Whether to add a semicolon or not depends on the syntax enclosing
+      #       the declaration so that will have to be handled outside this case.
+   of NkChargeStrength, NkDriveStrength:
+      add(result, '(')
+      for i, s in n.sons:
+         if i > 0:
+            add(result, ", ")
+         add(result, $s)
+      add(result, ')')
+
+   else:
+      if n.kind == NkParenthesis:
+         add(result, '(')
+
+      for i, s in n.sons:
+         if i > 0:
+            add(result, " ")
+         add(result, $s)
+
+      if n.kind == NkParenthesis:
+         add(result, ')')
