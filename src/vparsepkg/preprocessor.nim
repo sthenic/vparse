@@ -27,6 +27,7 @@ type
    Preprocessor* = object
       lex: Lexer
       tok: Token
+      next_tok: Token
       pp_tok: Token
       endif_semaphore: int
       defines: Table[string, Define]
@@ -78,11 +79,14 @@ proc get_token*(pp: var Preprocessor, tok: var Token)
 
 
 proc get_token(pp: var Preprocessor, ignore_comments = false) =
-   ## Internal token consumer. Reads a token from the lexer and stores the result
-   ## in the local ``tok`` variable.
-   get_token(pp.lex, pp.tok)
-   while ignore_comments and pp.tok.kind in {TkComment, TkBlockComment}:
-      get_token(pp.lex, pp.tok)
+   # Internal token consumer. Reads a token from the lexer and stores the result
+   # in the local ``tok`` variable. If ``ignore_comments`` is ``true``, comments
+   # are removed from the stream.
+   pp.tok = pp.next_tok
+   if pp.next_tok.kind != TkEndOfFile:
+      get_token(pp.lex, pp.next_tok)
+      while ignore_comments and pp.next_tok.kind in {TkComment, TkBlockComment}:
+         get_token(pp.lex, pp.next_tok)
 
 
 proc handle_external_define(pp: var Preprocessor, external_define: string) =
@@ -115,6 +119,7 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         external_defines: openarray[string]) =
    ## Open the preprocessor and prepare to process the target file.
    init(pp.tok)
+   init(pp.next_tok)
    init(pp.pp_tok)
    pp.endif_semaphore = 0
    pp.defines = init_table[string, Define](64)
@@ -127,7 +132,10 @@ proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
    add(pp.include_paths, include_paths)
    open_lexer(pp.lex, cache, s, file_map.filename,
               add_file_map(pp.locations, file_map))
-   get_token(pp.lex, pp.tok)
+   # We have to call the internal token consumer twice to correctly set up the
+   # token chain.
+   get_token(pp)
+   get_token(pp)
 
    for def in external_defines:
       handle_external_define(pp, def)
@@ -630,9 +638,10 @@ proc get_context_token(pp: var Preprocessor, tok: var Token) =
 
 
 proc get_source_token(pp: var Preprocessor, tok: var Token) =
+   # Copy the token at the cursor position and then call the internal token
+   # consumer to correctly advance the cursor.
    tok = pp.tok
-   if pp.tok.kind != TkEndOfFile:
-      get_token(pp.lex, pp.tok)
+   get_token(pp)
 
 
 proc get_include_token(pp: var Preprocessor, tok: var Token) =
