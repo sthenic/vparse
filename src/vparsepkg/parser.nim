@@ -574,6 +574,7 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
                                            attributes: seq[PNode]): PNode =
    # Inout or input ports have a common syntax.
    result = new_node(p, NkPortDecl)
+   add_comment(p, result)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
@@ -643,6 +644,7 @@ proc parse_list_of_port_identifiers(p: var Parser): seq[PNode] =
 proc parse_output_port_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    # Inout or input ports have a common syntax.
    result = new_node(p, NkPortDecl)
+   add_comment(p, result)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
