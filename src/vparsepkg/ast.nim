@@ -854,6 +854,19 @@ proc `$`*(n: PNode): string =
       add(result, " = ")
       add(result, $n.sons[1])
 
+   of NkAttributeInst:
+      add(result, "(* ")
+      for i in countup(0, high(n.sons), 2):
+         add(result, format("$1 = $2", n.sons[i], n.sons[i+1]))
+      add(result, " *)")
+
+   of NkPort:
+      let id = find_first(n, NkPortIdentifier)
+      if not is_nil(id):
+         add(result, format(".$1($2)", $id, $n.sons[1]))
+      else:
+         add(result, $n.sons[0])
+
    of ErrorTypes, NkComment, OperatorTypes:
       # FIXME: OperatorTypes are unused right now.
       discard
