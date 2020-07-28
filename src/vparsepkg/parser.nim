@@ -1732,6 +1732,7 @@ proc parse_task_or_function_declaration(p: var Parser): PNode =
       # FIXME: Proper error node?
       result = new_node(p, NkTaskDecl)
       unexpected_token(p, result)
+   add_comment(p, result)
    get_token(p)
 
    if p.tok.kind == TkAutomatic:

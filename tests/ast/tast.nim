@@ -95,7 +95,7 @@ endtask""",
 "task an_empty_task()")
 
 
-run_test("Task declaration: w/ arguments", NkTaskDecl,
+run_test("Task declaration: w/ parameters", NkTaskDecl,
 """
 /* This is the documentation of the `an_empty_task` function. */
 task an_empty_task(input [7:0] foo_in, output [31:0] foo_out);
