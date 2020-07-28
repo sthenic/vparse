@@ -132,7 +132,8 @@ const
        NkEventDecl, NkInoutDecl, NkInputDecl, NkOutputDecl, NkGenvarDecl,
        NkModuleDecl, NkIntegerDecl, NkDefparamDecl, NkFunctionDecl,
        NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl, NkLocalparamDecl,
-       NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}
+       NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts,
+       NkTaskFunctionPortDecl}
 
 
 type
