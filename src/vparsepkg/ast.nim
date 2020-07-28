@@ -457,14 +457,33 @@ template walk_sons_common(n: PNode, kinds: NodeKinds) =
             yield s
 
 
+template walk_sons_common_index(n: PNode, kinds: NodeKinds) =
+   if n.kind notin PrimitiveTypes:
+      var i = 0
+      for s in n.sons:
+         if s.kind in kinds:
+            yield (i, s)
+            inc(i)
+
+
 iterator walk_sons*(n: PNode, kinds: NodeKinds): PNode {.inline.} =
    ## Walk the sons in ``n`` whose kind is in ``kinds``.
    walk_sons_common(n, kinds)
 
 
+iterator walk_sons_index*(n: PNode, kinds: NodeKinds): tuple[i: int, n: PNode] {.inline.} =
+   ## Walk the sons in ``n`` whose kind is in ``kinds``.
+   walk_sons_common_index(n, kinds)
+
+
 iterator walk_sons*(n: PNode, kind: NodeKind): PNode {.inline.} =
    ## Walk the sons in ``n`` whose kind is ``kind``.
    walk_sons_common(n, {kind})
+
+
+iterator walk_sons_index*(n: PNode, kind: NodeKind): tuple[i: int, n: PNode] {.inline.} =
+   ## Walk the sons in ``n`` whose kind is ``kind``.
+   walk_sons_common_index(n, {kind})
 
 
 iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
