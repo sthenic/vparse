@@ -621,6 +621,14 @@ proc find_declaration*(n: PNode, identifier: PIdentifier, select_identifier: boo
       if not is_nil(id) and id.identifier.s == identifier.s:
          return_when_found(n, id)
 
+      # For tasks and functions, we check the parameter list if we didn't get a
+      # hit for the task/function name itself.
+      if n.kind in {NkTaskDecl, NkFunctionDecl}:
+         for s in walk_sons(n, NkTaskFunctionPortDecl):
+            let id = find_first(s, NkPortIdentifier)
+            if not is_nil(id) and id.identifier.s == identifier.s:
+               return_when_found(s, id)
+
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
       for s in n.sons:
          case s.kind
