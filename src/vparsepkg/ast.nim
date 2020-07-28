@@ -59,7 +59,7 @@ type
       # Function declarations A.2.6
       NkFunctionDecl,
       # Task declarations A.2.7
-      NkTaskDecl,
+      NkTaskDecl, NkTaskFunctionPortDecl,
       # Module instantiation A.4.1
       NkModuleInstantiation, NkParameterValueAssignment, NkModuleInstance,
       NkPortConnection,

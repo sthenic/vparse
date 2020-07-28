@@ -1671,7 +1671,7 @@ proc parse_statement_or_null(p: var Parser): PNode =
 
 proc parse_task_or_function_port(p: var Parser, kind: NodeKind,
                                  attributes: seq[PNode]): PNode =
-   result = new_node(p, NkPort)
+   result = new_node(p, NkTaskFunctionPortDecl)
    if len(attributes) > 0:
       add(result.sons, attributes)
 
