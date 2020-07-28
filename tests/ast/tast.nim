@@ -25,8 +25,8 @@ template run_test(title: string, grammar: NodeKind, stimuli, reference: string) 
                       fgWhite, "Test '",  title, "'")
       nof_failed += 1
       echo pretty(node)
-      echo response
-      echo reference
+      echo "'" & response & "'"
+      echo "'" & reference & "'"
 
 
 # Test suite title
@@ -75,6 +75,33 @@ run_test("Localparam declaration", NkLocalparamDecl,
 run_test("Parameter declaration", NkParameterDecl,
 "parameter  INPUT_WIDTH = 32, ANOTHER_PARAMETER= 3 ",
 "parameter INPUT_WIDTH = 32, ANOTHER_PARAMETER = 3")
+
+
+run_test("Function declaration", NkFunctionDecl,
+"""
+/* This is the documentation of the `add_one` function. */
+function add_one(input a, input [7:0] foo);
+   add_one = a + 1;
+endfunction""",
+"function add_one(input a, input [7:0] foo)")
+
+
+run_test("Task declaration: empty", NkTaskDecl,
+"""
+/* This is the documentation of the `an_empty_task` function. */
+task an_empty_task;
+   reg_no_default <= 1'b0;
+endtask""",
+"task an_empty_task()")
+
+
+run_test("Task declaration: w/ arguments", NkTaskDecl,
+"""
+/* This is the documentation of the `an_empty_task` function. */
+task an_empty_task(input [7:0] foo_in, output [31:0] foo_out);
+   reg_no_default <= 1'b0;
+endtask""",
+"task an_empty_task(input [7:0] foo_in, output [31:0] foo_out)")
 
 
 # Print summary

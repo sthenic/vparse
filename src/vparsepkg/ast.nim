@@ -886,7 +886,7 @@ proc `$`*(n: PNode): string =
       else:
          add(result, $n.sons[0])
 
-   of ErrorTypes, NkComment, OperatorTypes:
+   of ErrorTypes, NkExpectError, NkComment, OperatorTypes:
       # FIXME: OperatorTypes are unused right now.
       discard
 
@@ -903,7 +903,23 @@ proc `$`*(n: PNode): string =
          for s in n.sons:
             add(result, $s)
 
-   of DeclarationTypes:
+   of NkTaskDecl, NkFunctionDecl:
+      if n.kind == NkTaskDecl:
+         add(result, "task ")
+      else:
+         add(result, "function ")
+
+      let name = find_first(n, NkIdentifier)
+      if not is_nil(name):
+         add(result, name.identifier.s)
+         add(result, '(')
+         for i, s in walk_sons_index(n, NkTaskFunctionPortDecl):
+            if i > 0:
+               add(result, ", ")
+            add(result, $s)
+         add(result, ')')
+
+   of DeclarationTypes - {NkFunctionDecl, NkTaskDecl}:
       case n.kind
       of NkRegDecl:
          add(result, "reg ")
