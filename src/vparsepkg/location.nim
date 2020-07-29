@@ -195,3 +195,19 @@ proc in_bounds*(x, y: Location, len: int): bool =
    ## ``y.col + len``.
    result = x.file == y.file and x.line == y.line and
             x.col >= y.col and x.col <= (y.col + len - 1)
+
+
+proc `<`*(x, y: Location): bool =
+   result = x.file == y.file and (x.line < y.line or (x.line == y.line and x.col < y.col))
+
+
+proc `>`*(x, y: Location): bool =
+   result = x.file == y.file and (x.line > y.line or (x.line == y.line and x.col > y.col))
+
+
+proc `>=`*(x, y: Location): bool =
+   result = not (x < y)
+
+
+proc `<=`*(x, y: Location): bool =
+   result = not (x > y)
