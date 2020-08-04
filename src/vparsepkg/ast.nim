@@ -435,6 +435,16 @@ template find_first*(n: PNode, kind: NodeKind): PNode =
    find_first(n, {kind})
 
 
+proc find_first_chain*(n: PNode, kind_chain: openarray[NodeKind]): PNode =
+   if len(kind_chain) == 0:
+      return nil
+   result = n
+   for kind in kind_chain:
+      result = find_first(result, kind)
+      if is_nil(result):
+         break
+
+
 proc find_first_index*(n: PNode, kinds: NodeKinds): int =
    ## Return the index of the first son in ``n`` whose kind is in ``kinds``.
    ## If a matching node cannot be found, ``-1`` is returned.
@@ -659,8 +669,6 @@ proc find_declaration*(n: PNode, identifier: PIdentifier, select_identifier: boo
             return_when_found(n, id)
 
    of NkModuleDecl:
-      # This path is never taken since a the lookup of a module declaration is
-      # handled by find_module_declaration() which performs a lookup.
       let id = find_first(n, NkModuleIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
          return_when_found(n, id)
