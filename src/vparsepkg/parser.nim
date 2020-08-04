@@ -2108,7 +2108,7 @@ proc parse_list_of_port_connections(p: var Parser): seq[PNode] =
 proc parse_module_instance(p: var Parser): PNode =
    result = new_node(p, NkModuleInstance)
    # Parse the name of module instance.
-   if p.tok.kind == TKSymbol:
+   if p.tok.kind == TkSymbol:
       add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
    else:
@@ -2143,6 +2143,7 @@ proc parse_module_or_udp_instantiaton(p: var Parser): PNode =
       add(result.sons, parse_module_instance(p))
       if p.tok.kind != TkComma:
          break
+      get_token(p)
 
    expect_token(p, result, TkSemicolon)
    get_token(p)
