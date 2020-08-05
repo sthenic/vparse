@@ -7,12 +7,18 @@ import ./ast
 export ast, preprocessor
 
 type
+   CommentState = enum
+      CsReset
+      CsKeep
+      CsResetAfterNextToken
+
    Parser* = object
       pp: Preprocessor
       tok: Token
       comment: Token
       next_tok: Token
       next_comment: Token
+      comment_state: CommentState
 
    # Enumeration for strength types used in net declarations.
    Strength = enum
@@ -52,9 +58,14 @@ proc get_token(p: var Parser) =
    p.tok = p.next_tok
    p.comment = p.next_comment
    if p.next_tok.kind != TkEndOfFile:
-      # Reset the comment token so that it's only valid for the immediately
-      # following non-comment token.
-      init(p.next_comment)
+      # We keep the previous comment token across attribute instances, otherwise
+      # we reset it. Effectively, the comment token is only valid for the
+      # immediately following non-comment token, ignoring attribute instances.
+      if p.comment_state == CsReset:
+         init(p.next_comment)
+      elif p.comment_state == CsResetAfterNextToken:
+         p.comment_state = CsReset
+
       get_token(p.pp, p.next_tok)
       while true:
          case p.next_tok.kind
@@ -64,6 +75,12 @@ proc get_token(p: var Parser) =
             get_token(p.pp, p.next_tok)
          of TkDirective:
             handle_directive(p)
+         of TkLparenStar:
+            p.comment_state = CsKeep
+            break
+         of TkRparenStar:
+            p.comment_state = CsResetAfterNextToken
+            break
          else:
             break
 
@@ -77,6 +94,7 @@ proc open_parser*(p: var Parser, cache: IdentifierCache,
    init(p.comment)
    init(p.next_tok)
    init(p.next_comment)
+   p.comment_state = CsReset
    # The file map passed to the preprocessor by the parser specifies an invalid
    # location since it is the origin, i.e. the file was not opened as a result
    # of parsing the syntax.
