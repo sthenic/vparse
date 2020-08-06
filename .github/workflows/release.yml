@@ -56,7 +56,7 @@ jobs:
       with:
         draft: true
         files: |
-          vls/*.tar.gz
-          vls/*.tar.gz.md5
-          vls/*.zip
-          vls/*.zip.md5
+          *.tar.gz
+          *.tar.gz.md5
+          *.zip
+          *.zip.md5
