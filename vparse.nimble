@@ -1,6 +1,6 @@
 version = "0.1.0"
 author = "Marcus Eriksson"
-description = "A Verilog IEEE 1364-2005 lexer and parser."
+description = "A Verilog IEEE 1364-2005 parser library."
 src_dir = "src"
 bin = @["vparse"]
 install_ext = @["nim"]

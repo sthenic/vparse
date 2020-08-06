@@ -3,8 +3,14 @@
 ![tests](https://github.com/sthenic/vparse/workflows/tests/badge.svg)
 
 # vparse
-This tool is a Verilog IEEE 1364-2005 lexer and parser written in [Nim](https://nim-lang.org). The output is an abstract syntax tree (AST) intended to be used
-by other tools to process source files written in Verilog.
+This tool is a Verilog IEEE 1364-2005 parser library written in
+[Nim](https://nim-lang.org). The output is an abstract syntax tree (AST)
+intended to be used by other tools to process source files written in Verilog.
+For example, [`vls`](https://github.com/sthenic/vls) is a language server
+implementation that relies on this library to analyze the source code.
+
+It's also possible to extract the tokenized source code directly from the lexer
+or from the preprocessor.
 
 ## Documentation
 Coming soon.
