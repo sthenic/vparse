@@ -22,7 +22,8 @@ jobs:
     - name: Build Python3 library for Ubuntu
       if: ${{ matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-16.04'}}
       run: |
-        nimble build_pylib -y
+        nimble install -d
+        nimble build_pylib
         source /etc/os-release
         PLATFORM_INFO="${ID}-${VERSION_ID}-$(uname -i)"
         ARCHIVE_FILENAME="vparse-$(cat src/VERSION)-pylib-${PLATFORM_INFO}"
@@ -32,8 +33,8 @@ jobs:
     - name: Build Python3 library for macOS
       if: ${{ matrix.os == 'macos-latest' }}
       run: |
-        cd vls
-        nimble build_pylib -y
+        nimble install -d
+        nimble build_pylib
         ARCHIVE_FILENAME="vls-$(cat src/VERSION)-pylib-macos"
         tar -czf "${ARCHIVE_FILENAME}.tar.gz" vparse.so LICENSE CHANGELOG.md
         md5 "${ARCHIVE_FILENAME}.tar.gz" > ${ARCHIVE_FILENAME}.tar.gz.md5
@@ -41,8 +42,8 @@ jobs:
     - name: Build Python3 library for Windows
       if: ${{ matrix.os == 'windows-latest' }}
       run: |
-        cd vls
-        nimble build_pylib -y
+        nimble install -d
+        nimble build_pylib
         $ARCHIVE_FILENAME="vls-$(cat src/VERSION)-pylib-win_x86_64"
         7z a -tzip "${ARCHIVE_FILENAME}.zip" vls.exe LICENSE CHANGELOG.md
         [string]$MD5 = (get-filehash -Algorithm MD5 "${ARCHIVE_FILENAME}.zip").Hash
