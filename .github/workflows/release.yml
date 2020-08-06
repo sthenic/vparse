@@ -11,6 +11,7 @@ jobs:
       matrix:
         os:
           - ubuntu-16.04
+          - windows-latest
     steps:
     - name: Checkout vparse
       uses: actions/checkout@v2
@@ -27,7 +28,7 @@ jobs:
         source /etc/os-release
         PLATFORM_INFO="${ID}-${VERSION_ID}-$(uname -i)"
         ARCHIVE_FILENAME="vparse-$(cat src/vparsepkg/private/VERSION)-pylib-${PLATFORM_INFO}"
-        tar -czf "${ARCHIVE_FILENAME}.tar.gz" vparse.so LICENSE CHANGELOG.md
+        tar -czf "${ARCHIVE_FILENAME}.tar.gz" vparse.so README.md LICENSE CHANGELOG.md THIRD_PARTY_LICENSES.md
         md5sum "${ARCHIVE_FILENAME}.tar.gz" > ${ARCHIVE_FILENAME}.tar.gz.md5
 
     - name: Build Python3 library for macOS
@@ -36,7 +37,7 @@ jobs:
         nimble install -d -y
         nimble build_pylib
         ARCHIVE_FILENAME="vls-$(cat src/vparsepkg/private/VERSION)-pylib-macos"
-        tar -czf "${ARCHIVE_FILENAME}.tar.gz" vparse.so LICENSE CHANGELOG.md
+        tar -czf "${ARCHIVE_FILENAME}.tar.gz" vparse.so README.md LICENSE CHANGELOG.md THIRD_PARTY_LICENSES.md
         md5 "${ARCHIVE_FILENAME}.tar.gz" > ${ARCHIVE_FILENAME}.tar.gz.md5
 
     - name: Build Python3 library for Windows
@@ -45,7 +46,7 @@ jobs:
         nimble install -d -y
         nimble build_pylib
         $ARCHIVE_FILENAME="vls-$(cat src/vparsepkg/private/VERSION)-pylib-win_x86_64"
-        7z a -tzip "${ARCHIVE_FILENAME}.zip" vls.exe LICENSE CHANGELOG.md
+        7z a -tzip "${ARCHIVE_FILENAME}.zip" vparse.pyd README.md LICENSE CHANGELOG.md THIRD_PARTY_LICENSES.md
         [string]$MD5 = (get-filehash -Algorithm MD5 "${ARCHIVE_FILENAME}.zip").Hash
         echo $MD5 > "${ARCHIVE_FILENAME}.zip.md5"
 
