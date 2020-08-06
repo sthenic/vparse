@@ -8,7 +8,7 @@ license = "MIT"
 
 skip_dirs = @["tests"]
 
-requires "nim >= 1.2.4"
+requires "nim >= 1.2.6"
 requires "nimpy >= 0.1.0"
 
 
