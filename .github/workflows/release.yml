@@ -39,7 +39,7 @@ jobs:
       run: |
         nimble install -d -y
         nimble build_pylib
-        ARCHIVE_FILENAME="vls-$(cat src/vparsepkg/private/VERSION)-pylib-macos"
+        ARCHIVE_FILENAME="vparse-$(cat src/vparsepkg/private/VERSION)-pylib-macos"
         tar -czf "${ARCHIVE_FILENAME}.tar.gz" vparse.so README.md LICENSE CHANGELOG.md THIRD_PARTY_LICENSES.md
         md5 "${ARCHIVE_FILENAME}.tar.gz" > ${ARCHIVE_FILENAME}.tar.gz.md5
 
@@ -48,7 +48,7 @@ jobs:
       run: |
         nimble install -d -y
         nimble build_pylib
-        $ARCHIVE_FILENAME="vls-$(cat src/vparsepkg/private/VERSION)-pylib-win_x86_64"
+        $ARCHIVE_FILENAME="vparse-$(cat src/vparsepkg/private/VERSION)-pylib-win_x86_64"
         7z a -tzip "${ARCHIVE_FILENAME}.zip" vparse.pyd README.md LICENSE CHANGELOG.md THIRD_PARTY_LICENSES.md
         [string]$MD5 = (get-filehash -Algorithm MD5 "${ARCHIVE_FILENAME}.zip").Hash
         echo $MD5 > "${ARCHIVE_FILENAME}.zip.md5"
