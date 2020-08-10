@@ -926,9 +926,15 @@ proc `$`*(n: PNode): string =
       else:
          add(result, "function ")
 
-      let name = find_first(n, NkIdentifier)
-      if not is_nil(name):
-         add(result, name.identifier.s)
+      let idx = find_first_index(n, NkIdentifier)
+      if idx > 0:
+         for s in walk_sons(n, 0, idx - 1):
+            if s.kind == NkComment:
+               continue
+            add(result, $s & ' ')
+
+      if idx >= 0:
+         add(result, n.sons[idx].identifier.s)
          add(result, '(')
          for i, s in walk_sons_index(n, NkTaskFunctionPortDecl):
             if i > 0:

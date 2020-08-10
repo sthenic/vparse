@@ -80,10 +80,10 @@ run_test("Parameter declaration", NkParameterDecl,
 run_test("Function declaration", NkFunctionDecl,
 """
 /* This is the documentation of the `add_one` function. */
-function add_one(input a, input [7:0] foo);
+function automatic signed [SOME_WIDTH-1:0] add_one(input a, input [7:0] foo);
    add_one = a + 1;
 endfunction""",
-"function add_one(input a, input [7:0] foo)")
+"function automatic signed [SOME_WIDTH - 1:0] add_one(input a, input [7:0] foo)")
 
 
 run_test("Task declaration: empty", NkTaskDecl,
@@ -98,10 +98,10 @@ endtask""",
 run_test("Task declaration: w/ parameters", NkTaskDecl,
 """
 /* This is the documentation of the `an_empty_task` function. */
-task an_empty_task(input [7:0] foo_in, output [31:0] foo_out);
+task automatic an_empty_task(input [7:0] foo_in, output [31:0] foo_out);
    reg_no_default <= 1'b0;
 endtask""",
-"task an_empty_task(input [7:0] foo_in, output [31:0] foo_out)")
+"task automatic an_empty_task(input [7:0] foo_in, output [31:0] foo_out)")
 
 
 # Print summary
