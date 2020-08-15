@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
   identifier now returns both the declaration node as well as the matching
   identifier node within the declaration. Previously, only one of these values
   was returned.
+- `find_all_module_instantiations()` now returns the top-level instantiation
+  node instead of its identifer node.
 
 ## [v0.1.1] - 2020-08-10
 

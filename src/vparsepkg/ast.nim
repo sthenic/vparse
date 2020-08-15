@@ -817,9 +817,7 @@ proc find_all_module_instantiations*(n: PNode): seq[PNode] =
    of PrimitiveTypes:
       discard
    of NkModuleInstantiation:
-      let id = find_first(n, NkIdentifier)
-      if not is_nil(id):
-         add(result, id)
+      add(result, n)
    else:
       for s in n.sons:
          add(result, find_all_module_instantiations(s))
