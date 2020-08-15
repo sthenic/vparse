@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- The interface to traverse the AST searching for the declaration of a target
+  identifier now returns both the declaration node as well as the matching
+  identifier node within the declaration. Previously, only one of these values
+  was returned.
+
 ## [v0.1.1] - 2020-08-10
 
 ### Fixed
