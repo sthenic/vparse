@@ -782,7 +782,12 @@ proc find_all_declarations*(context: AstContext): seq[tuple[declaration, identif
    ## sequence of tuples where each element represents a declared identifier. The
    ## definition is the same as for ``find_declarations``.
    for context_item in context:
-      if context_item.n.kind notin PrimitiveTypes:
+      if context_item.n.kind in {NkIfGenerate, NkCaseGenerate}:
+         # To ensure that scoping works as intended, we have to ignore
+         # conditional generate constructs. The search will naturally descend
+         # into the correct conditional block as the next node.
+         discard
+      elif context_item.n.kind notin PrimitiveTypes:
          for pos in 0..<context_item.pos:
             add(result, find_all_declarations(context_item.n.sons[pos]))
 

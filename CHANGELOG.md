@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix `find_all_declarations()` not correctly handling the scope for conditional
+  generate constructs.
+
 ### Changed
 
 - The interface to traverse the AST searching for the declaration of a target
