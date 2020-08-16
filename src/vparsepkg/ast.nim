@@ -576,35 +576,26 @@ proc find_identifier_physical*(n: PNode, locs: PLocations, loc: Location, contex
    ## may be extended by specifying a nonzero value for ``added_length``.
    ## This effectively grows the bounding box on the right. If the search yields
    ## no result, ``nil`` is returned.
-   var lookup_loc = loc
-   var start_col = 0
    for i, map in locs.macro_maps:
       for j, lpair in map.locations:
          # The macro map's location database only stores the locations of the
          # first character in the token and not the length of the token. Given
          # that the location we're given as an input argument may point to
-         # anywhere within the token, we have to guess what to translate the
-         # physical location to.
+         # anywhere within the token, we have check each likely candidate token
+         # in the macro.
          if loc.file == lpair.x.file and loc.line == lpair.x.line and loc.col >= lpair.x.col:
-            lookup_loc = new_location(-(i + 1), j, 0)
-            start_col = lpair.x.col
+            set_len(context, 0)
+            var macro_loc = new_location(-(i + 1), j, 0)
+            unroll_location(locs, macro_loc)
+            let identifier = find_identifier(n, macro_loc, context, added_length)
+            if is_nil(identifier):
+               continue
+            if in_bounds(loc, lpair.x, len(identifier.identifier.s) + added_length):
+               return identifier
 
-         # We don't break out of the loops since a better location may present
-         # itself by looking at later macro maps. The macro maps are organized
-         # in the order they appear in the source file, i.e. left to right, top
-         # to bottom.
-
-   if lookup_loc.file < 0:
-      unroll_location(locs, lookup_loc)
-
-   # Make the lookup.
-   result = find_identifier(n, lookup_loc, context, added_length)
-
-   # If we made the lookup using a virtual location, we have to be ready to roll
-   # back the lookup result if it turns out that the input location points
-   # beyond the identifier.
-   if not is_nil(result) and lookup_loc.file < 0 and loc.col > (start_col + len(result.identifier.s) - 1):
-      result = nil
+   # Make the lookup if the macro map search didn't yield a result.
+   set_len(context, 0)
+   result = find_identifier(n, loc, context, added_length)
 
 
 proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, identifier: PNode] =
