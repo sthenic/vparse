@@ -4,11 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
-- Fix `find_all_declarations()` not correctly handling the scope for conditional
-  generate constructs.
-
 ### Changed
 
 - The interface to traverse the AST searching for the declaration of a target
@@ -17,6 +12,7 @@ All notable changes to this project will be documented in this file.
   was returned.
 - `find_all_module_instantiations()` now returns the top-level instantiation
   node instead of its identifer node.
+- `find_all_declarations()` no longer performs a recursive search by default.
 
 ## [v0.1.1] - 2020-08-10
 

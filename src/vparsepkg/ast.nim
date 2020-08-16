@@ -716,11 +716,11 @@ proc find_declaration*(context: AstContext, identifier: PIdentifier):
                   return
 
 
-proc find_all_declarations*(n: PNode): seq[tuple[declaration, identifier: PNode]] =
-   ## Descend into ``n`` searching for all declaration nodes. The result is a
-   ## sequence of tuples where each element represents a declared identifier. The
-   ## definition is the same as for ``find_declarations``.
-
+proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declaration, identifier: PNode]] =
+   ## Search ``n`` for all declaration nodes.  The result is a sequence of tuples
+   ## where each element represents a declared identifier. The definition is the
+   ## same as for ``find_declarations``. If ``descend`` is ``true``, then the
+   ## sons in ``n`` are searched too.
    case n.kind
    of NkPortDecl:
       for id in walk_sons(n, NkPortIdentifier):
@@ -767,14 +767,19 @@ proc find_all_declarations*(n: PNode): seq[tuple[declaration, identifier: PNode]
       if idx > -1:
          add(result, (n, n.sons[idx]))
       for s in walk_sons(n, idx + 1):
-         add(result, find_all_declarations(s))
+         add(result, find_all_declarations(s, recursive))
+
+   of NkModuleParameterPortList, NkListOfPortDeclarations:
+      for s in n.sons:
+         add(result, find_all_declarations(s, recursive))
 
    of PrimitiveTypes + {NkDefparamDecl}:
       discard
 
    else:
-      for s in n.sons:
-         add(result, find_all_declarations(s))
+      if recursive:
+         for s in n.sons:
+            add(result, find_all_declarations(s, recursive))
 
 
 proc find_all_declarations*(context: AstContext): seq[tuple[declaration, identifier: PNode]] =
@@ -782,12 +787,7 @@ proc find_all_declarations*(context: AstContext): seq[tuple[declaration, identif
    ## sequence of tuples where each element represents a declared identifier. The
    ## definition is the same as for ``find_declarations``.
    for context_item in context:
-      if context_item.n.kind in {NkIfGenerate, NkCaseGenerate}:
-         # To ensure that scoping works as intended, we have to ignore
-         # conditional generate constructs. The search will naturally descend
-         # into the correct conditional block as the next node.
-         discard
-      elif context_item.n.kind notin PrimitiveTypes:
+      if context_item.n.kind notin PrimitiveTypes:
          for pos in 0..<context_item.pos:
             add(result, find_all_declarations(context_item.n.sons[pos]))
 
