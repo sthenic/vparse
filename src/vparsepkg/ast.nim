@@ -62,7 +62,8 @@ type
       NkTaskDecl, NkTaskFunctionPortDecl,
       # Module instantiation A.4.1
       NkModuleInstantiation, NkParameterValueAssignment, NkModuleInstance,
-      NkPortConnection,
+      NkOrderedParameterAssignment, NkNamedParameterAssignment,
+      NkOrderedPortConnection, NkNamedPortConnection,
       # Generate construct A.4.2
       NkGenerateRegion, NkLoopGenerate, NkGenerateBlock, NkIfGenerate,
       NkCaseGenerate, NkCaseGenerateItem,
@@ -792,9 +793,9 @@ proc find_references*(n: PNode, identifier: PIdentifier): seq[PNode] =
          add(result, n)
    of PrimitiveTypes - IdentifierTypes:
       discard
-   of NkPortConnection:
-      # For port connections, we have to skip the first identifier since that's
-      # the name of the port.
+   of NkNamedPortConnection, NkNamedParameterAssignment:
+      # For named port connections and named parameter assignments, we have to
+      # skip the first identifier since that's the name of the port.
       for s in walk_sons(n, find_first_index(n, NkIdentifier) + 1):
          add(result, find_references(s, identifier))
    else:

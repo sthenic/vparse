@@ -2043,7 +2043,7 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
       while true:
          expect_token(p, result, TkDot)
          get_token(p)
-         let n = new_node(p, NkAssignment)
+         let n = new_node(p, NkNamedParameterAssignment)
          expect_token(p, result, TkSymbol)
          add(n.sons, new_identifier_node(p, NkIdentifier))
          get_token(p)
@@ -2060,7 +2060,9 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
    else:
       # Ordered parameter assignments.
       while true:
-         add(result.sons, parse_constant_expression(p))
+         let n = new_node(p, NkOrderedParameterAssignment)
+         add(n.sons, parse_constant_expression(p))
+         add(result.sons, n)
          if p.tok.kind != TkComma:
             break
          get_token(p)
@@ -2070,7 +2072,7 @@ proc parse_parameter_value_assignment(p: var Parser): PNode =
 
 
 proc parse_named_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
-   result = new_node(p, NkPortConnection)
+   result = new_node(p, NkNamedPortConnection)
    expect_token(p, result, TkDot)
    get_token(p)
    if len(attributes) > 0:
@@ -2091,7 +2093,7 @@ proc parse_named_port_connection(p: var Parser): PNode =
 
 
 proc parse_ordered_port_connection(p: var Parser, attributes: seq[PNode]): PNode =
-   result = new_node(p, NkPortConnection)
+   result = new_node(p, NkOrderedPortConnection)
    if len(attributes) > 0:
       add(result.sons, attributes)
    if p.tok.kind in ExpressionTokens:

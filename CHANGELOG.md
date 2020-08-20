@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix `find_identifier_physical()` not working correctly when targeting macro
   arguments.
+- `find_references()` now correctly ignores named parameter port connections.
 
 ### Changed
 
@@ -18,6 +19,8 @@ All notable changes to this project will be documented in this file.
 - `find_all_module_instantiations()` now returns the top-level instantiation
   node instead of its identifer node.
 - `find_all_declarations()` no longer performs a recursive search by default.
+- Remove `NkPortConnection` in favor of more specialized node types for port and
+  parameter port connections.
 
 ## [v0.1.1] - 2020-08-10
 
