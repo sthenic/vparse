@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Fix stringification of concatenation nodes.
+
 ## [v0.2.0] - 2020-08-24
 
 ### Fixed

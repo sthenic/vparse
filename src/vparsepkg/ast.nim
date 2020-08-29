@@ -136,6 +136,8 @@ const
        NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts,
        NkTaskFunctionPortDecl}
 
+   ConcatenationTypes* =
+      {NkConstantConcat, NkConstantMultipleConcat, NkPortReferenceConcat, NkVariableLvalueConcat}
 
 type
    PNode* = ref TNode
@@ -968,6 +970,20 @@ proc `$`*(n: PNode): string =
             add(result, ", ")
          add(result, $s)
       add(result, ')')
+
+   of NkConstantMultipleConcat:
+      add(result, '{')
+      add(result, $n.sons[0])
+      add(result, $n.sons[1])
+      add(result, '}')
+
+   of ConcatenationTypes - {NkConstantMultipleConcat}:
+      add(result, '{')
+      for i, s in n.sons:
+         if i > 0:
+            add(result, ", ")
+         add(result, $s)
+      add(result, '}')
 
    else:
       if n.kind == NkParenthesis:

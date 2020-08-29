@@ -67,6 +67,11 @@ run_test("Register declaration", NkRegDecl,
 "reg [WIDTH - 1:FOO + 2] a_reg")
 
 
+run_test("Register declaration, concatenation", NkRegDecl,
+"reg [15:0  ]  default_constant = {8'hDE , {4  {1'b0}}, 2'b01, {2{1'b1}} };",
+"reg [15:0] default_constant = {8'hDE, {4{1'b0}}, 2'b01, {2{1'b1}}}")
+
+
 run_test("Localparam declaration", NkLocalparamDecl,
 "localparam  WIDTH = 32, BAR = 23 ;",
 "localparam WIDTH = 32, BAR = 23")
