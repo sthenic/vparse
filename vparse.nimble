@@ -1,4 +1,4 @@
-version = "0.2.1"
+version = "0.2.2"
 author = "Marcus Eriksson"
 description = "A Verilog IEEE 1364-2005 parser library."
 src_dir = "src"

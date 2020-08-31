@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.2.2] - 2020-08-31
 
 ### Fixed
 
@@ -10,7 +10,6 @@ All notable changes to this project will be documented in this file.
   after the token that ends the replacement list.
 - Fix localparam and parameter declarations not including the leading comment
   token.
-
 
 ## [v0.2.1] - 2020-08-30
 
