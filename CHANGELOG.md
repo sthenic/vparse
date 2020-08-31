@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Fix an issue where the preprocessor would remove comments located immediately
   after the token that ends the replacement list.
+- Fix localparam and parameter declarations not including the leading comment
+  token.
 
 
 ## [v0.2.1] - 2020-08-30
