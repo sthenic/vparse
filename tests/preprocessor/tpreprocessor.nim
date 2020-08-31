@@ -879,6 +879,20 @@ run_test("Ignoring block comments", """
 ])
 
 
+run_test("Keeping comment at the end of the replacement list", """
+`define AND(x, y) (x & y)
+/* Docstring for `WIDTH_FROM_HEADER`. */
+localparam WIDTH_FROM_HEADER = 8;
+""", [
+   new_comment(TkBlockComment, loc(1, 2, 0), "Docstring for `WIDTH_FROM_HEADER`."),
+   new_identifier(TkLocalparam, loc(1, 3, 0), "localparam"),
+   new_identifier(TkSymbol, loc(1, 3, 11), "WIDTH_FROM_HEADER"),
+   new_token(TkEquals, loc(1, 3, 29)),
+   new_inumber(TkIntLit, loc(1, 3, 31), 8, Base10, -1, "8"),
+   new_token(TkSemicolon, loc(1, 3, 32)),
+], [])
+
+
 run_test("Example from the standard", """
 `define wordsize 8
 reg [1:`wordsize] data;

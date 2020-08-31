@@ -232,9 +232,11 @@ proc handle_define(pp: var Preprocessor) =
       of TkEndOfFile:
          break
       of TkComment, TkBlockComment:
-         # A one-line comment is not included in the replacement list but tokens
-         # on the next line may be included if we've scanned over a backslash
-         # before this token.
+         # A one-line comment breaks the replacement list, unless we've scanned
+         # over a backslash before this token. In that case, we ignore the
+         # comment and continue looking for tokens.
+         if not include_newline:
+            break
          last_tok_line = pp.tok.loc.line
       of TkBackslash:
          include_newline = true;
