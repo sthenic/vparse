@@ -817,6 +817,63 @@ proc find_all_module_instantiations*(n: PNode): seq[PNode] =
          add(result, find_all_module_instantiations(s))
 
 
+proc find_all_lvalues(n: PNode): seq[PNode] =
+   if is_nil(n):
+      return
+
+   case n.kind
+   of NkVariableLvalue:
+      let id = find_first(n, NkIdentifier)
+      add(result, id)
+   of NkVariableLvalueConcat:
+      for s in walk_sons(n, {NkVariableLvalue, NkVariableLvalueConcat}):
+         add(result, find_all_lvalues(s))
+   else:
+      discard
+
+
+proc find_all_drivers*(n: PNode, recursive: bool = false): seq[tuple[driver, identifier: PNode]] =
+   ## Search ``n`` for all driver nodes.  The result is a sequence of tuples
+   ## where each element represents a driver. If ``descend`` is ``true``, then
+   ## the sons in ``n`` are searched too.
+   case n.kind
+   of NkPortDecl:
+      let direction = find_first(n, NkDirection)
+      if not is_nil(direction) and direction.identifier.s == "input":
+         let id = find_first(n, NkPortIdentifier)
+         if not is_nil(id):
+            add(result, (n, id))
+
+   of NkContinuousAssignment:
+      for assignment in walk_sons(n, NkAssignment):
+         let lvalue_node = find_first(assignment, {NkVariableLvalue, NkVariableLvalueConcat})
+         for lvalue in find_all_lvalues(lvalue_node):
+            add(result, (n, lvalue))
+
+   of NkProceduralContinuousAssignment:
+      let lvalue_node = find_first(n, {NkVariableLvalue, NkVariableLvalueConcat})
+      for lvalue in find_all_lvalues(lvalue_node):
+         add(result, (n, lvalue))
+
+   of PrimitiveTypes:
+      discard
+
+   else:
+      if recursive:
+         for s in n.sons:
+            add(result, find_all_drivers(s, recursive))
+
+
+proc find_all_drivers*(context: AstContext): seq[tuple[driver, identifier: PNode]] =
+   # Find all drivers in the given ``context``. The result is a sequence of
+   # tuples where each element represents the driver assignment. The definition
+   # is the same as for ``find_declarations``.
+   for context_item in context:
+      if context_item.n.kind notin PrimitiveTypes:
+         for pos in 0..<context_item.pos:
+            add(result, find_all_drivers(context_item.n.sons[pos]))
+
+
 proc `$`*(n: PNode): string =
    if n == nil:
       return

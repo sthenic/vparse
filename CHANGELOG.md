@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Add interface `find_all_drivers()` to simplify extracting driver nodes from
+  the AST.
+
 ## [v0.2.2] - 2020-08-31
 
 ### Fixed
