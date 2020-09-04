@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - Add interface `find_all_drivers()` to simplify extracting driver nodes from
   the AST.
 
+## Fixed
+
+- Disable colored output when stdout does not lead to a terminal.
+
 ## [v0.2.2] - 2020-08-31
 
 ### Fixed

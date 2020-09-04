@@ -21,6 +21,13 @@ const
 
 let HELP_TEXT = "vparse v" & VERSION_STR & "\n\n" & STATIC_HELP_TEXT
 
+# If the terminal does not have the 'stdout' attribute, i.e. stdout does not
+# lead back to the calling terminal, the output is piped to another
+# application or written to a file. In any case, disable the colored output and
+# do this before parsing the input arguments and options.
+if not terminal.isatty(stdout):
+   log.set_color_mode(NoColor)
+
 # Parse the arguments and options and return a CLI state object.
 var cli_state: CliState
 try:
