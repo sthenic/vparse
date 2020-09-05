@@ -53,3 +53,4 @@ task parsertests, "Run the parser test suite":
 task asttests, "Run the AST test suite":
    with_dir("tests/ast"):
       exec("nim c --hints:off -r tast")
+      exec("nim c --hints:off -r tastop")

@@ -2350,7 +2350,7 @@ proc parse_all*(p: var Parser): PNode =
          add(result.sons, n)
 
 
-proc parse_string*(s: string, cache: IdentifierCache):  PNode =
+proc parse_string*(s: string, cache: IdentifierCache): PNode =
    var p: Parser
    var ss = new_string_stream(s)
    var locations: PLocations
