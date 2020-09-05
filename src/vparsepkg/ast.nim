@@ -874,6 +874,46 @@ proc find_all_drivers*(context: AstContext): seq[tuple[driver, identifier: PNode
             add(result, find_all_drivers(context_item.n.sons[pos]))
 
 
+proc find_all_ports*(n: PNode): seq[tuple[port, identifier: PNode]] =
+   ## Find all ports of the module declaration ``n``.
+   template add_port_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
+      for port in walk_sons(n, NkPortDecl):
+         for id in walk_sons(port, NkPortIdentifier):
+            add(result, (port, id))
+
+   if n.kind != NkModuleDecl:
+      return
+
+   # Add any port declarations from the list of port declarations. Otherwise, we
+   # check the module body for port declarations. The two are mutually exclusive.
+   let port_declarations = find_first(n, NkListOfPortDeclarations)
+   if is_nil(port_declarations):
+      add_port_declarations_from_sons(result, n)
+   else:
+      add_port_declarations_from_sons(result, port_declarations)
+
+
+proc find_all_parameters*(n: PNode): seq[tuple[parameter, identifier: PNode]] =
+   ## Find all parameter of the module declaration ``n``.
+   template add_parameter_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
+      for parameter in walk_sons(n, NkParameterDecl):
+         for assignment in walk_sons(parameter, NkParamAssignment):
+            let id = find_first(assignment, NkParameterIdentifier)
+            if not is_nil(id):
+               add(result, (parameter, id))
+
+   if n.kind != NkModuleDecl:
+      return
+
+   # Add parameter declarations from the parameter port list.
+   let parameter_declarations = find_first(n, NkModuleParameterPortList)
+   if not is_nil(parameter_declarations):
+      add_parameter_declarations_from_sons(result, parameter_declarations)
+
+   # Add any parameter declarations from the module body.
+   add_parameter_declarations_from_sons(result, n)
+
+
 proc `$`*(n: PNode): string =
    if n == nil:
       return
