@@ -218,6 +218,8 @@ module port_finder (
 
    always @(posedge clk_i) begin
       assign {foo, {bar, baz}} = breaking_net;
+      tmp0 <= 0;
+      tmp1 = 1;
    end
 
 endmodule
@@ -300,6 +302,24 @@ endmodule
          new_identifier_node(NkIdentifier, li(9, 34), "breaking_net")
       ]),
       identifier: new_identifier_node(NkIdentifier, li(9, 26), "baz")
+   ),
+   (
+      driver: new_node(NkNonblockingAssignment, li(10, 7), @[
+         new_node(NkVariableLvalue, li(10, 7), @[
+            new_identifier_node(NkIdentifier, li(10, 7), "tmp0")
+         ]),
+         new_inumber_node(NkIntLit, li(10, 15), 0, "0", Base10, -1)
+      ]),
+      identifier: new_identifier_node(NkIdentifier, li(10, 7), "tmp0")
+   ),
+   (
+      driver: new_node(NkBlockingAssignment, li(11, 7), @[
+         new_node(NkVariableLvalue, li(11, 7), @[
+            new_identifier_node(NkIdentifier, li(11, 7), "tmp1")
+         ]),
+         new_inumber_node(NkIntLit, li(11, 14), 1, "1", Base10, -1)
+      ]),
+      identifier: new_identifier_node(NkIdentifier, li(11, 7), "tmp1")
    )
 ])
 

@@ -850,7 +850,7 @@ proc find_all_drivers*(n: PNode, recursive: bool = false): seq[tuple[driver, ide
          for lvalue in find_all_lvalues(lvalue_node):
             add(result, (n, lvalue))
 
-   of NkProceduralContinuousAssignment:
+   of NkProceduralContinuousAssignment, NkBlockingAssignment, NkNonblockingAssignment:
       let lvalue_node = find_first(n, {NkVariableLvalue, NkVariableLvalueConcat})
       for lvalue in find_all_lvalues(lvalue_node):
          add(result, (n, lvalue))
