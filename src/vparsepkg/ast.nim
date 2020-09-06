@@ -850,8 +850,7 @@ proc find_all_drivers*(n: PNode, recursive: bool = false): seq[tuple[driver, ide
    of NkPortDecl:
       let direction = find_first(n, NkDirection)
       if not is_nil(direction) and direction.identifier.s == "input":
-         let id = find_first(n, NkPortIdentifier)
-         if not is_nil(id):
+         for id in walk_sons(n, NkPortIdentifier):
             add(result, (n, id))
 
    of NkContinuousAssignment:
