@@ -817,7 +817,7 @@ proc find_all_module_instantiations*(n: PNode): seq[PNode] =
          add(result, find_all_module_instantiations(s))
 
 
-proc find_all_lvalues(n: PNode): seq[PNode] =
+proc find_all_lvalues*(n: PNode): seq[PNode] =
    if is_nil(n):
       return
 
