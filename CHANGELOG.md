@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
   the AST.
 - Add interface `find_all_ports()` and `find_all_parameters()`.
 - Add a set for the node types involved in expressions.
+- Add the option to specify the start of the search for the various
+  `find_first()` functions.
 
 ## Fixed
 

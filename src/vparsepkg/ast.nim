@@ -430,20 +430,20 @@ proc new_error_node*(kind: NodeKind, loc: Location, raw, msg: string,
    result.eraw = raw
 
 
-proc find_first*(n: PNode, kinds: NodeKinds): PNode =
+proc find_first*(n: PNode, kinds: NodeKinds, start: Natural = 0): PNode =
    ## Return the first son in ``n`` whose kind is in ``kinds``. If a matching
-   ## node cannot be found, ``nil`` is returned.
+   ## node cannot be found, ``nil`` is returned. The search begins at ``start``.
    result = nil
-   if n.kind notin PrimitiveTypes:
-      for s in n.sons:
-         if s.kind in kinds:
-            return s
+   if n.kind notin PrimitiveTypes and start < len(n.sons):
+      for i in start..high(n.sons):
+         if n.sons[i].kind in kinds:
+            return n.sons[i]
 
 
-template find_first*(n: PNode, kind: NodeKind): PNode =
+template find_first*(n: PNode, kind: NodeKind, start: Natural = 0): PNode =
    ## Return the first son in ``n`` whose kind is ``kind``. If a matching node
-   ## cannot be found, ``nil`` is returned.
-   find_first(n, {kind})
+   ## cannot be found, ``nil`` is returned. The search begins at ``start``.
+   find_first(n, {kind}, start)
 
 
 proc find_first_chain*(n: PNode, kind_chain: openarray[NodeKind]): PNode =
@@ -456,56 +456,58 @@ proc find_first_chain*(n: PNode, kind_chain: openarray[NodeKind]): PNode =
          break
 
 
-proc find_first_index*(n: PNode, kinds: NodeKinds): int =
+proc find_first_index*(n: PNode, kinds: NodeKinds, start: Natural = 0): int =
    ## Return the index of the first son in ``n`` whose kind is in ``kinds``.
-   ## If a matching node cannot be found, ``-1`` is returned.
+   ## If a matching node cannot be found, ``-1`` is returned. The search
+   ## begins at ``start``.
    result = -1
-   if n.kind notin PrimitiveTypes:
-      for i, s in n.sons:
-         if s.kind in kinds:
+   if n.kind notin PrimitiveTypes and start < len(n.sons):
+      for i in start..high(n.sons):
+         if n.sons[i].kind in kinds:
             return i
 
 
-template find_first_index*(n: PNode, kind: NodeKind): int =
+template find_first_index*(n: PNode, kind: NodeKind, start: Natural = 0): int =
    ## Return the index of the first son in ``n`` whose kind is ``kind``.
-   ## If a matching node cannot be found, ``-1`` is returned.
-   find_first_index(n, {kind})
+   ## If a matching node cannot be found, ``-1`` is returned. The search
+   ## begins at ``start``.
+   find_first_index(n, {kind}, start)
 
 
-template walk_sons_common(n: PNode, kinds: NodeKinds) =
-   if n.kind notin PrimitiveTypes:
-      for s in n.sons:
-         if s.kind in kinds:
-            yield s
+template walk_sons_common(n: PNode, kinds: NodeKinds, start: Natural = 0) =
+   if n.kind notin PrimitiveTypes and start < len(n.sons):
+      for i in start..high(n.sons):
+         if n.sons[i].kind in kinds:
+            yield n.sons[i]
 
 
-template walk_sons_common_index(n: PNode, kinds: NodeKinds) =
-   if n.kind notin PrimitiveTypes:
-      var i = 0
-      for s in n.sons:
-         if s.kind in kinds:
-            yield (i, s)
-            inc(i)
+template walk_sons_common_index(n: PNode, kinds: NodeKinds, start: Natural = 0) =
+   if n.kind notin PrimitiveTypes and start < len(n.sons):
+      var idx = 0
+      for i in start..high(n.sons):
+         if n.sons[i].kind in kinds:
+            yield (idx, n.sons[i])
+            inc(idx)
 
 
-iterator walk_sons*(n: PNode, kinds: NodeKinds): PNode {.inline.} =
-   ## Walk the sons in ``n`` whose kind is in ``kinds``.
-   walk_sons_common(n, kinds)
+iterator walk_sons*(n: PNode, kinds: NodeKinds, start: Natural = 0): PNode {.inline.} =
+   ## Starting at ``start``, walk the sons in ``n`` whose kind is in ``kinds``.
+   walk_sons_common(n, kinds, start)
 
 
-iterator walk_sons_index*(n: PNode, kinds: NodeKinds): tuple[i: int, n: PNode] {.inline.} =
-   ## Walk the sons in ``n`` whose kind is in ``kinds``.
-   walk_sons_common_index(n, kinds)
+iterator walk_sons_index*(n: PNode, kinds: NodeKinds, start: Natural = 0): tuple[i: int, n: PNode] {.inline.} =
+   ## Starting at ``start``, walk the sons in ``n`` whose kind is in ``kinds``.
+   walk_sons_common_index(n, kinds, start)
 
 
-iterator walk_sons*(n: PNode, kind: NodeKind): PNode {.inline.} =
-   ## Walk the sons in ``n`` whose kind is ``kind``.
-   walk_sons_common(n, {kind})
+iterator walk_sons*(n: PNode, kind: NodeKind, start: Natural = 0): PNode {.inline.} =
+   ## Starting at ``start``, walk the sons in ``n`` whose kind is ``kind``.
+   walk_sons_common(n, {kind}, start)
 
 
-iterator walk_sons_index*(n: PNode, kind: NodeKind): tuple[i: int, n: PNode] {.inline.} =
-   ## Walk the sons in ``n`` whose kind is ``kind``.
-   walk_sons_common_index(n, {kind})
+iterator walk_sons_index*(n: PNode, kind: NodeKind, start: Natural = 0): tuple[i: int, n: PNode] {.inline.} =
+   ## Starting at ``start``, walk the sons in ``n`` whose kind is ``kind``.
+   walk_sons_common_index(n, {kind}, start)
 
 
 iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
