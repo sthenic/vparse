@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Add interface `find_all_drivers()` to simplify extracting driver nodes from
   the AST.
 - Add interface `find_all_ports()` and `find_all_parameters()`.
+- Add a set for the node types involved in expressions.
 
 ## Fixed
 

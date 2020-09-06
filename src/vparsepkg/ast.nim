@@ -137,7 +137,15 @@ const
        NkTaskFunctionPortDecl}
 
    ConcatenationTypes* =
-      {NkConstantConcat, NkConstantMultipleConcat, NkPortReferenceConcat, NkVariableLvalueConcat}
+      {NkConstantConcat, NkConstantMultipleConcat, NkPortReferenceConcat,
+       NkVariableLvalueConcat}
+
+   ExpressionTypes* =
+      IntegerTypes + {NkPrefix, NkInfix, NkConstantFunctionCall, NkIdentifier,
+      NkRangedIdentifier, NkConstantMultipleConcat, NkConstantConcat,
+      NkConstantSystemFunctionCall, NkParenthesis, NkStrLit,
+      NkConstantConditionalExpression}
+
 
 type
    PNode* = ref TNode
