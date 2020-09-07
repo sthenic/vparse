@@ -1103,3 +1103,104 @@ proc `$`*(n: PNode): string =
 
       if n.kind == NkParenthesis:
          add(result, ')')
+
+
+type EvaluationError* = object of ValueError
+
+
+proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref EvaluationError =
+   new result
+   result.msg = format(msg, string)
+
+
+proc evaluate_constant_prefix(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_infix(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_function_call(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_identifier(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_multiple_concat(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_concat(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_ranged_identifier(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_system_function_call(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_conditional_expression(n: PNode, context: AstContext): Token =
+   # FIXME: Implement
+   discard
+
+
+proc evaluate_constant_expression*(n: PNode, context: AstContext): Token =
+   ## Evalue the constant expression starting in ``n`` in the given ``context``.
+   ## The result is represented using a Verilog ``Token`` and an
+   ## ``EvaluationError`` is raised if the evaluation fails.
+   if is_nil(n):
+      raise new_evaluation_error("Invalid node (nil).")
+
+   case n.kind
+   of NkPrefix:
+      result = evaluate_constant_prefix(n, context)
+   of NkInfix:
+      result = evaluate_constant_infix(n, context)
+   of NkConstantFunctionCall:
+      result = evaluate_constant_function_call(n, context)
+   of NkIdentifier:
+      result = evaluate_constant_identifier(n, context)
+   of NkConstantMultipleConcat:
+      result = evaluate_constant_multiple_concat(n, context)
+   of NkConstantConcat:
+      result = evaluate_constant_concat(n, context)
+   of NkRangedIdentifier:
+      result = evaluate_constant_ranged_identifier(n, context)
+   of NkConstantSystemFunctionCall:
+      result = evaluate_constant_system_function_call(n, context)
+   of NkParenthesis:
+      result = evaluate_constant_expression(find_first(n, ExpressionTypes), context)
+   of NkConstantConditionalExpression:
+      result = evaluate_constant_conditional_expression(n, context)
+   of NkStrLit:
+      init(result)
+      result.kind = TkStrLit
+      result.literal = n.s
+   of NkRealLit:
+      init(result)
+      result.kind = TkRealLit
+      result.fnumber = n.fnumber
+      result.literal = n.fraw
+   of IntegerTypes:
+      init(result)
+      result.kind = TokenKind(ord(TkIntLit) + ord(n.kind) - ord(NkIntLit))
+      result.inumber = n.inumber
+      result.literal = n.iraw
+      result.base = n.base
+      result.size = n.size
+   else:
+      raise new_evaluation_error("The node '$1' is not an expression.", n.kind)
