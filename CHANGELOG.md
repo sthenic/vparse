@@ -16,6 +16,9 @@ All notable changes to this project will be documented in this file.
 ## Fixed
 
 - Disable colored output when stdout does not lead to a terminal.
+- Fix `find_all_parameters()` always including the parameters declared in the
+  module body. Like ports, these only get included if the parameter port list is
+  omitted.
 
 ## [v0.2.2] - 2020-08-31
 

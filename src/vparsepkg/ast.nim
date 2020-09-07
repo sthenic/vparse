@@ -914,13 +914,14 @@ proc find_all_parameters*(n: PNode): seq[tuple[parameter, identifier: PNode]] =
    if n.kind != NkModuleDecl:
       return
 
-   # Add parameter declarations from the parameter port list.
+   # Add parameter declarations from the parameter port list. Otherwise, we
+   # check the module body for parameter declarations. The two are mutually
+   # exclusive according to Section 4.10.1.
    let parameter_declarations = find_first(n, NkModuleParameterPortList)
    if not is_nil(parameter_declarations):
       add_parameter_declarations_from_sons(result, parameter_declarations)
-
-   # Add any parameter declarations from the module body.
-   add_parameter_declarations_from_sons(result, n)
+   else:
+      add_parameter_declarations_from_sons(result, n)
 
 
 proc `$`*(n: PNode): string =
