@@ -170,7 +170,7 @@ endmodule
 ])
 
 
-run_test_module_decl("Find all parameters", find_all_parameters, """
+run_test_module_decl("Find all parameters (1)", find_all_parameters, """
 module port_finder #(
    parameter WIDTH = 32,
    parameter ZERO = 0
@@ -195,15 +195,23 @@ endmodule
          ])
       ]),
       identifier: new_identifier_node(NkParameterIdentifier, li(3, 14), "ZERO")
-   ),
+   )
+])
+
+
+run_test_module_decl("Find all parameters (2)", find_all_parameters, """
+module port_finder ();
+   parameter FOO = 3;
+endmodule
+""", @[
    (
-      parameter: new_node(NkParameterDecl, li(5, 4), @[
-         new_node(NkParamAssignment, li(5, 14), @[
-            new_identifier_node(NkParameterIdentifier, li(5, 14), "FOO"),
-            new_inumber_node(NkIntLit, li(5, 20), 3, "3", Base10, -1)
+      parameter: new_node(NkParameterDecl, li(2, 4), @[
+         new_node(NkParamAssignment, li(2, 14), @[
+            new_identifier_node(NkParameterIdentifier, li(2, 14), "FOO"),
+            new_inumber_node(NkIntLit, li(2, 20), 3, "3", Base10, -1)
          ])
       ]),
-      identifier: new_identifier_node(NkParameterIdentifier, li(5, 14), "FOO")
+      identifier: new_identifier_node(NkParameterIdentifier, li(2, 14), "FOO")
    )
 ])
 
