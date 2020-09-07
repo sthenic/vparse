@@ -141,10 +141,10 @@ const
        NkVariableLvalueConcat}
 
    ExpressionTypes* =
-      IntegerTypes + {NkPrefix, NkInfix, NkConstantFunctionCall, NkIdentifier,
-      NkRangedIdentifier, NkConstantMultipleConcat, NkConstantConcat,
-      NkConstantSystemFunctionCall, NkParenthesis, NkStrLit,
-      NkConstantConditionalExpression}
+      IntegerTypes + {NkRealLit, NkPrefix, NkInfix, NkConstantFunctionCall,
+      NkIdentifier, NkRangedIdentifier, NkConstantMultipleConcat,
+      NkConstantConcat, NkConstantSystemFunctionCall, NkParenthesis,
+      NkStrLit, NkConstantConditionalExpression}
 
 
 type
