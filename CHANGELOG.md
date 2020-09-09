@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The returned tuple for the `find_declaration()` procedure now includes any
+  expression node if the declaration involves an assignment. Otherwise, this
+  field is set to `nil`.
+
 ### Added
 
 - Add interface `find_all_drivers()` to simplify extracting driver nodes from

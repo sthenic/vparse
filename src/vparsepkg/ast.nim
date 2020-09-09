@@ -611,13 +611,13 @@ proc find_identifier_physical*(n: PNode, locs: PLocations, loc: Location, contex
    result = find_identifier(n, loc, context, added_length)
 
 
-proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, identifier: PNode] =
+proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, identifier, expression: PNode] =
    ## Descend into ``n``, searching for the AST node that declares
-   ## ``identifier``. The proc returns a tuple of the declaration node and the
-   ## matching identifier node within that AST. If the search failes, both tuple
+   ## ``identifier``. The proc returns a tuple of the declaration node, the
+   ## matching identifier node within that AST and any corresponding expression
+   ## if the declaration contains an assignment. If the search failes, all tuple
    ## fields are set to ``nil``.
-   result.declaration = nil
-   result.identifier = nil
+   result = (nil, nil, nil)
 
    # We have to hande each type of declaration node individually in order to find
    # the correct identifier node.
@@ -626,25 +626,25 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
       # A port declaration allows a list of identifiers.
       for id in walk_sons(n, NkPortIdentifier):
          if id.identifier.s == identifier.s:
-            return (n, id)
+            return (n, id, nil)
 
    of NkGenvarDecl:
       # A genvar declaration allows a list of identifiers.
       for id in walk_sons(n, NkIdentifier):
          if id.identifier.s == identifier.s:
-            return (n, id)
+            return (n, id, nil)
 
    of NkTaskDecl, NkFunctionDecl:
       let id = find_first(n, NkIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
-         return (n, id)
+         return (n, id, nil)
 
       # If we didn't get a hit for the task/function name itself, we check the
       # parameter list.
       for s in walk_sons(n, NkTaskFunctionPortDecl):
          for id in walk_sons(s, NkPortIdentifier):
             if id.identifier.s == identifier.s:
-               return (s, id)
+               return (s, id, nil)
 
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
       for s in n.sons:
@@ -652,10 +652,10 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
          of NkArrayIdentifer, NkAssignment:
             let id = find_first(s, NkIdentifier)
             if not is_nil(id) and id.identifier.s == identifier.s:
-               return (n, id)
+               return (n, id, find_first(s, ExpressionTypes))
          of NkIdentifier:
             if s.identifier.s == identifier.s:
-               return (n, s)
+               return (n, s, nil)
          else:
             discard
 
@@ -665,7 +665,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
       for s in walk_sons(n, NkParamAssignment):
          let id = find_first(s, NkParameterIdentifier)
          if not is_nil(id) and id.identifier.s == identifier.s:
-            return (n, id)
+            return (n, id, find_first(s, ExpressionTypes))
 
    of NkSpecparamDecl:
       # When we find a NkAssignment node, the first son is expected to be the
@@ -673,12 +673,12 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
       for s in walk_sons(n, NkAssignment):
          let id = find_first(s, NkIdentifier)
          if not is_nil(id) and id.identifier.s == identifier.s:
-            return (n, id)
+            return (n, id, find_first(s, ExpressionTypes))
 
    of NkModuleDecl:
       let id = find_first(n, NkModuleIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
-         return (n, id)
+         return (n, id, nil)
 
    of PrimitiveTypes + {NkDefparamDecl}:
       # Defparam declarations specifically targets an existing parameter and
@@ -694,21 +694,23 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
 
 
 proc find_declaration*(context: AstContext, identifier: PIdentifier):
-      tuple[declaration, identifier: PNode, context: AstContextItem] =
+      tuple[declaration, identifier, expression: PNode, context: AstContextItem] =
    ## Traverse the AST ``context`` bottom-up, descending into any declaration
    ## nodes found along the way searching for the declaration of ``identifier``.
    ## The proc returns a tuple of the declaration node, the matching identifier
-   ## node and the context in which it applies. If the search fails, the
-   ## declaration node is set to ``nil``.
+   ## node within that AST, any corresponding expression (if the declaration
+   ## contains an assignment) and the context in which it applies. If the search
+   ## failes, the declaration node is set to ``nil``.
    result.declaration = nil
    result.identifier = nil
+   result.expression = nil
    for i in countdown(high(context), 0):
       let context_item = context[i]
       if context_item.n.kind notin PrimitiveTypes:
          for pos in countdown(context_item.pos, 0):
             let s = context_item.n.sons[pos]
             if s.kind in DeclarationTypes - {NkDefparamDecl}:
-               (result.declaration, result.identifier) = find_declaration(s, identifier)
+               (result.declaration, result.identifier, result.expression) = find_declaration(s, identifier)
                if not is_nil(result.declaration):
                   if context_item.n.kind in {NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}:
                      # If the declaration was enclosed in any of the list types,
