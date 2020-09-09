@@ -187,6 +187,7 @@ type
    PAstContext* = ref AstContext
    AstContext* = seq[AstContextItem]
 
+   EvaluationError* = object of ValueError
 
 proc init*(c: var AstContext, len: int) =
    c = new_seq_of_cap[AstContextItem](len)
@@ -1107,7 +1108,8 @@ proc `$`*(n: PNode): string =
          add(result, ')')
 
 
-type EvaluationError* = object of ValueError
+# Forward declaration
+proc evaluate_constant_expression*(n: PNode, context: AstContext): Token
 
 
 proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref EvaluationError =
@@ -1122,7 +1124,7 @@ proc evaluate_constant_prefix(n: PNode, context: AstContext): Token =
 
 proc evaluate_constant_infix(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Infix evaluation not implemented.")
 
 
 proc evaluate_constant_function_call(n: PNode, context: AstContext): Token =
@@ -1131,8 +1133,14 @@ proc evaluate_constant_function_call(n: PNode, context: AstContext): Token =
 
 
 proc evaluate_constant_identifier(n: PNode, context: AstContext): Token =
-   # FIXME: Implement
-   discard
+   # To evaluate a constant identifier we look up its declaration in the context
+   # and evaluate what we find.
+   let (declaration, _, expression, _) = find_declaration(context, n.identifier)
+   if is_nil(declaration):
+      raise new_evaluation_error("Failed to find the declaration of identifier '$1'.", n.identifier)
+   if is_nil(expression):
+      raise new_evaluation_error("The declaration of '$1' does not contain an expression.", n.identifier)
+   result = evaluate_constant_expression(expression, context)
 
 
 proc evaluate_constant_multiple_concat(n: PNode, context: AstContext): Token =
