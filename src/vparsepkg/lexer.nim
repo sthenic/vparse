@@ -90,7 +90,10 @@ const
                        "||", "**", "<", "<=", ">", ">=", "&", "|", "^", "^~",
                        "~^", ">>", "<<", ">>>", "<<<"]
 
-   IntegerTokens* = {TkIntLit, TkUIntLit, TkAmbIntLit, TkAmbUIntLit}
+   SignedTokens* = {TkIntLit, TkAmbIntLit}
+   UnsignedTokens* = {TkUIntLit, TkAmbUIntLit}
+   AmbiguousTokens* = {TkAmbIntLit, TkAmbUIntLit}
+   IntegerTokens* = SignedTokens + UnsignedTokens
    NumberTokens* = IntegerTokens + {TkRealLit}
    NetTypeTokens* = {TkSupply0, TkSupply1, TkTri, TkTriand, TkTrior, TkTri0,
                      TkTri1, TkWire, TkWand, TkWor}

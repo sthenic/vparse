@@ -1,6 +1,7 @@
 # Abstract syntax tree and symbol table
 import strutils
 import json
+import macros
 
 import ./lexer
 
@@ -1114,22 +1115,118 @@ proc evaluate_constant_expression*(n: PNode, context: AstContext): Token
 
 proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref EvaluationError =
    new result
-   result.msg = format(msg, string)
+   result.msg = format(msg, args)
 
 
 proc evaluate_constant_prefix(n: PNode, context: AstContext): Token =
-   # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
+
+
+template set_size_and_type(x, y: Token, result: var Token) =
+   if x.kind == TkRealLit or y.kind == TkRealLit:
+      # If any operand is real, the result is real.
+      result.kind = TkRealLit
+      result.size = -1
+   elif x.kind in UnsignedTokens or y.kind in UnsignedTokens:
+      # If any operand is unsigned, the result is unsigned. If any operand is
+      # ambiguous (containing X or Z), the result is also ambiguous.
+      result.size = max(x.size, y.size)
+      if x.kind == TkAmbUIntLit or y.kind == TkAmbUIntLit:
+         result.kind = TkAmbUIntLit
+      else:
+         result.kind = TkUIntLit
+   elif x.kind in SignedTokens and x.kind in SignedTokens:
+      # If both operands are signed, the result is signed. If any operand is
+      # ambiguous, the result is also ambiguous.
+      result.size = max(x.size, y.size)
+      if x.kind == TkAmbIntLit or y.kind == TkAmbIntLit:
+         result.kind = TkAmbIntLit
+      else:
+         result.kind = TkIntLit
+   else:
+      raise new_evaluation_error("Cannot add the two nodes of kind '$1' and '$2'.", $x.kind, $y.kind)
+
+
+macro make_infix(x, y: typed, op: string): untyped =
+   result = new_nim_node(nnkInfix)
+   add(result, new_ident_node(op.strVal))
+   add(result, x)
+   add(result, y)
+
+
+template insert_infix(x, y: Token, result: var Token, iop, fop: string) =
+   case result.kind
+   of TkIntLit, TkUIntLit:
+      result.inumber = make_infix(x.inumber, y.inumber, iop)
+      result.base = Base10
+      result.literal = $result.inumber
+   of TkAmbUIntLit, TkAmbIntLit:
+      result.literal = "x"
+   of TkRealLit:
+      let xval =
+         if x.kind in IntegerTokens:
+            to_biggest_float(x.inumber)
+         else:
+            x.fnumber
+
+      let yval =
+         if y.kind in IntegerTokens:
+            to_biggest_float(y.inumber)
+         else:
+            y.fnumber
+
+      result.fnumber = make_infix(xval, yval, fop)
+      if x.kind in AmbiguousTokens or y.kind in AmbiguousTokens:
+         result.fnumber = 0.0
+         result.literal = "x"
+      else:
+         result.literal = $result.fnumber
+   else:
+      raise new_evaluation_error("Cannot add tokens of the kind '$1'.", $result.kind)
+
+
+template evaluate_infix(x, y: Token, op: string): Token =
+   # We follow the steps outlined in the standard.
+   init(result)
+   set_size_and_type(x, y, result)
+   insert_infix(x, y, result, op, op)
+   result
+
+
+template evaluate_infix(x, y: Token, iop, fop: string): Token =
+   # We follow the steps outlined in the standard.
+   init(result)
+   set_size_and_type(x, y, result)
+   insert_infix(x, y, result, iop, fop)
+   result
 
 
 proc evaluate_constant_infix(n: PNode, context: AstContext): Token =
-   # FIXME: Implement
-   raise new_evaluation_error("Infix evaluation not implemented.")
+   let op_idx = find_first_index(n, NkIdentifier)
+   let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
+   let rhs_idx = find_first_index(n, ExpressionTypes, lhs_idx + 1)
+   if op_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
+      raise new_evaluation_error("Invalid infix node.")
+
+   let lhs = evaluate_constant_expression(n.sons[lhs_idx], context)
+   let rhs = evaluate_constant_expression(n.sons[rhs_idx], context)
+   case n.sons[op_idx].identifier.s
+   of "+":
+      result = evaluate_infix(lhs, rhs, "+")
+   of "-":
+      result = evaluate_infix(lhs, rhs, "-")
+   of "*":
+      result = evaluate_infix(lhs, rhs, "*")
+   of "/":
+      result = evaluate_infix(lhs, rhs, "div", "/")
+   else:
+      echo pretty(n.sons[op_idx])
+      raise new_evaluation_error("Infix operator '$1' not implemented.", n.sons[op_idx].identifier.s)
 
 
 proc evaluate_constant_function_call(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_identifier(n: PNode, context: AstContext): Token =
@@ -1145,27 +1242,27 @@ proc evaluate_constant_identifier(n: PNode, context: AstContext): Token =
 
 proc evaluate_constant_multiple_concat(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_concat(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_ranged_identifier(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_system_function_call(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_conditional_expression(n: PNode, context: AstContext): Token =
    # FIXME: Implement
-   discard
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_expression*(n: PNode, context: AstContext): Token =
