@@ -2,6 +2,7 @@
 import strutils
 import json
 import macros
+import math
 
 import ./lexer
 
@@ -1122,15 +1123,17 @@ proc evaluate_constant_prefix(n: PNode, context: AstContext): Token =
    raise new_evaluation_error("Not implemented")
 
 
-template set_size_and_type(x, y: Token, result: var Token) =
+template set_expression_type(x, y: Token, result: var Token) =
    if x.kind == TkRealLit or y.kind == TkRealLit:
-      # If any operand is real, the result is real.
-      result.kind = TkRealLit
-      result.size = -1
+      # If any operand is real, the result is real. If any operand is
+      # ambiguous (containing X or Z), the result is also ambiguous.
+      if x.kind in AmbiguousTokens or y.kind in AmbiguousTokens:
+         result.kind = TkAmbRealLit
+      else:
+         result.kind = TkRealLit
    elif x.kind in UnsignedTokens or y.kind in UnsignedTokens:
       # If any operand is unsigned, the result is unsigned. If any operand is
       # ambiguous (containing X or Z), the result is also ambiguous.
-      result.size = max(x.size, y.size)
       if x.kind == TkAmbUIntLit or y.kind == TkAmbUIntLit:
          result.kind = TkAmbUIntLit
       else:
@@ -1138,7 +1141,6 @@ template set_size_and_type(x, y: Token, result: var Token) =
    elif x.kind in SignedTokens and x.kind in SignedTokens:
       # If both operands are signed, the result is signed. If any operand is
       # ambiguous, the result is also ambiguous.
-      result.size = max(x.size, y.size)
       if x.kind == TkAmbIntLit or y.kind == TkAmbIntLit:
          result.kind = TkAmbIntLit
       else:
@@ -1147,58 +1149,79 @@ template set_size_and_type(x, y: Token, result: var Token) =
       raise new_evaluation_error("Cannot add the two nodes of kind '$1' and '$2'.", $x.kind, $y.kind)
 
 
-macro make_infix(x, y: typed, op: string): untyped =
-   result = new_nim_node(nnkInfix)
-   add(result, new_ident_node(op.strVal))
-   add(result, x)
-   add(result, y)
+const INTEGER_BITS = 32
 
 
-template insert_infix(x, y: Token, result: var Token, iop, fop: string) =
+proc reinterpret(t: var Token) =
+   case t.kind
+   of TkUIntLit:
+      let size = if t.size < 0: INTEGER_BITS else: t.size
+      t.inumber = t.inumber and ((1 shl size) - 1)
+   of TkIntLit:
+      let sign_bit = if t.size > 0: 1 shl (t.size - 1) else: 1 shl (INTEGER_BITS - 1)
+      t.inumber = (t.inumber and (sign_bit - 1)) - (t.inumber and sign_bit)
+   else:
+      discard
+
+
+proc sign_extend(t: Token, size: int): Token =
+   result = t
+   reinterpret(result)
+   result.size = size
+
+
+proc `+`(x, y: Token): Token =
+   # First, we determine the size of the expression.
+   init(result)
+   result.size = max(x.size, y.size)
+   if x.size < 0 or y.size < 0:
+      result.size = max(result.size, INTEGER_BITS)
+   # Second we determine the type of the expression.
+   set_expression_type(x, y, result)
+   # Third, we propagate this information to the operands.
+   let xse = sign_extend(x, result.size)
+   let yse = sign_extend(y, result.size)
    case result.kind
    of TkIntLit, TkUIntLit:
-      result.inumber = make_infix(x.inumber, y.inumber, iop)
       result.base = Base10
+      result.inumber = xse.inumber + yse.inumber
+      # We have to be prepared to reinterpret the result of an integer operation
+      # to deal with overflow, underflow and truncation.
+      reinterpret(result)
       result.literal = $result.inumber
    of TkAmbUIntLit, TkAmbIntLit:
       result.literal = "x"
+   of TkAmbRealLit:
+      result.literal = "x"
+      result.size = -1
    of TkRealLit:
-      let xval =
-         if x.kind in IntegerTokens:
-            to_biggest_float(x.inumber)
-         else:
-            x.fnumber
-
-      let yval =
-         if y.kind in IntegerTokens:
-            to_biggest_float(y.inumber)
-         else:
-            y.fnumber
-
-      result.fnumber = make_infix(xval, yval, fop)
-      if x.kind in AmbiguousTokens or y.kind in AmbiguousTokens:
-         result.fnumber = 0.0
-         result.literal = "x"
-      else:
-         result.literal = $result.fnumber
+      let xfnumber = if xse.kind in IntegerTokens: to_biggest_float(xse.inumber) else: xse.fnumber
+      let yfnumber = if yse.kind in IntegerTokens: to_biggest_float(yse.inumber) else: yse.fnumber
+      result.fnumber = xfnumber + yfnumber
+      result.literal = $result.fnumber
+      result.size = -1
    else:
       raise new_evaluation_error("Cannot add tokens of the kind '$1'.", $result.kind)
 
 
-template evaluate_infix(x, y: Token, op: string): Token =
-   # We follow the steps outlined in the standard.
-   init(result)
-   set_size_and_type(x, y, result)
-   insert_infix(x, y, result, op, op)
-   result
+proc `-`(x, y: Token): Token =
+   raise new_evaluation_error("Not implemented")
 
 
-template evaluate_infix(x, y: Token, iop, fop: string): Token =
-   # We follow the steps outlined in the standard.
-   init(result)
-   set_size_and_type(x, y, result)
-   insert_infix(x, y, result, iop, fop)
-   result
+proc `*`(x, y: Token): Token =
+   raise new_evaluation_error("Not implemented")
+
+
+proc `/`(x, y: Token): Token =
+   raise new_evaluation_error("Not implemented")
+
+
+proc `^`(x, y: Token): Token =
+   raise new_evaluation_error("Not implemented")
+
+
+proc `mod`(x, y: Token): Token =
+   raise new_evaluation_error("Not implemented")
 
 
 proc evaluate_constant_infix(n: PNode, context: AstContext): Token =
@@ -1212,13 +1235,7 @@ proc evaluate_constant_infix(n: PNode, context: AstContext): Token =
    let rhs = evaluate_constant_expression(n.sons[rhs_idx], context)
    case n.sons[op_idx].identifier.s
    of "+":
-      result = evaluate_infix(lhs, rhs, "+")
-   of "-":
-      result = evaluate_infix(lhs, rhs, "-")
-   of "*":
-      result = evaluate_infix(lhs, rhs, "*")
-   of "/":
-      result = evaluate_infix(lhs, rhs, "div", "/")
+      result = lhs + rhs;
    else:
       echo pretty(n.sons[op_idx])
       raise new_evaluation_error("Infix operator '$1' not implemented.", n.sons[op_idx].identifier.s)

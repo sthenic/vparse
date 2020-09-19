@@ -49,7 +49,7 @@ type
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
-      TkRealLit,
+      TkRealLit, TkAmbRealLit,
       TkDirective, TkDollar, TkComment, TkBlockComment, TkError, TkEndOfFile
 
    NumericalBase* = enum
@@ -155,7 +155,7 @@ const
       "Symbol", "Operator", "StrLit",
       "IntLit", "UIntLit",
       "AmbIntLit", "AmbUIntLit",
-      "RealLit",
+      "RealLit", "AmbRealLit",
       "Directive", "Dollar", "One-line comment", "Block comment", "Error", "[EOF]"
    ]
 
