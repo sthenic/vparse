@@ -1,5 +1,6 @@
 import terminal
 import strformat
+import math
 
 import ../../src/vparsepkg/parser
 import ../lexer/constructors
@@ -178,6 +179,112 @@ run_test_no_context("Arithmetic (%) sized, signed, positive",
    "4'b0101 % 4'sb1110", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 4, "1"))
 
 run_test_no_context("Arithmetic (%) real operand (error)", "15.0 % 32", Token(), true)
+
+run_test_no_context("Arithmetic (**) unsized",
+   "5 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 25, Base10, 32, "25"))
+
+run_test_no_context("Arithmetic (**) sized (only depends on first operand)",
+   "6'd2 ** 5", new_inumber(TkUIntLit, loc(0, 0, 0), 32, Base10, 6, "32"))
+
+run_test_no_context("Arithmetic (**) sized, signed -> negative (kind only depends on first operand)",
+   "4'sb1110 ** 'd1", new_inumber(TkIntLit, loc(0, 0, 0), -2, Base10, 4, "-2"))
+
+run_test_no_context("Arithmetic (**) sized, signed -> even",
+   "4'sb1110 ** 'd2", new_inumber(TkIntLit, loc(0, 0, 0), 4, Base10, 4, "4"))
+
+run_test_no_context("Arithmetic (**) sized, signed, overflow",
+   "4'sb1001 ** 'd2 // (-7)^2 mod 16", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 4, "1"))
+
+run_test_no_context("Arithmetic (**) x < -1, y == 0",
+   "4'sb1110 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 4, "1"))
+
+run_test_no_context("Arithmetic (**) x < -1, y < 0",
+   "4'sb1110 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 4, "0"))
+
+run_test_no_context("Arithmetic (**) x == -1, y > 0, odd",
+   "2'sb11 ** 3", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 2, "-1"))
+
+run_test_no_context("Arithmetic (**) x == -1, y > 0, even",
+   "2'sb11 ** 4", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 2, "1"))
+
+run_test_no_context("Arithmetic (**) x == -1, y == 0",
+   "2'sb11 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 2, "1"))
+
+run_test_no_context("Arithmetic (**) x == -1, y < 0, odd",
+   "2'sb11 ** 4'sb1101", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 2, "-1"))
+
+run_test_no_context("Arithmetic (**) x == -1, y < 0, even",
+   "2'sb11 ** 4'sb1100", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 2, "1"))
+
+run_test_no_context("Arithmetic (**) x == 0, y > 0",
+   "0 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 32, "0"))
+
+run_test_no_context("Arithmetic (**) x == 0, y == 0",
+   "0 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (**) x == 0, y < 0",
+   "0 ** 4'sb1110", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+
+run_test_no_context("Arithmetic (**) x == 1, y > 0",
+   "1 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (**) x == 1, y == 0",
+   "1 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (**) x == 1, y < 0",
+   "1 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (**) x > 1, y == 0",
+   "32 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (**) x > 1, y < 0",
+   "43 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 32, "0"))
+
+run_test_no_context("Arithmetic (**) x real, y real",
+   "2.0 ** 0.5", new_fnumber(TkRealLit, loc(0, 0, 0), pow(2.0, 0.5), "1.414213562373095"))
+
+# FIXME: Add when prefix is implemented.
+# run_test_no_context("Arithmetic (**) x == 0.0, y < 0.0",
+#    "0.0 ** -5.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+
+# FIXME: Add when prefix is implemented.
+# run_test_no_context("Arithmetic (**) x < 0.0, y real",
+#    "-2.0 ** 2.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+
+run_test_no_context("Arithmetic (**) x real, y integer",
+   "2.0 ** 2", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+
+run_test_no_context("Arithmetic (**) x == 0.0, y < 0",
+   "0.0 ** 4'sb1110", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+
+# FIXME: Add when prefix is implemented.
+# run_test_no_context("Arithmetic (**) x < 0.0, y integer",
+#    "-2.0 ** 2", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+
+run_test_no_context("Arithmetic (**) x integer, y real",
+   "2 ** 2.0", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+
+run_test_no_context("Arithmetic (**) x < 0, y real",
+   "4'sb1100 ** 2.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+
+run_test_no_context("Arithmetic (**) x == 0.0, y == 0.0",
+   "0.0 ** 0.0", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+
+run_test_no_context("Arithmetic (**) x == 0.0, y > 0",
+   "0.0 ** 3", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+
+run_test_no_context("Arithmetic (**) real reciprocal",
+   "2.0 ** 2'sb11", new_fnumber(TkRealLit, loc(0, 0, 0), 0.5, "0.5"))
+
+run_test_no_context("Arithmetic (**) truncated reciprocal",
+   "2 ** 2'sb11", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 32, "0"))
+
+run_test_no_context("Arithmetic (**) real square root",
+   "9.0 ** 0.5", new_fnumber(TkRealLit, loc(0, 0, 0), 3.0, "3.0"))
+
+run_test_no_context("Arithmetic (**) exponent truncated to zero",
+   "9.0 ** (1/2", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

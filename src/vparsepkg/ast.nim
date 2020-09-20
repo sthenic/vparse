@@ -2,6 +2,7 @@
 import strutils
 import json
 import macros
+import math
 
 import ./lexer
 
@@ -1115,6 +1116,10 @@ proc evaluate_constant_expression*(n: PNode, context: AstContext, kind: TokenKin
 proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int]
 
 
+template evaluate_constant_expression*(n: PNode, context: AstContext): Token =
+   evaluate_constant_expression(n, context, TkInvalid, -1)
+
+
 proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref EvaluationError =
    new result
    result.msg = format(msg, args)
@@ -1205,6 +1210,81 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
       raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $result.kind)
 
 
+proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+   init(result)
+   let xtok = evaluate_constant_expression(x, context, kind, size)
+   # The second operand is always self-determined, so we don't pass the
+   # context's kind and size when evaluating this operand.
+   let ytok = evaluate_constant_expression(y, context)
+
+   if kind in AmbiguousTokens:
+      result.kind = kind
+      set_ambiguous(result)
+
+   elif xtok.kind == TkRealLit and ytok.kind == TkRealLit:
+      result.kind = TkRealLit
+      result.size = -1
+      if (xtok.fnumber == 0.0 and ytok.fnumber < 0) or (xtok.fnumber < 0):
+         set_ambiguous(result)
+      else:
+         result.fnumber = pow(xtok.fnumber, ytok.fnumber)
+         result.literal = $result.fnumber
+
+   elif xtok.kind == TkRealLit:
+      result.kind = TkRealLit
+      result.size = -1
+      if (xtok.fnumber == 0.0 and ytok.inumber < 0) or (xtok.fnumber < 0):
+         set_ambiguous(result)
+      else:
+         result.fnumber = pow(xtok.fnumber, to_biggest_float(ytok.inumber))
+         result.literal = $result.fnumber
+
+   elif ytok.kind == TkRealLit:
+      result.kind = TkRealLit
+      result.size = -1
+      if xtok.inumber < 0:
+         set_ambiguous(result)
+      else:
+         result.fnumber = pow(to_biggest_float(xtok.inumber), ytok.fnumber)
+         result.literal = $result.fnumber
+
+   elif xtok.kind in IntegerTokens and ytok.kind in IntegerTokens:
+      result.kind = kind
+      result.size = size
+      result.base = Base10
+
+      if xtok.inumber < -1 or xtok.inumber > 1:
+         if ytok.inumber > 0:
+            result.inumber = xtok.inumber ^ ytok.inumber
+         elif ytok.inumber == 0:
+            result.inumber = 1
+         else:
+            result.inumber = 0
+      elif xtok.inumber == -1:
+         if ytok.inumber == 0:
+            result.inumber = 1
+         elif (ytok.inumber mod 2) == 0:
+            result.inumber = 1
+         else:
+            result.inumber = -1
+      elif xtok.inumber == 0:
+         if ytok.inumber > 0:
+            result.inumber = 0
+         elif ytok.inumber == 0:
+            result.inumber = 1
+         else:
+            set_ambiguous(result)
+      elif xtok.inumber == 1:
+         result.inumber = 1
+
+      reinterpret(result)
+      if result.kind notin AmbiguousTokens:
+         result.literal = $result.inumber
+
+   else:
+      raise new_evaluation_error("Power operation not allowed for kind '$1'.", $result.kind)
+
+
 proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
    let op_idx = find_first_index(n, NkIdentifier)
    let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
@@ -1226,6 +1306,8 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
       result = infix_operation(lhs, rhs, context, kind, size, "*")
    of "%":
       result = modulo(lhs, rhs, context, kind, size)
+   of "**":
+      result = power(lhs, rhs, context, kind, size)
    else:
       raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 
@@ -1338,10 +1420,6 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
       raise new_evaluation_error("The node '$1' is not an expression.", n.kind)
 
 
-template evaluate_constant_expression*(n: PNode, context: AstContext): Token =
-   evaluate_constant_expression(n, context, TkInvalid, -1)
-
-
 template determine_expression_kind(x, y: TokenKind): TokenKind =
    if x == TkRealLit or y == TkRealLit:
       # If any operand is real, the result is real. If any operand is
@@ -1405,7 +1483,7 @@ proc determine_kind_and_size_infix(n: PNode, context: AstContext):
       result.size = 1
       result.kind = TkUIntLit
    of ">>", "<<", "**", ">>>", "<<<":
-      result.size = lhs.size
+      result = lhs
    else:
       raise new_evaluation_error("Unsupported infix  operator '$1'.", op)
 
