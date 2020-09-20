@@ -1167,8 +1167,51 @@ template unary(n: PNode, context: AstContext, kind: TokenKind, size: int, op: st
    of AmbiguousTokens:
       set_ambiguous(result)
    else:
-      raise new_evaluation_error("Unary operator '$1' cannot yield kind '$2'.", op, kind)
+      raise new_evaluation_error("Unary operator '$1' cannot yield kind '$2'.", op, $kind)
    result
+
+
+proc negate(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+   init(result)
+   let tok = evaluate_constant_expression(n, context, kind, size)
+   result.kind = kind
+   result.size = size
+
+   case kind
+   of TkIntLit, TkUIntLit:
+      result.base = Base10
+      result.inumber = not tok.inumber
+      reinterpret(result)
+      result.literal = $result.inumber
+   of TkAmbIntLit, TkAmbUIntLit:
+      # For ambiguous values we have to work with the literal value. We can
+      # handle all numeric bases as base 16 since the lexer has ensured that the
+      # token we get is on the correct format. Other than 'dx, 'dz etc.,
+      # ambiguous decimal literals consisting of multiple digitis in are not
+      # legal syntax.
+      set_len(result.literal, 0)
+      result.base = tok.base
+      let mask = case tok.base
+         of Base2:
+            0x1
+         of Base8:
+            0x7
+         of Base16:
+            0xF
+         of Base10:
+            0
+
+      for c in tok.literal:
+         case c
+         of HexChars:
+            let val = not parse_hex_int($c) and mask
+            add(result.literal, to_hex(val, 1))
+         of ZChars, XChars:
+            add(result.literal, 'x')
+         else:
+            raise new_evaluation_error("Invalid literal character '$1'.", c)
+   else:
+      raise new_evaluation_error("Bitwise negation cannot yield kind '$1'.", $kind)
 
 
 proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1185,6 +1228,8 @@ proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, si
       result = unary(e, context, kind, size, "+")
    of "-":
       result = unary(e, context, kind, size, "-")
+   of "~":
+      result = negate(e, context, kind, size)
    else:
       raise new_evaluation_error("Prefix operator '$1' not implemented.", op)
 

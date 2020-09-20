@@ -315,6 +315,26 @@ run_test_no_context("Prefix (-) ambiguous (2)",
 run_test_no_context("Prefix (-) in infix expression",
    "-5 - 2", new_inumber(TkIntLit, loc(0, 0, 0), -7, Base10, INTEGER_BITS, "-7"))
 
+run_test_no_context("Prefix (~) unsized",
+   "~0", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, INTEGER_BITS, "-1"))
+
+run_test_no_context("Prefix (~) sized, unsigned",
+   "~3'b101", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base10, 3, "2"))
+
+run_test_no_context("Prefix (~) sized, signed",
+   "~3'sb010", new_inumber(TkIntLit, loc(0, 0, 0), -3, Base10, 3, "-3"))
+
+run_test_no_context("Prefix (~) ambiguous binary",
+   "~3'b?10", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 3, "x01"))
+
+run_test_no_context("Prefix (~) ambiguous octal",
+   "~9'Ox73", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base8, 9, "x04"))
+
+run_test_no_context("Prefix (~) ambiguous hexadecimal",
+   "~16'hA_X71", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base16, 16, "5x8E"))
+
+run_test_no_context("Prefix (~) ambiguous decimal",
+   "~16'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 16, "x"))
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
