@@ -505,13 +505,15 @@ proc get_base(l: var Lexer, tok: var Token) =
       tok.base = Base10
 
 
-proc set_ambiguous(tok: var Token) =
+proc set_ambiguous*(tok: var Token) =
    case tok.kind
    of TkIntLit:
       tok.kind = TkAmbIntLit
    of TkUIntLit:
       tok.kind = TkAmbUIntLit
-   of {TkAmbIntLit, TkAmbUIntLit}:
+   of TkRealLit:
+      tok.kind = TkAmbRealLit
+   of {TkAmbIntLit, TkAmbUIntLit, TkAmbRealLit}:
       discard
    else:
       tok.kind = TkInvalid

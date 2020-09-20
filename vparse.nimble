@@ -55,4 +55,4 @@ task asttests, "Run the AST test suite":
       exec("nim c --hints:off -r tast")
       exec("nim c --hints:off -r tastop")
       exec("nim c --hints:off -r tasteval")
-      exec("nim c --hints:off -r tastsizekind")
+      exec("nim c --hints:off -r tastkindsize")

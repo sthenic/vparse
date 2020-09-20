@@ -15,7 +15,7 @@ template run_test_no_context(title, stimuli: string, reference: tuple[kind: Toke
    let n = parse_specific_grammar(stimuli, cache, NkConstantExpression)
 
    try:
-      let response = determine_size_and_kind(n, @[])
+      let response = determine_kind_and_size(n, @[])
       if response == reference:
          styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
                          fgWhite, "Test '",  title, "'")

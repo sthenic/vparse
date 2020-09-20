@@ -64,10 +64,10 @@ run_test_no_context("Arithmetic (+) three terms, one real",
    "2 + 3.7 + 4'b1000", new_fnumber(TkRealLit, loc(0, 0, 0), 13.7, "13.7"))
 
 run_test_no_context("Arithmetic (+) two terms, one ambiguous",
-   "2 + 4'bXX11", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, "x"))
+   "2 + 4'bXX11", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
 
 run_test_no_context("Arithmetic (+) three terms, one ambiguous and one real",
-   "2 + 4'bXX11 + 3.44", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, "x"))
+   "2 + 4'bXX11 + 3.44", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
 
 run_test_no_context("Arithmetic (+) unsized unsigned number",
    "2 + 'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 5, Base10, 32, "5"))
@@ -105,11 +105,56 @@ run_test_no_context("Arithmetic (+) sized and real",
 run_test_no_context("Arithmetic (+) unsized signed and real",
    "'sh8000_0000 + 1.0", new_fnumber(TkRealLit, loc(0, 0, 0), -2147483647.0, "-2147483647.0"))
 
-run_test_no_context("Arithmetic (-) underflow",
+run_test_no_context("Arithmetic (-) underflow (1)",
    "8'h00 - 1", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, 32, "4294967295"))
 
-# run_test_no_context("Arithmetic (*) real operand",
-#    "1.0 * 4'hF", new_fnumber(TkRealLit, loc(0, 0, 0), 15.0, "15.0"))
+run_test_no_context("Arithmetic (-) underflow (2)",
+   "8'h00 - 8'd01", new_inumber(TkUIntLit, loc(0, 0, 0), 255, Base10, 8, "255"))
+
+run_test_no_context("Arithmetic (/) truncating, unsized",
+   "65 / 64", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (/) truncating, sized",
+   "8'hFF / 8'h10", new_inumber(TkUIntLit, loc(0, 0, 0), 15, Base10, 8, "15"))
+
+run_test_no_context("Arithmetic (/) ceiling integer",
+   "(245 + 16 - 1) / 16", new_inumber(TkIntLit, loc(0, 0, 0), 16, Base10, 32, "16"))
+
+run_test_no_context("Arithmetic (/) real operand (1)",
+   "1.0 / 2", new_fnumber(TkRealLit, loc(0, 0, 0), 0.5, "0.5"))
+
+run_test_no_context("Arithmetic (/) real operand (2)",
+   "1 / 2.0", new_fnumber(TkRealLit, loc(0, 0, 0), 0.5, "0.5"))
+
+run_test_no_context("Arithmetic (/) real operand (3)",
+   "1.0 / 2.0", new_fnumber(TkRealLit, loc(0, 0, 0), 0.5, "0.5"))
+
+run_test_no_context("Arithmetic (/) promotion to real",
+   "1.0 / 2 + 33 / 32", new_fnumber(TkRealLit, loc(0, 0, 0), 1.53125, "1.53125"))
+
+run_test_no_context("Arithmetic (/) ambiguous, unsized",
+   "'hXF / 2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+
+run_test_no_context("Arithmetic (/) ambiguous, unsized, signed",
+   "'shXF / 2", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+
+run_test_no_context("Arithmetic (/) ambiguous, sized",
+   "8'hFF / 8'hz2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 8, ""))
+
+run_test_no_context("Arithmetic (/) division by zero (signed integer)",
+   "32 / 0", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+
+run_test_no_context("Arithmetic (/) division by zero (unsigned integer)",
+   "'d32 / 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+
+run_test_no_context("Arithmetic (/) division by zero (real) (1)",
+   "3.0 / 0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0, ""))
+
+run_test_no_context("Arithmetic (/) division by zero (real) (2)",
+   "3 / 0.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0, ""))
+
+run_test_no_context("Arithmetic (*) real operand",
+   "1.0 * 4'hF", new_fnumber(TkRealLit, loc(0, 0, 0), 15.0, "15.0"))
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

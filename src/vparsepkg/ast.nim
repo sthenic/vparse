@@ -1112,7 +1112,7 @@ proc `$`*(n: PNode): string =
 # Forward declarations
 const INTEGER_BITS = 32
 proc evaluate_constant_expression*(n: PNode, context: AstContext, kind: TokenKind, size: int): Token
-proc determine_size_and_kind*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int]
+proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int]
 
 
 proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref EvaluationError =
@@ -1149,7 +1149,7 @@ macro make_infix(x, y: typed, op: string): untyped =
    add(result, y)
 
 
-template sum_or_subtract(x, y: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
+template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size: int, iop, fop: string): Token =
    init(result)
    let xtok = evaluate_constant_expression(x, context, kind, size)
    let ytok = evaluate_constant_expression(y, context, kind, size)
@@ -1158,20 +1158,30 @@ template sum_or_subtract(x, y: PNode, context: AstContext, kind: TokenKind, size
 
    case kind
    of TkIntLit, TkUIntLit:
-      result.base = Base10
-      result.inumber = make_infix(xtok.inumber, ytok.inumber, op)
-      # We have to be prepared to reinterpret the result of an integer operation
-      # to deal with overflow, underflow and truncation.
-      reinterpret(result)
-      result.literal = $result.inumber
-   of TkAmbUIntLit, TkAmbIntLit, TkAmbRealLit:
-      result.literal = "x"
+      if iop == "div" and ytok.inumber == 0:
+         set_ambiguous(result)
+      else:
+         result.base = Base10
+         result.inumber = make_infix(xtok.inumber, ytok.inumber, iop)
+         # We have to be prepared to reinterpret the result of an integer operation
+         # to deal with overflow, underflow and truncation.
+         reinterpret(result)
+         result.literal = $result.inumber
    of TkRealLit:
-      result.fnumber = make_infix(xtok.fnumber, ytok.fnumber, op)
-      result.literal = $result.fnumber
+      if fop == "/" and ytok.fnumber == 0.0:
+         set_ambiguous(result)
+      else:
+         result.fnumber = make_infix(xtok.fnumber, ytok.fnumber, fop)
+         result.literal = $result.fnumber
+   of AmbiguousTokens:
+      set_ambiguous(result)
    else:
-      raise new_evaluation_error("Cannot sum to result kind '$1'.", $result.kind)
+      raise new_evaluation_error("Infix operation '$1'/'$2' cannot yield kind '$3'.", iop, fop, $result.kind)
    result
+
+
+template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
+   infix_operation(x, y, context, kind, size, op, op)
 
 
 proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1183,13 +1193,18 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
 
    let lhs = n.sons[lhs_idx]
    let rhs = n.sons[rhs_idx]
-   case n.sons[op_idx].identifier.s
+   let op = n.sons[op_idx].identifier.s
+   case op
    of "+":
-      result = sum_or_subtract(lhs, rhs, context, kind, size, "+")
+      result = infix_operation(lhs, rhs, context, kind, size, "+")
    of "-":
-      result = sum_or_subtract(lhs, rhs, context, kind, size, "-")
+      result = infix_operation(lhs, rhs, context, kind, size, "-")
+   of "/":
+      result = infix_operation(lhs, rhs, context, kind, size, "div", "/")
+   of "*":
+      result = infix_operation(lhs, rhs, context, kind, size, "*")
    else:
-      raise new_evaluation_error("Infix operator '$1' not implemented.", n.sons[op_idx].identifier.s)
+      raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 
 
 proc evaluate_constant_function_call(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1243,7 +1258,7 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
 
    # We begin by determining the expression size and kind (signed/unsigned/real).
    let (lkind, lsize) = if kind == TkInvalid:
-      determine_size_and_kind(n, context)
+      determine_kind_and_size(n, context)
    else:
       (kind, size)
 
@@ -1330,16 +1345,16 @@ template determine_expression_kind(x, y: TokenKind): TokenKind =
       raise new_evaluation_error("Cannot determine expression kind of '$1' and '$2'.", $x, $y)
 
 
-proc determine_size_and_kind_prefix(n: PNode, context: AstContext):
+proc determine_kind_and_size_prefix(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    let op_idx = find_first_index(n, NkIdentifier)
    let expr_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
    if op_idx < 0 or expr_idx < 0:
-      raise new_evaluation_error("Invalid infix node.")
+      raise new_evaluation_error("Invalid prefix node.")
 
    case n.sons[op_idx].identifier.s
    of "+", "-", "~":
-      result = determine_size_and_kind(n.sons[expr_idx], context)
+      result = determine_kind_and_size(n.sons[expr_idx], context)
    of "&", "~&", "|", "~|", "^", "~^", "^~", "!":
       result.size = 1
       result.kind = TkUIntLit
@@ -1347,7 +1362,7 @@ proc determine_size_and_kind_prefix(n: PNode, context: AstContext):
       raise new_evaluation_error("Invalid prefix operator '$1'.", n.sons[op_idx].identifier.s)
 
 
-proc determine_size_and_kind_infix(n: PNode, context: AstContext):
+proc determine_kind_and_size_infix(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    let op_idx = find_first_index(n, NkIdentifier)
    let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
@@ -1355,12 +1370,13 @@ proc determine_size_and_kind_infix(n: PNode, context: AstContext):
    if op_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
       raise new_evaluation_error("Invalid infix node.")
 
-   let lhs = determine_size_and_kind(n.sons[lhs_idx], context)
-   let rhs = determine_size_and_kind(n.sons[rhs_idx], context)
+   let lhs = determine_kind_and_size(n.sons[lhs_idx], context)
+   let rhs = determine_kind_and_size(n.sons[rhs_idx], context)
+   let op = n.sons[op_idx].identifier.s
    result.kind = determine_expression_kind(lhs.kind, rhs.kind)
 
-   case n.sons[op_idx].identifier.s
-   of "+", "-", "*", "/":
+   case op
+   of "+", "-", "*", "/", "%", "&", "|", "^", "^~", "~^":
       result.size = max(lhs.size, rhs.size)
    of "===", "!==", "==", "!=", ">", ">=", "<", "<=", "&&", "||":
       result.size = 1
@@ -1368,35 +1384,35 @@ proc determine_size_and_kind_infix(n: PNode, context: AstContext):
    of ">>", "<<", "**", ">>>", "<<<":
       result.size = lhs.size
    else:
-      raise new_evaluation_error("Infix operator '$1' not implemented.", n.sons[op_idx].identifier.s)
+      raise new_evaluation_error("Unsupported infix  operator '$1'.", op)
 
    if result.kind in RealTokens:
       result.size = -1
 
 
-proc determine_size_and_kind_function_call(n: PNode, context: AstContext):
+proc determine_kind_and_size_function_call(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    raise new_evaluation_error("Not implemented")
 
 
-proc determine_size_and_kind_identifier(n: PNode, context: AstContext):
+proc determine_kind_and_size_identifier(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    let (declaration, _, expression, _) = find_declaration(context, n.identifier)
    if is_nil(declaration):
       raise new_evaluation_error("Failed to find the declaration of identifier '$1'.", n.identifier)
    if is_nil(expression):
       raise new_evaluation_error("The declaration of '$1' does not contain an expression.", n.identifier)
-   result = determine_size_and_kind(expression, context)
+   result = determine_kind_and_size(expression, context)
 
 
-proc determine_size_and_kind_concat(n: PNode, context: AstContext):
+proc determine_kind_and_size_concat(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    for s in walk_sons(n, ExpressionTypes):
-      let (_, size) = determine_size_and_kind(s, context)
+      let (_, size) = determine_kind_and_size(s, context)
       inc(result.size, size)
 
 
-proc determine_size_and_kind_multiple_concat(n: PNode, context: AstContext):
+proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    let factor_idx = find_first_index(n, ExpressionTypes)
    let concat_idx = find_first_index(n, NkConstantConcat, factor_idx + 1)
@@ -1404,11 +1420,11 @@ proc determine_size_and_kind_multiple_concat(n: PNode, context: AstContext):
       raise new_evaluation_error("Invalid multiple concatenation node.")
 
    let factor = evaluate_constant_expression(n.sons[factor_idx], context)
-   let (_, size) = determine_size_and_kind_concat(n.sons[concat_idx], context)
+   let (_, size) = determine_kind_and_size_concat(n.sons[concat_idx], context)
    result.size = int(factor.inumber) * size
 
 
-proc determine_size_and_kind_ranged_identifier(n: PNode, context: AstContext):
+proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    result.kind = TkUIntLit
    let range = find_first(n, NkConstantRangeExpression)
@@ -1441,12 +1457,12 @@ proc determine_size_and_kind_ranged_identifier(n: PNode, context: AstContext):
       raise new_evaluation_error("cInvalid ranged identifier node.")
 
 
-proc determine_size_and_kind_system_function_call(n: PNode, context: AstContext):
+proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    raise new_evaluation_error("Not implemented")
 
 
-proc determine_size_and_kind_conditional_expression(n: PNode, context: AstContext):
+proc determine_kind_and_size_conditional_expression(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
    let condition_idx = find_first_index(n, ExpressionTypes)
    let lhs_idx = find_first_index(n, ExpressionTypes, condition_idx + 1)
@@ -1454,37 +1470,37 @@ proc determine_size_and_kind_conditional_expression(n: PNode, context: AstContex
    if condition_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
       raise new_evaluation_error("Invalid conditional expression node.")
 
-   let lhs = determine_size_and_kind(n.sons[lhs_idx], context)
-   let rhs = determine_size_and_kind(n.sons[rhs_idx], context)
+   let lhs = determine_kind_and_size(n.sons[lhs_idx], context)
+   let rhs = determine_kind_and_size(n.sons[rhs_idx], context)
    result.size = max(lhs.size, rhs.size)
    result.kind = determine_expression_kind(lhs.kind, rhs.kind)
 
 
-proc determine_size_and_kind*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
+proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
    if is_nil(n):
       raise new_evaluation_error("Invalid node (nil).")
 
    case n.kind
    of NkPrefix:
-      result = determine_size_and_kind_prefix(n, context)
+      result = determine_kind_and_size_prefix(n, context)
    of NkInfix:
-      result = determine_size_and_kind_infix(n, context)
+      result = determine_kind_and_size_infix(n, context)
    of NkConstantFunctionCall:
-      result = determine_size_and_kind_function_call(n, context)
+      result = determine_kind_and_size_function_call(n, context)
    of NkIdentifier:
-      result = determine_size_and_kind_identifier(n, context)
+      result = determine_kind_and_size_identifier(n, context)
    of NkConstantMultipleConcat:
-      result = determine_size_and_kind_multiple_concat(n, context)
+      result = determine_kind_and_size_multiple_concat(n, context)
    of NkConstantConcat:
-      result = determine_size_and_kind_concat(n, context)
+      result = determine_kind_and_size_concat(n, context)
    of NkRangedIdentifier:
-      result = determine_size_and_kind_ranged_identifier(n, context)
+      result = determine_kind_and_size_ranged_identifier(n, context)
    of NkConstantSystemFunctionCall:
-      result = determine_size_and_kind_system_function_call(n, context)
+      result = determine_kind_and_size_system_function_call(n, context)
    of NkParenthesis:
-      result = determine_size_and_kind(find_first(n, ExpressionTypes), context)
+      result = determine_kind_and_size(find_first(n, ExpressionTypes), context)
    of NkConstantConditionalExpression:
-      result = determine_size_and_kind_conditional_expression(n, context)
+      result = determine_kind_and_size_conditional_expression(n, context)
    of NkStrLit:
       result.kind = TkStrLit
       result.size = -1
