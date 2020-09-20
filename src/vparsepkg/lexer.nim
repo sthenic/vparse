@@ -92,9 +92,10 @@ const
 
    SignedTokens* = {TkIntLit, TkAmbIntLit}
    UnsignedTokens* = {TkUIntLit, TkAmbUIntLit}
-   AmbiguousTokens* = {TkAmbIntLit, TkAmbUIntLit}
+   RealTokens* = {TkRealLit, TkAmbRealLit}
+   AmbiguousTokens* = {TkAmbIntLit, TkAmbUIntLit, TkAmbRealLit}
    IntegerTokens* = SignedTokens + UnsignedTokens
-   NumberTokens* = IntegerTokens + {TkRealLit}
+   NumberTokens* = IntegerTokens + RealTokens
    NetTypeTokens* = {TkSupply0, TkSupply1, TkTri, TkTriand, TkTrior, TkTri0,
                      TkTri1, TkWire, TkWand, TkWor}
    GateSwitchTypeTokens* = {TkCmos, TkRcmos,

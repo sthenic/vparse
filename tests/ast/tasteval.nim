@@ -93,8 +93,8 @@ run_test_no_context("Arithmetic (+) overflow, carry truncated (2)",
 run_test_no_context("Arithmetic (+) keep carry w/ '+ 0' (1)",
    "3'b101 + 0 + 3'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 32, "8"))
 
-# run_test_no_context("Arithmetic (+) keep carry w/ '+ 0' (2)",
-#    "3'b101 + 3'd3 + 0", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 32, "8"))
+run_test_no_context("Arithmetic (+) keep carry w/ '+ 0' (2)",
+   "3'b101 + 3'd3 + 0", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 32, "8"))
 
 run_test_no_context("Arithmetic (+) sized and unsized",
    "4'hF + 1", new_inumber(TkUIntLit, loc(0, 0, 0), 16, Base10, 32, "16"))
@@ -105,8 +105,8 @@ run_test_no_context("Arithmetic (+) sized and real",
 run_test_no_context("Arithmetic (+) unsized signed and real",
    "'sh8000_0000 + 1.0", new_fnumber(TkRealLit, loc(0, 0, 0), -2147483647.0, "-2147483647.0"))
 
-# run_test_no_context("Arithmetic (-) underflow",
-#    "8'h00 - 1", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, 40, "4294967295"))
+run_test_no_context("Arithmetic (-) underflow",
+   "8'h00 - 1", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, 32, "4294967295"))
 
 # run_test_no_context("Arithmetic (*) real operand",
 #    "1.0 * 4'hF", new_fnumber(TkRealLit, loc(0, 0, 0), 15.0, "15.0"))
