@@ -111,6 +111,9 @@ run_test_no_context("Arithmetic (-) underflow (1)",
 run_test_no_context("Arithmetic (-) underflow (2)",
    "8'h00 - 8'd01", new_inumber(TkUIntLit, loc(0, 0, 0), 255, Base10, 8, "255"))
 
+run_test_no_context("Arithmetic (-) truncated first term",
+   "4'hBA - 4'hA", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 4, "0"))
+
 run_test_no_context("Arithmetic (/) truncating, unsized",
    "65 / 64", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
 
@@ -153,8 +156,28 @@ run_test_no_context("Arithmetic (/) division by zero (real) (1)",
 run_test_no_context("Arithmetic (/) division by zero (real) (2)",
    "3 / 0.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0, ""))
 
+run_test_no_context("Arithmetic (*) sized, overflow",
+   "8'h80 * 8'd2", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 8, "0"))
+
+run_test_no_context("Arithmetic (*) unsized, no overflow",
+   "8'h80 * 2", new_inumber(TkUIntLit, loc(0, 0, 0), 256, Base10, 32, "256"))
+
 run_test_no_context("Arithmetic (*) real operand",
    "1.0 * 4'hF", new_fnumber(TkRealLit, loc(0, 0, 0), 15.0, "15.0"))
+
+run_test_no_context("Arithmetic (%) unsized, signed",
+   "15 % 32", new_inumber(TkIntLit, loc(0, 0, 0), 15, Base10, 32, "15"))
+
+run_test_no_context("Arithmetic (%) unsized, unsigned",
+   "'hA % 8", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base10, 32, "2"))
+
+run_test_no_context("Arithmetic (%) sized, signed, negative",
+   "4'sb1011 % 4'd2", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 4, "-1"))
+
+run_test_no_context("Arithmetic (%) sized, signed, positive",
+   "4'b0101 % 4'sb1110", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 4, "1"))
+
+run_test_no_context("Arithmetic (%) real operand (error)", "15.0 % 32", Token(), true)
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

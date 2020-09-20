@@ -1184,6 +1184,27 @@ template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size
    infix_operation(x, y, context, kind, size, op, op)
 
 
+proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+   init(result)
+   let xtok = evaluate_constant_expression(x, context, kind, size)
+   let ytok = evaluate_constant_expression(y, context, kind, size)
+   # The modulo operation always takes the sign of the first operand.
+   result.kind = xtok.kind
+   result.size = size
+
+   case kind
+   of IntegerTokens:
+      if kind in AmbiguousTokens or ytok.inumber == 0:
+         set_ambiguous(result)
+      else:
+         result.base = Base10
+         result.inumber = xtok.inumber mod ytok.inumber
+         reinterpret(result)
+         result.literal = $result.inumber
+   else:
+      raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $result.kind)
+
+
 proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
    let op_idx = find_first_index(n, NkIdentifier)
    let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
@@ -1203,6 +1224,8 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
       result = infix_operation(lhs, rhs, context, kind, size, "div", "/")
    of "*":
       result = infix_operation(lhs, rhs, context, kind, size, "*")
+   of "%":
+      result = modulo(lhs, rhs, context, kind, size)
    else:
       raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 
