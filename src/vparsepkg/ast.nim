@@ -1111,7 +1111,7 @@ proc `$`*(n: PNode): string =
 
 
 # Forward declarations
-const INTEGER_BITS = 32
+const INTEGER_BITS* = 32
 proc evaluate_constant_expression*(n: PNode, context: AstContext, kind: TokenKind, size: int): Token
 proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int]
 
@@ -1143,8 +1143,50 @@ proc sign_extend(t: Token, size: int): Token =
    result.size = size
 
 
+macro make_prefix(x: typed, op: string): untyped =
+   result = new_nim_node(nnkPrefix)
+   add(result, new_ident_node(op.str_val))
+   add(result, x)
+
+
+template unary(n: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
+   init(result)
+   let tok = evaluate_constant_expression(n, context, kind, size)
+   result.kind = kind
+   result.size = size
+
+   case kind
+   of TkIntLit, TkUIntLit:
+      result.base = Base10
+      result.inumber = make_prefix(tok.inumber, op)
+      reinterpret(result)
+      result.literal = $result.inumber
+   of TkRealLit:
+      result.fnumber = make_prefix(tok.fnumber, op)
+      result.literal = $result.fnumber
+   of AmbiguousTokens:
+      set_ambiguous(result)
+   else:
+      raise new_evaluation_error("Unary operator '$1' cannot yield kind '$2'.", op, kind)
+   result
+
+
 proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
-   raise new_evaluation_error("Not implemented")
+   init(result)
+   let op_idx = find_first_index(n, NkIdentifier)
+   let e_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
+   if op_idx < 0 or e_idx < 0:
+      raise new_evaluation_error("Invalid infix node.")
+
+   let e = n.sons[e_idx]
+   let op = n.sons[op_idx].identifier.s
+   case op
+   of "+":
+      result = unary(e, context, kind, size, "+")
+   of "-":
+      result = unary(e, context, kind, size, "-")
+   else:
+      raise new_evaluation_error("Prefix operator '$1' not implemented.", op)
 
 
 macro make_infix(x, y: typed, op: string): untyped =

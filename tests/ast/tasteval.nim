@@ -41,10 +41,10 @@ template run_test_no_context(title, stimuli: string, reference: Token, expect_er
 
 # Arithmetic '+'
 run_test_no_context("Arithmetic (+) two terms, unsized",
-   "1 + 1", new_inumber(TkIntLit, loc(0, 0, 0), 2, Base10, 32, "2"))
+   "1 + 1", new_inumber(TkIntLit, loc(0, 0, 0), 2, Base10, INTEGER_BITS, "2"))
 
 run_test_no_context("Arithmetic (+) three terms, unsized",
-   "32 + 542 + 99", new_inumber(TkIntLit, loc(0, 0, 0), 673, Base10, 32, "673"))
+   "32 + 542 + 99", new_inumber(TkIntLit, loc(0, 0, 0), 673, Base10, INTEGER_BITS, "673"))
 
 run_test_no_context("Arithmetic (+) two terms, same size",
    "3'b101 + 3'd2", new_inumber(TkUIntLit, loc(0, 0, 0), 7, Base10, 3, "7"))
@@ -53,7 +53,7 @@ run_test_no_context("Arithmetic (+) two terms, different size",
    "3'b101 + 15'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 15, "8"))
 
 run_test_no_context("Arithmetic (+) three terms, different size",
-   "32'd1 + 3'b101 + 15'o3", new_inumber(TkUIntLit, loc(0, 0, 0), 9, Base10, 32, "9"))
+   "32'd1 + 3'b101 + 15'o3", new_inumber(TkUIntLit, loc(0, 0, 0), 9, Base10, INTEGER_BITS, "9"))
 
 run_test_no_context("Arithmetic (+) two terms, both real",
    "1.1 + 3.14", new_fnumber(TkRealLit, loc(0, 0, 0), 4.24, "4.24"))
@@ -65,13 +65,13 @@ run_test_no_context("Arithmetic (+) three terms, one real",
    "2 + 3.7 + 4'b1000", new_fnumber(TkRealLit, loc(0, 0, 0), 13.7, "13.7"))
 
 run_test_no_context("Arithmetic (+) two terms, one ambiguous",
-   "2 + 4'bXX11", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+   "2 + 4'bXX11", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
 
 run_test_no_context("Arithmetic (+) three terms, one ambiguous and one real",
    "2 + 4'bXX11 + 3.44", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
 
 run_test_no_context("Arithmetic (+) unsized unsigned number",
-   "2 + 'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 5, Base10, 32, "5"))
+   "2 + 'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 5, Base10, INTEGER_BITS, "5"))
 
 run_test_no_context("Arithmetic (+) signed operand",
    "4'd12 + 4'sd12", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 4, "8"))
@@ -80,10 +80,10 @@ run_test_no_context("Arithmetic (+) signed operand, sign extension",
    "'sh8000_0000 + 40'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 0xFF_8000_0003, Base10, 40, "1097364144131"))
 
 run_test_no_context("Arithmetic (+) underflow, unsigned result",
-   "8'shFF + 'd0", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, 32, "4294967295"))
+   "8'shFF + 'd0", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, INTEGER_BITS, "4294967295"))
 
 run_test_no_context("Arithmetic (+) signed result, no underflow",
-   "8'shFF + 0", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 32, "-1"))
+   "8'shFF + 0", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, INTEGER_BITS, "-1"))
 
 run_test_no_context("Arithmetic (+) overflow, carry truncated (1)",
    "4'd15 + 4'd15", new_inumber(TkUIntLit, loc(0, 0, 0), 14, Base10, 4, "14"))
@@ -92,13 +92,13 @@ run_test_no_context("Arithmetic (+) overflow, carry truncated (2)",
    "3'b101 + 3'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 3, "0"))
 
 run_test_no_context("Arithmetic (+) keep carry w/ '+ 0' (1)",
-   "3'b101 + 0 + 3'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 32, "8"))
+   "3'b101 + 0 + 3'd3", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, INTEGER_BITS, "8"))
 
 run_test_no_context("Arithmetic (+) keep carry w/ '+ 0' (2)",
-   "3'b101 + 3'd3 + 0", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, 32, "8"))
+   "3'b101 + 3'd3 + 0", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base10, INTEGER_BITS, "8"))
 
 run_test_no_context("Arithmetic (+) sized and unsized",
-   "4'hF + 1", new_inumber(TkUIntLit, loc(0, 0, 0), 16, Base10, 32, "16"))
+   "4'hF + 1", new_inumber(TkUIntLit, loc(0, 0, 0), 16, Base10, INTEGER_BITS, "16"))
 
 run_test_no_context("Arithmetic (+) sized and real",
    "1.0 + 4'hF", new_fnumber(TkRealLit, loc(0, 0, 0), 16.0, "16.0"))
@@ -107,7 +107,7 @@ run_test_no_context("Arithmetic (+) unsized signed and real",
    "'sh8000_0000 + 1.0", new_fnumber(TkRealLit, loc(0, 0, 0), -2147483647.0, "-2147483647.0"))
 
 run_test_no_context("Arithmetic (-) underflow (1)",
-   "8'h00 - 1", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, 32, "4294967295"))
+   "8'h00 - 1", new_inumber(TkUIntLit, loc(0, 0, 0), 4294967295, Base10, INTEGER_BITS, "4294967295"))
 
 run_test_no_context("Arithmetic (-) underflow (2)",
    "8'h00 - 8'd01", new_inumber(TkUIntLit, loc(0, 0, 0), 255, Base10, 8, "255"))
@@ -116,13 +116,13 @@ run_test_no_context("Arithmetic (-) truncated first term",
    "4'hBA - 4'hA", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 4, "0"))
 
 run_test_no_context("Arithmetic (/) truncating, unsized",
-   "65 / 64", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+   "65 / 64", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, INTEGER_BITS, "1"))
 
 run_test_no_context("Arithmetic (/) truncating, sized",
    "8'hFF / 8'h10", new_inumber(TkUIntLit, loc(0, 0, 0), 15, Base10, 8, "15"))
 
 run_test_no_context("Arithmetic (/) ceiling integer",
-   "(245 + 16 - 1) / 16", new_inumber(TkIntLit, loc(0, 0, 0), 16, Base10, 32, "16"))
+   "(245 + 16 - 1) / 16", new_inumber(TkIntLit, loc(0, 0, 0), 16, Base10, INTEGER_BITS, "16"))
 
 run_test_no_context("Arithmetic (/) real operand (1)",
    "1.0 / 2", new_fnumber(TkRealLit, loc(0, 0, 0), 0.5, "0.5"))
@@ -137,19 +137,19 @@ run_test_no_context("Arithmetic (/) promotion to real",
    "1.0 / 2 + 33 / 32", new_fnumber(TkRealLit, loc(0, 0, 0), 1.53125, "1.53125"))
 
 run_test_no_context("Arithmetic (/) ambiguous, unsized",
-   "'hXF / 2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+   "'hXF / 2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
 
 run_test_no_context("Arithmetic (/) ambiguous, unsized, signed",
-   "'shXF / 2", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+   "'shXF / 2", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
 
 run_test_no_context("Arithmetic (/) ambiguous, sized",
    "8'hFF / 8'hz2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 8, ""))
 
 run_test_no_context("Arithmetic (/) division by zero (signed integer)",
-   "32 / 0", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+   "32 / 0", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
 
 run_test_no_context("Arithmetic (/) division by zero (unsigned integer)",
-   "'d32 / 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+   "'d32 / 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
 
 run_test_no_context("Arithmetic (/) division by zero (real) (1)",
    "3.0 / 0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0, ""))
@@ -161,16 +161,16 @@ run_test_no_context("Arithmetic (*) sized, overflow",
    "8'h80 * 8'd2", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 8, "0"))
 
 run_test_no_context("Arithmetic (*) unsized, no overflow",
-   "8'h80 * 2", new_inumber(TkUIntLit, loc(0, 0, 0), 256, Base10, 32, "256"))
+   "8'h80 * 2", new_inumber(TkUIntLit, loc(0, 0, 0), 256, Base10, INTEGER_BITS, "256"))
 
 run_test_no_context("Arithmetic (*) real operand",
    "1.0 * 4'hF", new_fnumber(TkRealLit, loc(0, 0, 0), 15.0, "15.0"))
 
 run_test_no_context("Arithmetic (%) unsized, signed",
-   "15 % 32", new_inumber(TkIntLit, loc(0, 0, 0), 15, Base10, 32, "15"))
+   "15 % 32", new_inumber(TkIntLit, loc(0, 0, 0), 15, Base10, INTEGER_BITS, "15"))
 
 run_test_no_context("Arithmetic (%) unsized, unsigned",
-   "'hA % 8", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base10, 32, "2"))
+   "'hA % 8", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base10, INTEGER_BITS, "2"))
 
 run_test_no_context("Arithmetic (%) sized, signed, negative",
    "4'sb1011 % 4'd2", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 4, "-1"))
@@ -181,7 +181,7 @@ run_test_no_context("Arithmetic (%) sized, signed, positive",
 run_test_no_context("Arithmetic (%) real operand (error)", "15.0 % 32", Token(), true)
 
 run_test_no_context("Arithmetic (**) unsized",
-   "5 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 25, Base10, 32, "25"))
+   "5 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 25, Base10, INTEGER_BITS, "25"))
 
 run_test_no_context("Arithmetic (**) sized (only depends on first operand)",
    "6'd2 ** 5", new_inumber(TkUIntLit, loc(0, 0, 0), 32, Base10, 6, "32"))
@@ -217,39 +217,37 @@ run_test_no_context("Arithmetic (**) x == -1, y < 0, even",
    "2'sb11 ** 4'sb1100", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 2, "1"))
 
 run_test_no_context("Arithmetic (**) x == 0, y > 0",
-   "0 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 32, "0"))
+   "0 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, "0"))
 
 run_test_no_context("Arithmetic (**) x == 0, y == 0",
-   "0 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+   "0 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, INTEGER_BITS, "1"))
 
 run_test_no_context("Arithmetic (**) x == 0, y < 0",
-   "0 ** 4'sb1110", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 32, ""))
+   "0 ** 4'sb1110", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
 
 run_test_no_context("Arithmetic (**) x == 1, y > 0",
-   "1 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+   "1 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, INTEGER_BITS, "1"))
 
 run_test_no_context("Arithmetic (**) x == 1, y == 0",
-   "1 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+   "1 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, INTEGER_BITS, "1"))
 
 run_test_no_context("Arithmetic (**) x == 1, y < 0",
-   "1 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+   "1 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, INTEGER_BITS, "1"))
 
 run_test_no_context("Arithmetic (**) x > 1, y == 0",
-   "32 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+   "32 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, INTEGER_BITS, "1"))
 
 run_test_no_context("Arithmetic (**) x > 1, y < 0",
-   "43 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 32, "0"))
+   "43 ** 4'sb1110", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, "0"))
 
 run_test_no_context("Arithmetic (**) x real, y real",
    "2.0 ** 0.5", new_fnumber(TkRealLit, loc(0, 0, 0), pow(2.0, 0.5), "1.414213562373095"))
 
-# FIXME: Add when prefix is implemented.
-# run_test_no_context("Arithmetic (**) x == 0.0, y < 0.0",
-#    "0.0 ** -5.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+run_test_no_context("Arithmetic (**) x == 0.0, y < 0.0",
+   "0.0 ** -5.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
 
-# FIXME: Add when prefix is implemented.
-# run_test_no_context("Arithmetic (**) x < 0.0, y real",
-#    "-2.0 ** 2.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+run_test_no_context("Arithmetic (**) x < 0.0, y real",
+   "-2.0 ** 2.0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
 
 run_test_no_context("Arithmetic (**) x real, y integer",
    "2.0 ** 2", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
@@ -257,9 +255,8 @@ run_test_no_context("Arithmetic (**) x real, y integer",
 run_test_no_context("Arithmetic (**) x == 0.0, y < 0",
    "0.0 ** 4'sb1110", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
 
-# FIXME: Add when prefix is implemented.
-# run_test_no_context("Arithmetic (**) x < 0.0, y integer",
-#    "-2.0 ** 2", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
+run_test_no_context("Arithmetic (**) x < 0.0, y integer",
+   "-2.0 ** 2", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
 
 run_test_no_context("Arithmetic (**) x integer, y real",
    "2 ** 2.0", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
@@ -277,13 +274,46 @@ run_test_no_context("Arithmetic (**) real reciprocal",
    "2.0 ** 2'sb11", new_fnumber(TkRealLit, loc(0, 0, 0), 0.5, "0.5"))
 
 run_test_no_context("Arithmetic (**) truncated reciprocal",
-   "2 ** 2'sb11", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, 32, "0"))
+   "2 ** 2'sb11", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, "0"))
 
 run_test_no_context("Arithmetic (**) real square root",
    "9.0 ** 0.5", new_fnumber(TkRealLit, loc(0, 0, 0), 3.0, "3.0"))
 
 run_test_no_context("Arithmetic (**) exponent truncated to zero",
-   "9.0 ** (1/2", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+   "9.0 ** (1/2)", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+
+run_test_no_context("Prefix (+) integer",
+   "+3", new_inumber(TkIntLit, loc(0, 0, 0), 3, Base10, INTEGER_BITS, "3"))
+
+run_test_no_context("Prefix (+) integer, sized",
+   "+3'd2", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base10, 3, "2"))
+
+run_test_no_context("Prefix (+) real",
+   "+9.1", new_fnumber(TkRealLit, loc(0, 0, 0), 9.1, "9.1"))
+
+run_test_no_context("Prefix (+) ambiguous (1)",
+   "+3'b0X1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+
+run_test_no_context("Prefix (+) ambiguous (2)",
+   "+3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+
+run_test_no_context("Prefix (-) integer",
+   "-3", new_inumber(TkIntLit, loc(0, 0, 0), -3, Base10, INTEGER_BITS, "-3"))
+
+run_test_no_context("Prefix (-) integer, sized, truncated",
+   "-4'd12", new_inumber(TkUIntLit, loc(0, 0, 0), 4, Base10, 4, "4"))
+
+run_test_no_context("Prefix (-) real",
+   "-9.1", new_fnumber(TkRealLit, loc(0, 0, 0), -9.1, "-9.1"))
+
+run_test_no_context("Prefix (-) ambiguous (1)",
+   "-3'b0X1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+
+run_test_no_context("Prefix (-) ambiguous (2)",
+   "-3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+
+run_test_no_context("Prefix (-) in infix expression",
+   "-5 - 2", new_inumber(TkIntLit, loc(0, 0, 0), -7, Base10, INTEGER_BITS, "-7"))
 
 
 # Print summary
