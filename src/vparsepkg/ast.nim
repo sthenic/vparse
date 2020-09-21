@@ -1443,6 +1443,46 @@ proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token 
       raise new_evaluation_error("Power operation not allowed for kind '$1'.", $result.kind)
 
 
+template logical_operation(x, y: PNode, context: AstContext, op: string): Token =
+   init(result)
+   # The operands are self-determined in a logical operation.
+   let xtok = evaluate_constant_expression(x, context)
+   let ytok = evaluate_constant_expression(y, context)
+   result.kind = TkUIntLit
+   result.size = 1
+
+   var ambiguous = false
+   let xres = case xtok.kind
+   of TkIntLit, TkUIntLit:
+      xtok.inumber != 0
+   of TkRealLit:
+      xtok.fnumber != 0.0
+   of AmbiguousTokens:
+      ambiguous = true
+      false
+   else:
+      raise new_evaluation_error("Logical operation cannot parse kind '$1'.", $xtok.kind)
+
+   let yres = case ytok.kind
+   of TkIntLit, TkUIntLit:
+      ytok.inumber != 0
+   of TkRealLit:
+      ytok.fnumber != 0.0
+   of AmbiguousTokens:
+      ambiguous = true
+      false
+   else:
+      raise new_evaluation_error("Logical operation cannot parse kind '$1'.", $ytok.kind)
+
+   if ambiguous:
+      set_ambiguous(result)
+   else:
+      result.base = Base10
+      result.inumber = BiggestInt(make_infix(xres, yres, op))
+      result.literal = $result.inumber
+   result
+
+
 proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
    let op_idx = find_first_index(n, NkIdentifier)
    let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
@@ -1466,6 +1506,10 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
       result = modulo(lhs, rhs, context, kind, size)
    of "**":
       result = power(lhs, rhs, context, kind, size)
+   of "&&":
+      result = logical_operation(lhs, rhs, context, "and")
+   of "||":
+      result = logical_operation(lhs, rhs, context, "or")
    else:
       raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 

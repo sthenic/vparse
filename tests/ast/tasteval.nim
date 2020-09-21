@@ -445,6 +445,36 @@ run_test_no_context("Prefix (^~) ambiguous",
 
 run_test_no_context("Prefix (^~) real (error)", "^~0.5", Token(), true)
 
+run_test_no_context("Infix (&&) integers, false",
+   "1 && 0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Infix (&&) integers, true",
+   "1 && 1", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Infix (&&) integer/real, true",
+   "16.5 && 1", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Infix (&&) integer/real, false",
+   "0.0 && 1", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Infix (&&) ambiguous",
+   "'dx && 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Infix (||) integers, false",
+   "1 || 0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Infix (||) integers, true",
+   "0 || 0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Infix (||) integer/real, true",
+   "16.5 || 1", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Infix (||) integer/real, false",
+   "0.0 || 0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Infix (||) ambiguous",
+   "'dx || 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
