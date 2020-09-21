@@ -336,6 +336,8 @@ run_test_no_context("Prefix (~) ambiguous hexadecimal",
 run_test_no_context("Prefix (~) ambiguous decimal",
    "~16'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 16, "x"))
 
+run_test_no_context("Prefix (~) real (error)", "~9.0", Token(), true)
+
 run_test_no_context("Prefix (!) zero value, unsized",
    "!0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
 
@@ -363,6 +365,8 @@ run_test_no_context("Prefix (&) unsized",
 run_test_no_context("Prefix (&) sized",
    "&3'b111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
 
+run_test_no_context("Prefix (&) real (error)", "&3.14", Token(), true)
+
 run_test_no_context("Prefix (&) ambiguous",
    "&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
@@ -374,6 +378,8 @@ run_test_no_context("Prefix (|) sized",
 
 run_test_no_context("Prefix (|) ambiguous",
    "|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (|) real (error)", "|2.14", Token(), true)
 
 run_test_no_context("Prefix (^) unsized",
    "^'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
@@ -387,6 +393,8 @@ run_test_no_context("Prefix (^) sized, odd ones",
 run_test_no_context("Prefix (^) ambiguous",
    "^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Prefix (^) real (error)", "^0.14", Token(), true)
+
 run_test_no_context("Prefix (~&) unsized",
    "~&32", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
 
@@ -396,6 +404,8 @@ run_test_no_context("Prefix (~&) sized",
 run_test_no_context("Prefix (~&) ambiguous",
    "~&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Prefix (~&) real (error)", "~&6.14", Token(), true)
+
 run_test_no_context("Prefix (~|) unsized",
    "~|'b000", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
 
@@ -404,6 +414,8 @@ run_test_no_context("Prefix (~|) sized",
 
 run_test_no_context("Prefix (~|) ambiguous",
    "~|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (~|) real (error)", "~|46.14", Token(), true)
 
 run_test_no_context("Prefix (~^) unsized",
    "~^'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
@@ -417,6 +429,8 @@ run_test_no_context("Prefix (~^) sized, odd ones",
 run_test_no_context("Prefix (~^) ambiguous",
    "~^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Prefix (~^) real (error)", "~^0.5", Token(), true)
+
 run_test_no_context("Prefix (^~) unsized",
    "^~'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
 
@@ -428,6 +442,8 @@ run_test_no_context("Prefix (^~) sized, odd ones",
 
 run_test_no_context("Prefix (^~) ambiguous",
    "^~12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (^~) real (error)", "^~0.5", Token(), true)
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
