@@ -475,6 +475,72 @@ run_test_no_context("Infix (||) integer/real, false",
 run_test_no_context("Infix (||) ambiguous",
    "'dx || 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Relational (>) unsized (1)",
+   "7 > 0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (>) unsized (2)",
+   "7 > -1", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (>) unsized (3)",
+   "7 > 7", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (>) sized, sign extended",
+   "-3 > 3'sb100 // -3 > -4 (true)", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (>) real and converted integer",
+   "0.1 > 3'sb111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (>) ambiguous",
+   "0.1 > 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Relational (>=) equality",
+   "7 >= 7", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (<) unsized (1)",
+   "7 < 0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (<) unsized (2)",
+   "7 < -1", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (<) unsized (3)",
+   "7 < 7", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (<) sized, sign extended",
+   "-3 < 3'sb100 // -3 < -4 (false)", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (<) real and converted integer",
+   "0.1 < 3'sb111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (<) ambiguous",
+   "0.1 < 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Relational (>=) equality",
+   "-4 <= -'d4", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (==) real and converted integer, equal",
+   "45 == 45.0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (==) sized, signed expansion (false)",
+   "3'b111 == 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (==) sized, signed expansion (true)",
+   "3'sb111 == 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (==) ambiguous",
+   "'bx != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Relational (!=) real and converted integer, equal",
+   "45 != 45.0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (!=) sized, signed expansion (true)",
+   "3'b111 != 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (!=) sized, signed expansion (false)",
+   "3'sb111 != 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (!=) ambiguous",
+   "'bZ != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

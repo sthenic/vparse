@@ -1114,6 +1114,7 @@ proc `$`*(n: PNode): string =
 const INTEGER_BITS* = 32
 proc evaluate_constant_expression*(n: PNode, context: AstContext, kind: TokenKind, size: int): Token
 proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int]
+proc determine_expression_kind(x, y: TokenKind): TokenKind
 
 
 template evaluate_constant_expression*(n: PNode, context: AstContext): Token =
@@ -1483,6 +1484,33 @@ template logical_operation(x, y: PNode, context: AstContext, op: string): Token 
    result
 
 
+template relational_operation(x, y: PNode, context: AstContext, op: string): Token =
+   init(result)
+   # Operands are sized to max(x, y).
+   let xprop = determine_kind_and_size(x, context)
+   let yprop = determine_kind_and_size(y, context)
+   let kind = determine_expression_kind(xprop.kind, yprop.kind)
+   let size = max(xprop.size, yprop.size)
+   let xtok = evaluate_constant_expression(x, context, kind, size)
+   let ytok = evaluate_constant_expression(y, context, kind, size)
+   result.kind = TkUIntLit
+   result.size = 1
+
+   case kind
+   of TkIntLit, TkUIntLit:
+      result.base = Base10
+      result.inumber = BiggestInt(make_infix(xtok.inumber, ytok.inumber, op))
+      result.literal = $result.inumber
+   of TkRealLit:
+      result.inumber = BiggestInt(make_infix(xtok.fnumber, ytok.fnumber, op))
+      result.literal = $result.inumber
+   of AmbiguousTokens:
+      set_ambiguous(result)
+   else:
+      raise new_evaluation_error("Relational operator '$1' cannot parse kind '$2'.", op, $kind)
+   result
+
+
 proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
    let op_idx = find_first_index(n, NkIdentifier)
    let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
@@ -1510,6 +1538,18 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
       result = logical_operation(lhs, rhs, context, "and")
    of "||":
       result = logical_operation(lhs, rhs, context, "or")
+   of ">":
+      result = relational_operation(lhs, rhs, context, ">")
+   of ">=":
+      result = relational_operation(lhs, rhs, context, ">=")
+   of "<":
+      result = relational_operation(lhs, rhs, context, "<")
+   of "<=":
+      result = relational_operation(lhs, rhs, context, "<=")
+   of "==":
+      result = relational_operation(lhs, rhs, context, "==")
+   of "!=":
+      result = relational_operation(lhs, rhs, context, "!=")
    else:
       raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 
@@ -1622,28 +1662,28 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
       raise new_evaluation_error("The node '$1' is not an expression.", n.kind)
 
 
-template determine_expression_kind(x, y: TokenKind): TokenKind =
+proc determine_expression_kind(x, y: TokenKind): TokenKind =
    if x == TkRealLit or y == TkRealLit:
       # If any operand is real, the result is real. If any operand is
       # ambiguous (containing X or Z), the result is also ambiguous.
       if x in AmbiguousTokens or y in AmbiguousTokens:
-         TkAmbRealLit
+         result = TkAmbRealLit
       else:
-         TkRealLit
+         result = TkRealLit
    elif x in UnsignedTokens or y in UnsignedTokens:
       # If any operand is unsigned, the result is unsigned. If any operand is
       # ambiguous (containing X or Z), the result is also ambiguous.
       if x == TkAmbUIntLit or y == TkAmbUIntLit:
-         TkAmbUIntLit
+         result = TkAmbUIntLit
       else:
-         TkUIntLit
+         result = TkUIntLit
    elif x in SignedTokens and x in SignedTokens:
       # If both operands are signed, the result is signed. If any operand is
       # ambiguous, the result is also ambiguous.
       if x == TkAmbIntLit or y == TkAmbIntLit:
-         TkAmbIntLit
+         result = TkAmbIntLit
       else:
-         TkIntLit
+         result = TkIntLit
    else:
       raise new_evaluation_error("Cannot determine expression kind of '$1' and '$2'.", $x, $y)
 
