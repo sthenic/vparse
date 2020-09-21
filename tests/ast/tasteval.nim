@@ -351,6 +351,78 @@ run_test_no_context("Prefix (!) nonzero value, sized",
 run_test_no_context("Prefix (!) ambiguous",
    "!2'bx1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Prefix (&) unsized",
+   "&32", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (&) sized",
+   "&3'b111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (&) ambiguous",
+   "&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (|) unsized",
+   "|'b000", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (|) sized",
+   "|8'h08", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (|) ambiguous",
+   "|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (^) unsized",
+   "^'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (^) sized, even ones",
+   "^4'b0011", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (^) sized, odd ones",
+   "^4'b1011", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (^) ambiguous",
+   "^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (~&) unsized",
+   "~&32", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (~&) sized",
+   "~&3'b111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (~&) ambiguous",
+   "~&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (~|) unsized",
+   "~|'b000", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (~|) sized",
+   "~|8'h08", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (~|) ambiguous",
+   "~|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (~^) unsized",
+   "~^'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (~^) sized, even ones",
+   "~^4'b0011", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (~^) sized, odd ones",
+   "~^4'b1011", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (~^) ambiguous",
+   "~^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Prefix (^~) unsized",
+   "^~'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (^~) sized, even ones",
+   "^~4'b0011", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (^~) sized, odd ones",
+   "^~4'b1011", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (^~) ambiguous",
+   "^~12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

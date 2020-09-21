@@ -1149,7 +1149,14 @@ macro make_prefix(x: typed, op: string): untyped =
    add(result, x)
 
 
-template unary(n: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
+macro make_infix(x, y: typed, op: string): untyped =
+   result = new_nim_node(nnkInfix)
+   add(result, new_ident_node(op.str_val))
+   add(result, x)
+   add(result, y)
+
+
+template unary_sign(n: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
    init(result)
    let tok = evaluate_constant_expression(n, context, kind, size)
    result.kind = kind
@@ -1214,7 +1221,7 @@ proc binary_negation(n: PNode, context: AstContext, kind: TokenKind, size: int):
       raise new_evaluation_error("Bitwise negation cannot yield kind '$1'.", $kind)
 
 
-proc logical_negation(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc logical_negation(n: PNode, context: AstContext): Token =
    init(result)
    # The operand is self-determined in a logical negation.
    let tok = evaluate_constant_expression(n, context)
@@ -1232,10 +1239,36 @@ proc logical_negation(n: PNode, context: AstContext, kind: TokenKind, size: int)
    of TkAmbIntLit, TkAmbUIntLit:
       set_ambiguous(result)
    else:
-      raise new_evaluation_error("Logical negation cannot parse kind '$1'.", $kind)
+      raise new_evaluation_error("Logical negation cannot parse kind '$1'.", $tok.kind)
+
+
+template unary_reduction(n: PNode, context: AstContext, op: string): Token =
+   init(result)
+   let tok = evaluate_constant_expression(n, context)
+   result.kind = TkUIntLit
+   result.size = 1
+
+   case tok.kind
+   of TkIntLit, TkUIntLit:
+      var carry = tok.inumber and 0x1
+      for i in 1..<tok.size:
+         carry = make_infix(carry, (tok.inumber shr i) and 0x1 , op)
+      result.base = Base10
+      result.inumber = carry
+      result.literal = $result.inumber
+   of TkAmbIntLit, TkAmbUIntLit:
+      set_ambiguous(result)
+   else:
+      raise new_evaluation_error("Unary reduction cannot parse kind '$1'.", $tok.kind)
+   result
 
 
 proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+   template invert(result: Token) =
+      if result.kind == TkUIntLit:
+         result.inumber = 1 - ord(result.inumber == 1)
+         result.literal = $result.inumber
+
    init(result)
    let op_idx = find_first_index(n, NkIdentifier)
    let e_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
@@ -1246,22 +1279,30 @@ proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, si
    let op = n.sons[op_idx].identifier.s
    case op
    of "+":
-      result = unary(e, context, kind, size, "+")
+      result = unary_sign(e, context, kind, size, "+")
    of "-":
-      result = unary(e, context, kind, size, "-")
+      result = unary_sign(e, context, kind, size, "-")
    of "~":
       result = binary_negation(e, context, kind, size)
    of "!":
-      result = logical_negation(e, context, kind, size)
+      result = logical_negation(e, context)
+   of "&":
+      result = unary_reduction(e, context, "and")
+   of "|":
+      result = unary_reduction(e, context, "or")
+   of "^":
+      result = unary_reduction(e, context, "xor")
+   of "~&":
+      result = unary_reduction(e, context, "and")
+      invert(result)
+   of "~|":
+      result = unary_reduction(e, context, "or")
+      invert(result)
+   of "~^", "^~":
+      result = unary_reduction(e, context, "xor")
+      invert(result)
    else:
       raise new_evaluation_error("Prefix operator '$1' not implemented.", op)
-
-
-macro make_infix(x, y: typed, op: string): untyped =
-   result = new_nim_node(nnkInfix)
-   add(result, new_ident_node(op.str_val))
-   add(result, x)
-   add(result, y)
 
 
 template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size: int, iop, fop: string): Token =
