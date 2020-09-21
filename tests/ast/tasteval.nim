@@ -348,6 +348,12 @@ run_test_no_context("Prefix (!) nonzero value, unsized",
 run_test_no_context("Prefix (!) nonzero value, sized",
    "!2'b10", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
 
+run_test_no_context("Prefix (!) real, zero value",
+   "!0.0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (!) real, zero value",
+   "!4.2", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
 run_test_no_context("Prefix (!) ambiguous",
    "!2'bx1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 

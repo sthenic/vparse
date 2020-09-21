@@ -1236,7 +1236,14 @@ proc logical_negation(n: PNode, context: AstContext): Token =
          result.inumber = 1
       result.base = Base10
       result.literal = $result.inumber
-   of TkAmbIntLit, TkAmbUIntLit:
+   of TkRealLit:
+      if tok.fnumber != 0.0:
+         result.inumber = 0
+      else:
+         result.inumber = 1
+      result.base = Base10
+      result.literal = $result.inumber
+   of AmbiguousTokens:
       set_ambiguous(result)
    else:
       raise new_evaluation_error("Logical negation cannot parse kind '$1'.", $tok.kind)
