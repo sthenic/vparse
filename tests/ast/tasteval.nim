@@ -336,6 +336,21 @@ run_test_no_context("Prefix (~) ambiguous hexadecimal",
 run_test_no_context("Prefix (~) ambiguous decimal",
    "~16'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 16, "x"))
 
+run_test_no_context("Prefix (!) zero value, unsized",
+   "!0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (!) zero value, sized",
+   "!5'd0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Prefix (!) nonzero value, unsized",
+   "!32", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (!) nonzero value, sized",
+   "!2'b10", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Prefix (!) ambiguous",
+   "!2'bx1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

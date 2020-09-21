@@ -1171,7 +1171,7 @@ template unary(n: PNode, context: AstContext, kind: TokenKind, size: int, op: st
    result
 
 
-proc negate(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc binary_negation(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
    init(result)
    let tok = evaluate_constant_expression(n, context, kind, size)
    result.kind = kind
@@ -1199,7 +1199,7 @@ proc negate(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
          of Base16:
             0xF
          of Base10:
-            0
+            0x0
 
       for c in tok.literal:
          case c
@@ -1212,6 +1212,27 @@ proc negate(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
             raise new_evaluation_error("Invalid literal character '$1'.", c)
    else:
       raise new_evaluation_error("Bitwise negation cannot yield kind '$1'.", $kind)
+
+
+proc logical_negation(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+   init(result)
+   # The operand is self-determined in a logical negation.
+   let tok = evaluate_constant_expression(n, context)
+   result.kind = TkUIntLit
+   result.size = 1
+
+   case tok.kind
+   of TkIntLit, TkUIntLit:
+      if tok.inumber != 0:
+         result.inumber = 0
+      else:
+         result.inumber = 1
+      result.base = Base10
+      result.literal = $result.inumber
+   of TkAmbIntLit, TkAmbUIntLit:
+      set_ambiguous(result)
+   else:
+      raise new_evaluation_error("Logical negation cannot parse kind '$1'.", $kind)
 
 
 proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1229,7 +1250,9 @@ proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, si
    of "-":
       result = unary(e, context, kind, size, "-")
    of "~":
-      result = negate(e, context, kind, size)
+      result = binary_negation(e, context, kind, size)
+   of "!":
+      result = logical_negation(e, context, kind, size)
    else:
       raise new_evaluation_error("Prefix operator '$1' not implemented.", op)
 
