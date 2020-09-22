@@ -1126,22 +1126,55 @@ proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref Evaluati
    result.msg = format(msg, args)
 
 
-proc reinterpret(t: var Token) =
-   case t.kind
+proc reinterpret(tok: var Token) =
+   ## Reinterpret the value of the integer token ``tok`` in the context of its
+   ## size and signedness.
+   # For example, the token 3'sb110 has been stored with its value set to '6'
+   # and with its size set to '3'. The actual number should be '-2', but only if
+   # the token is signed.
+   if tok.kind in IntegerTokens and tok.size < 0:
+      tok.size = INTEGER_BITS
+
+   case tok.kind
    of TkUIntLit:
-      let size = if t.size < 0: INTEGER_BITS else: t.size
-      t.inumber = t.inumber and ((1 shl size) - 1)
+      tok.inumber = tok.inumber and ((1 shl tok.size) - 1)
+      tok.literal = $tok.inumber
    of TkIntLit:
-      let sign_bit = if t.size > 0: 1 shl (t.size - 1) else: 1 shl (INTEGER_BITS - 1)
-      t.inumber = (t.inumber and (sign_bit - 1)) - (t.inumber and sign_bit)
+      let sign_bit = 1 shl (tok.size - 1)
+      tok.inumber = (tok.inumber and (sign_bit - 1)) - (tok.inumber and sign_bit)
+      tok.literal = $tok.inumber
    else:
       discard
 
 
-proc sign_extend(t: Token, size: int): Token =
-   result = t
-   reinterpret(result)
-   result.size = size
+proc convert(tok: Token, kind: TokenKind, size: int): Token =
+   ## Convert the integer token to the target kind and size. If the target kind
+   ## is signed, the resulting token will be sign extended. An unsigned integer
+   ## is exteded with zeros and a signed integer is extended with its sign bit.
+   ## If the target size is smaller than the size of the integer, the value is
+   ## truncated.
+   result = tok
+   case kind
+   of TkUIntLit, TkAmbUIntLit:
+      # The result should be signed, check what the token is.
+      result.size = size
+      if tok.kind in AmbiguousTokens:
+         # FIXME: Implement
+         discard
+      else:
+         result.kind = TkUIntLit
+         reinterpret(result)
+   of TkIntLit, TkAmbIntLit:
+      # The result should be unsigned, check what the token is.
+      result.size = size
+      if tok.kind in AmbiguousTokens:
+         # FIXME: Implement
+         discard
+      else:
+         result.kind = TkIntLit
+         reinterpret(result)
+   else:
+      discard
 
 
 macro make_prefix(x: typed, op: string): untyped =
@@ -1352,8 +1385,7 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
    init(result)
    let xtok = evaluate_constant_expression(x, context, kind, size)
    let ytok = evaluate_constant_expression(y, context, kind, size)
-   # The modulo operation always takes the sign of the first operand.
-   result.kind = xtok.kind
+   result.kind = kind
    result.size = size
 
    case kind
@@ -1361,6 +1393,8 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
       if kind in AmbiguousTokens or ytok.inumber == 0:
          set_ambiguous(result)
       else:
+         # The modulo operation always takes the sign of the first operand. This
+         # is exactly how Nim's mod operation behaves so we just use directly.
          result.base = Base10
          result.inumber = xtok.inumber mod ytok.inumber
          reinterpret(result)
@@ -1646,18 +1680,24 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
       result.literal = n.iraw
       result.base = n.base
       result.size = n.size
-      # If this integer is part of a real expression we convert the token to
-      # real after sign extending it as a self-determined operand. Otherwise, we
-      # sign extend the integer in the expression's full context.
-      if lkind == TkRealLit:
-         result = sign_extend(result, n.size)
+      reinterpret(result)
+      # When we reach a primitive integer token, we convert the token into the
+      # propagated kind and size. If the expression is signed, the token is sign
+      # extended. If the integer is part of a real expression, we convert the
+      # token to real after sign extending it as a self-determined operand.
+      case lkind
+      of TkRealLit:
+         result = convert(result, result.kind, result.size)
          result.kind = TkRealLit
          result.fnumber = to_biggest_float(result.inumber)
          result.literal = $result.fnumber
          result.size = -1
+      of IntegerTokens:
+         result = convert(result, lkind, lsize)
+      of TkAmbRealLit:
+         discard
       else:
-         # FIXME: Kind conversion too?
-         result = sign_extend(result, lsize)
+         raise new_evaluation_error("Cannot convert a primitive integer token to kind '$1'.", lkind)
    else:
       raise new_evaluation_error("The node '$1' is not an expression.", n.kind)
 

@@ -172,11 +172,17 @@ run_test_no_context("Arithmetic (%) unsized, signed",
 run_test_no_context("Arithmetic (%) unsized, unsigned",
    "'hA % 8", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base10, INTEGER_BITS, "2"))
 
-run_test_no_context("Arithmetic (%) sized, signed, negative",
-   "4'sb1011 % 4'd2", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 4, "-1"))
+run_test_no_context("Arithmetic (%) sized, signed converted to unsigned",
+   "4'sb1011 % 4'd2 // 11 % 2 = 1", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 4, "1"))
 
-run_test_no_context("Arithmetic (%) sized, signed, positive",
-   "4'b0101 % 4'sb1110", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 4, "1"))
+run_test_no_context("Arithmetic (%) unsized, signed converted to unsigned",
+   "-5 % 4'd2 // 4294967291 % 2", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
+
+run_test_no_context("Arithmetic (%) sized, signed, negative",
+   "-5 % 2", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base10, 32, "-1"))
+
+run_test_no_context("Arithmetic (%) sized, signed, negative",
+   "5 % -2", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base10, 32, "1"))
 
 run_test_no_context("Arithmetic (%) real operand (error)", "15.0 % 32", Token(), true)
 
