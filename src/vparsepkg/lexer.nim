@@ -625,7 +625,12 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
       tok.kind = TkInvalid
       return
 
-   tok.inumber = parse_int(tok.literal)
+   try:
+      # Since the literal only consists of valid digit characters, the only way
+      # this parsing fails is if the value is too big.
+      tok.inumber = parse_biggest_int(tok.literal)
+   except ValueError:
+      discard
 
 
 proc handle_binary(l: var Lexer, tok: var Token) =

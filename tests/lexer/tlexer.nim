@@ -313,6 +313,18 @@ run_test("Hex number: X-digit", "2'h0X 2'hx1 2'h1_X", @[
    new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base16, 2, "1x"),
 ])
 
+run_test("Huge numbers", """
+   64'd18446744073709551616
+   66'h3_0000_0000_0000_0000
+   66'o40_0000_0000_0000_0000_0000
+   66'b10_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000
+""", @[
+   new_inumber(TkUIntLit, loc(1, 1, 3), 0, Base10, 64, "18446744073709551616"),
+   new_inumber(TkUIntLit, loc(1, 2, 3), 0, Base16, 66, "30000000000000000"),
+   new_inumber(TkUIntLit, loc(1, 3, 3), 0, Base8, 66, "4000000000000000000000"),
+   new_inumber(TkUIntLit, loc(1, 4, 3), 0, Base2, 66, "100000000000000000000000000000000000000000000000000000000000000000"),
+])
+
 run_test("String literal: pangram", """"The quick brown fox jumps over the lazy dog"""", @[
    new_string_literal(loc(1, 1, 0), "The quick brown fox jumps over the lazy dog"),
 ])
