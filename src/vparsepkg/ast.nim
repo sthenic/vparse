@@ -1147,7 +1147,93 @@ proc reinterpret(tok: var Token) =
       discard
 
 
-proc convert(tok: Token, kind: TokenKind, size: int): Token =
+proc to_binary_literal(literal: string, base: NumericalBase, size: int): string =
+   ## Convert a token's literal value (string) into binary representation.
+   proc conversion_helper(literal: string, nof_bits_per_char: int): string =
+      for c in literal:
+         if c in ZChars + XChars:
+            add(result, repeat(c, nof_bits_per_char))
+         else:
+            try:
+               add(result, to_bin(from_hex[BiggestInt]($c), nof_bits_per_char))
+            except ValueError:
+               raise new_evaluation_error("Failed to convert literal '$1' to a binary literal.", literal)
+
+   case base
+   of Base2, Base10:
+      result = literal
+   of Base8:
+      result = conversion_helper(literal, 3)
+   of Base16:
+      result = conversion_helper(literal, 4)
+
+   if base != Base10:
+      # If the size of the literal is smaller than the size of the token, we
+      # left-pad with zeros. Otherwise, we truncate from the left.
+      let delta = size - len(result)
+      if delta > 0:
+         result = repeat('0', delta) & result
+      else:
+         result = result[-delta..^1]
+
+
+proc to_base_literal(literal: string, base: NumericalBase): string =
+   proc conversion_helper(literal: string, nof_bits_per_char: int): string =
+      template convert_slice(slice, result: string) =
+         if ZChars in slice:
+            result = "z" & result
+         elif XChars in slice:
+            result = "x" & result
+         else:
+            try:
+               result = to_hex(from_bin[BiggestInt](slice), 1) & result
+            except ValueError:
+               raise new_evaluation_error("Failed to convert binary string '$1'.", slice)
+
+      result = new_string_of_cap(len(literal))
+      var bits_remaining = len(literal)
+      while bits_remaining > nof_bits_per_char:
+         let slice = literal[(bits_remaining-nof_bits_per_char)..(bits_remaining-1)]
+         convert_slice(slice, result)
+         dec(bits_remaining, nof_bits_per_char)
+      if bits_remaining > 0:
+         let slice = literal[0..<bits_remaining]
+         convert_slice(slice, result)
+
+   case base
+   of Base2, Base10:
+      result = literal
+   of Base8:
+      result = conversion_helper(literal, 3)
+   of Base16:
+      result = conversion_helper(literal, 4)
+
+
+proc extend_ambiguous*(tok: var Token, size: int) =
+   if tok.base == Base10:
+      tok.size = size
+      return
+
+   # To make this easy we first create a literal with a binary representation,
+   # extend that and convert back into the original numerical base.
+   var literal = to_binary_literal(tok.literal, tok.base, tok.size)
+   let sign_character = if tok.kind == TkAmbIntLit:
+      literal[0]
+   else:
+      '0'
+
+   let padded_length = size - len(literal)
+   if size == 0:
+      literal = ""
+   elif padded_length >= 0:
+      literal = repeat(sign_character, padded_length) & literal
+   elif len(literal) >= abs(padded_length):
+      literal = literal[abs(padded_length)..^1]
+
+   tok.literal = to_base_literal(literal, tok.base)
+
+
+proc convert*(tok: Token, kind: TokenKind, size: int): Token =
    ## Convert the integer token to the target kind and size. If the target kind
    ## is signed, the resulting token will be sign extended. An unsigned integer
    ## is exteded with zeros and a signed integer is extended with its sign bit.
@@ -1156,21 +1242,21 @@ proc convert(tok: Token, kind: TokenKind, size: int): Token =
    result = tok
    case kind
    of TkUIntLit, TkAmbUIntLit:
-      # The result should be signed, check what the token is.
-      result.size = size
+      # The result should be unsigned, check what the token is.
       if tok.kind in AmbiguousTokens:
-         # FIXME: Implement
-         discard
+         result.kind = TkAmbUIntLit
+         extend_ambiguous(result, size)
       else:
+         result.size = size
          result.kind = TkUIntLit
          reinterpret(result)
    of TkIntLit, TkAmbIntLit:
-      # The result should be unsigned, check what the token is.
-      result.size = size
+      # The result should be signed, check what the token is.
       if tok.kind in AmbiguousTokens:
-         # FIXME: Implement
-         discard
+         result.kind = TkAmbIntLit
+         extend_ambiguous(result, size)
       else:
+         result.size = size
          result.kind = TkIntLit
          reinterpret(result)
    else:
@@ -1394,7 +1480,7 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
          set_ambiguous(result)
       else:
          # The modulo operation always takes the sign of the first operand. This
-         # is exactly how Nim's mod operation behaves so we just use directly.
+         # is exactly how Nim's mod operation behaves so we just use it directly.
          result.base = Base10
          result.inumber = xtok.inumber mod ytok.inumber
          reinterpret(result)
