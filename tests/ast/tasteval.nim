@@ -1,5 +1,6 @@
 import terminal
 import strformat
+import strutils
 import math
 
 import ../../src/vparsepkg/parser
@@ -546,6 +547,25 @@ run_test_no_context("Relational (!=) sized, signed expansion (false)",
 
 run_test_no_context("Relational (!=) ambiguous",
    "'bZ != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Relational (===) sized, signed expansion (false)",
+   "3'b111 === 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (===) sized, signed expansion (true)",
+   "3'sb111 === 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (===) real and converted integer",
+   "33.0 === 33 ", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (===) ambiguous, no extension (false)",
+   "3'b010 === 3'b?10", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
+run_test_no_context("Relational (===) ambiguous, no extension (true)",
+   "6'b010xxx === 6'o2X", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base10, 1, "1"))
+
+run_test_no_context("Relational (===) ambiguous, signed w/ extension (false)",
+   "6'sb110 === 3'sbx10", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base10, 1, "0"))
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

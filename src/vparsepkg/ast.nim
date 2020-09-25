@@ -1138,16 +1138,14 @@ proc reinterpret(tok: var Token) =
    case tok.kind
    of TkUIntLit:
       tok.inumber = tok.inumber and ((1 shl tok.size) - 1)
-      tok.literal = $tok.inumber
    of TkIntLit:
       let sign_bit = 1 shl (tok.size - 1)
       tok.inumber = (tok.inumber and (sign_bit - 1)) - (tok.inumber and sign_bit)
-      tok.literal = $tok.inumber
    else:
       discard
 
 
-proc to_binary_literal(literal: string, base: NumericalBase, size: int): string =
+proc to_binary_literal(tok: Token): string =
    ## Convert a token's literal value (string) into binary representation.
    proc conversion_helper(literal: string, nof_bits_per_char: int): string =
       for c in literal:
@@ -1159,18 +1157,23 @@ proc to_binary_literal(literal: string, base: NumericalBase, size: int): string 
             except ValueError:
                raise new_evaluation_error("Failed to convert literal '$1' to a binary literal.", literal)
 
-   case base
-   of Base2, Base10:
-      result = literal
+   case tok.base
+   of Base10:
+      if tok.kind notin AmbiguousTokens:
+         result = to_bin(tok.inumber, tok.size)
+      else:
+         result = tok.literal
+   of Base2:
+      result = tok.literal
    of Base8:
-      result = conversion_helper(literal, 3)
+      result = conversion_helper(tok.literal, 3)
    of Base16:
-      result = conversion_helper(literal, 4)
+      result = conversion_helper(tok.literal, 4)
 
-   if base != Base10:
+   if tok.base != Base10:
       # If the size of the literal is smaller than the size of the token, we
       # left-pad with zeros. Otherwise, we truncate from the left.
-      let delta = size - len(result)
+      let delta = tok.size - len(result)
       if delta > 0:
          result = repeat('0', delta) & result
       else:
@@ -1209,14 +1212,13 @@ proc to_base_literal(literal: string, base: NumericalBase): string =
       result = conversion_helper(literal, 4)
 
 
-proc extend_ambiguous*(tok: var Token, size: int) =
+proc extend_literal*(tok: var Token, size: int) =
    if tok.base == Base10:
-      tok.size = size
       return
 
    # To make this easy we first create a literal with a binary representation,
    # extend that and convert back into the original numerical base.
-   var literal = to_binary_literal(tok.literal, tok.base, tok.size)
+   var literal = to_binary_literal(tok)
    let sign_character = if tok.kind == TkAmbIntLit:
       literal[0]
    else:
@@ -1245,20 +1247,20 @@ proc convert*(tok: Token, kind: TokenKind, size: int): Token =
       # The result should be unsigned, check what the token is.
       if tok.kind in AmbiguousTokens:
          result.kind = TkAmbUIntLit
-         extend_ambiguous(result, size)
       else:
          result.size = size
          result.kind = TkUIntLit
          reinterpret(result)
+      extend_literal(result, size)
    of TkIntLit, TkAmbIntLit:
       # The result should be signed, check what the token is.
       if tok.kind in AmbiguousTokens:
          result.kind = TkAmbIntLit
-         extend_ambiguous(result, size)
       else:
          result.size = size
          result.kind = TkIntLit
          reinterpret(result)
+      extend_literal(result, size)
    else:
       discard
 
@@ -1604,7 +1606,7 @@ template logical_operation(x, y: PNode, context: AstContext, op: string): Token 
    result
 
 
-template relational_operation(x, y: PNode, context: AstContext, op: string): Token =
+template relational_operation(x, y: PNode, context: AstContext, op: string, allow_ambiguous: bool = false): Token =
    init(result)
    # Operands are sized to max(x, y).
    let xprop = determine_kind_and_size(x, context)
@@ -1613,19 +1615,25 @@ template relational_operation(x, y: PNode, context: AstContext, op: string): Tok
    let size = max(xprop.size, yprop.size)
    let xtok = evaluate_constant_expression(x, context, kind, size)
    let ytok = evaluate_constant_expression(y, context, kind, size)
+   result.base = Base10
    result.kind = TkUIntLit
    result.size = 1
 
    case kind
    of TkIntLit, TkUIntLit:
-      result.base = Base10
       result.inumber = BiggestInt(make_infix(xtok.inumber, ytok.inumber, op))
       result.literal = $result.inumber
    of TkRealLit:
       result.inumber = BiggestInt(make_infix(xtok.fnumber, ytok.fnumber, op))
       result.literal = $result.inumber
    of AmbiguousTokens:
-      set_ambiguous(result)
+      if allow_ambiguous:
+         let xliteral = to_binary_literal(xtok)
+         let yliteral = to_binary_literal(ytok)
+         result.inumber = BiggestInt(make_infix(xliteral, yliteral, op))
+         result.literal = $result.inumber
+      else:
+         set_ambiguous(result)
    else:
       raise new_evaluation_error("Relational operator '$1' cannot parse kind '$2'.", op, $kind)
    result
@@ -1670,6 +1678,10 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
       result = relational_operation(lhs, rhs, context, "==")
    of "!=":
       result = relational_operation(lhs, rhs, context, "!=")
+   of "===":
+      result = relational_operation(lhs, rhs, context, "==", allow_ambiguous = true)
+   of "!==":
+      result = relational_operation(lhs, rhs, context, "!=", allow_ambiguous = true)
    else:
       raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 
