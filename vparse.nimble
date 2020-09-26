@@ -10,6 +10,7 @@ skip_dirs = @["tests"]
 
 requires "nim >= 1.2.6"
 requires "nimpy >= 0.1.0"
+requires "bignum >= 1.0.4"
 
 
 task build_pylib, "Build the Python bindings":

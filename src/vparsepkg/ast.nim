@@ -3,6 +3,7 @@ import strutils
 import json
 import macros
 import math
+import bignum
 
 import ./lexer
 
@@ -190,6 +191,7 @@ type
    AstContext* = seq[AstContextItem]
 
    EvaluationError* = object of ValueError
+
 
 proc init*(c: var AstContext, len: int) =
    c = new_seq_of_cap[AstContextItem](len)
@@ -1126,25 +1128,6 @@ proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref Evaluati
    result.msg = format(msg, args)
 
 
-proc reinterpret(tok: var Token) =
-   ## Reinterpret the value of the integer token ``tok`` in the context of its
-   ## size and signedness.
-   # For example, the token 3'sb110 has been stored with its value set to '6'
-   # and with its size set to '3'. The actual number should be '-2', but only if
-   # the token is signed.
-   if tok.kind in IntegerTokens and tok.size < 0:
-      tok.size = INTEGER_BITS
-
-   case tok.kind
-   of TkUIntLit:
-      tok.inumber = tok.inumber and ((1 shl tok.size) - 1)
-   of TkIntLit:
-      let sign_bit = 1 shl (tok.size - 1)
-      tok.inumber = (tok.inumber and (sign_bit - 1)) - (tok.inumber and sign_bit)
-   else:
-      discard
-
-
 proc to_binary_literal(tok: Token): string =
    ## Convert a token's literal value (string) into binary representation.
    proc conversion_helper(literal: string, nof_bits_per_char: int): string =
@@ -1160,9 +1143,10 @@ proc to_binary_literal(tok: Token): string =
    case tok.base
    of Base10:
       if tok.kind notin AmbiguousTokens:
-         result = to_bin(tok.inumber, tok.size)
+         result = `$`(new_int(tok.literal) and new_int(repeat('1', tok.size), base = 2), base = 2)
       else:
-         result = tok.literal
+         result = repeat(tok.literal[0], tok.size)
+         return
    of Base2:
       result = tok.literal
    of Base8:
@@ -1170,69 +1154,84 @@ proc to_binary_literal(tok: Token): string =
    of Base16:
       result = conversion_helper(tok.literal, 4)
 
-   if tok.base != Base10:
-      # If the size of the literal is smaller than the size of the token, we
-      # left-pad with zeros. Otherwise, we truncate from the left.
-      let delta = tok.size - len(result)
-      if delta > 0:
-         result = repeat('0', delta) & result
-      else:
-         result = result[-delta..^1]
+   # As per Section 3.5.1 in the standard, if the size of the literal is
+   # smaller than the specified size of the token, we left-pad with zeros.
+   # Otherwise, we truncate from the left.
+   let delta = tok.size - len(result)
+   if delta > 0:
+      result = repeat('0', delta) & result
+   else:
+      result = result[-delta..^1]
 
 
-proc to_base_literal(literal: string, base: NumericalBase): string =
-   proc conversion_helper(literal: string, nof_bits_per_char: int): string =
-      template convert_slice(slice, result: string) =
-         if ZChars in slice:
-            result = "z" & result
-         elif XChars in slice:
-            result = "x" & result
-         else:
-            try:
-               result = to_hex(from_bin[BiggestInt](slice), 1) & result
-            except ValueError:
-               raise new_evaluation_error("Failed to convert binary string '$1'.", slice)
-
-      result = new_string_of_cap(len(literal))
-      var bits_remaining = len(literal)
-      while bits_remaining > nof_bits_per_char:
-         let slice = literal[(bits_remaining-nof_bits_per_char)..(bits_remaining-1)]
-         convert_slice(slice, result)
-         dec(bits_remaining, nof_bits_per_char)
-      if bits_remaining > 0:
-         let slice = literal[0..<bits_remaining]
-         convert_slice(slice, result)
-
-   case base
-   of Base2, Base10:
-      result = literal
-   of Base8:
-      result = conversion_helper(literal, 3)
-   of Base16:
-      result = conversion_helper(literal, 4)
-
-
-proc extend_literal*(tok: var Token, size: int) =
-   if tok.base == Base10:
+proc set_inumber_from_literal(tok: var Token) =
+   if tok.kind notin IntegerTokens:
       return
 
-   # To make this easy we first create a literal with a binary representation,
-   # extend that and convert back into the original numerical base.
+   if tok.kind notin AmbiguousTokens and fits_int(new_int(tok.literal, base = 2)):
+      tok.inumber = from_bin[BiggestInt](tok.literal)
+      if tok.kind == TkIntLit:
+         let sign_bit = 1 shl (tok.size - 1)
+         tok.inumber = (tok.inumber and (sign_bit - 1)) - (tok.inumber and sign_bit)
+
+
+proc extend_or_truncate*(tok: var Token, kind: TokenKind, size: int) =
+   if size <= 0:
+      raise new_evaluation_error("Cannot extend or truncate to size '$1'.", size)
+
+   # To make this easy, we will represent the value as a binary encoded string.
+   # If the target expression is signed, then we sign extend the value up to the
+   # given size. If the size is smaller than the current size of the token, the
+   # value is truncated from the left.
    var literal = to_binary_literal(tok)
-   let sign_character = if tok.kind == TkAmbIntLit:
+   let sign_character = if kind in SignedTokens:
       literal[0]
    else:
       '0'
 
-   let padded_length = size - len(literal)
-   if size == 0:
-      literal = ""
-   elif padded_length >= 0:
-      literal = repeat(sign_character, padded_length) & literal
-   elif len(literal) >= abs(padded_length):
-      literal = literal[abs(padded_length)..^1]
+   let extended_length = size - len(literal)
+   if extended_length > 0:
+      literal = repeat(sign_character, extended_length) & literal
+   else:
+      literal = literal[abs(extended_length)..^1]
 
-   tok.literal = to_base_literal(literal, tok.base)
+   tok.size = size
+   tok.base = Base2
+   tok.literal = literal
+   set_inumber_from_literal(tok)
+
+
+proc to_gmp_int*(tok: Token): Int =
+   ## Convert the integer token ``tok`` into a GMP integer ready for
+   ## calculations. The numerical base is assumed to be ``Base2`` (binary encoded
+   ## literal value).
+   result = new_int()
+   case tok.kind
+   of TkIntLit:
+      # The token is signed, check the sign bit. If it's set, we manipulate the
+      # literal.
+      if tok.literal[0] == '1':
+         let sign = "-1" & repeat("0", tok.size - 1)
+         let literal = '0' & tok.literal[1..^1]
+         result = new_int(sign, base = 2) + new_int(literal, base = 2)
+      else:
+         result = new_int(tok.literal, base = 2)
+   of TkUIntLit:
+      # The token is unsigned.
+      result = new_int(tok.literal, base = 2)
+   else:
+      discard
+
+
+proc from_gmp_int*(tok: var Token, i: Int) =
+   ## Convert a GMP integer into a binary literal that matches the token's size.
+   tok.literal = `$`(i and new_int(repeat('1', tok.size), base = 2), base = 2)
+   extend_or_truncate(tok, tok.kind, tok.size)
+
+
+proc from_gmp_int*(tok: var Token, b: bool) =
+   tok.literal = if b: "1" else: "0"
+   extend_or_truncate(tok, tok.kind, tok.size)
 
 
 proc convert*(tok: Token, kind: TokenKind, size: int): Token =
@@ -1248,19 +1247,15 @@ proc convert*(tok: Token, kind: TokenKind, size: int): Token =
       if tok.kind in AmbiguousTokens:
          result.kind = TkAmbUIntLit
       else:
-         result.size = size
          result.kind = TkUIntLit
-         reinterpret(result)
-      extend_literal(result, size)
+      extend_or_truncate(result, kind, size)
    of TkIntLit, TkAmbIntLit:
       # The result should be signed, check what the token is.
       if tok.kind in AmbiguousTokens:
          result.kind = TkAmbIntLit
       else:
-         result.size = size
          result.kind = TkIntLit
-         reinterpret(result)
-      extend_literal(result, size)
+      extend_or_truncate(result, kind, size)
    else:
       discard
 
@@ -1286,10 +1281,12 @@ template unary_sign(n: PNode, context: AstContext, kind: TokenKind, size: int, o
 
    case kind
    of TkIntLit, TkUIntLit:
-      result.base = Base10
-      result.inumber = make_prefix(tok.inumber, op)
-      reinterpret(result)
-      result.literal = $result.inumber
+      result.base = Base2
+      when op == "+":
+         result.literal = tok.literal
+         result.inumber = tok.inumber
+      else:
+         from_gmp_int(result, make_prefix(to_gmp_int(tok), op))
    of TkRealLit:
       result.fnumber = make_prefix(tok.fnumber, op)
       result.literal = $result.fnumber
@@ -1307,38 +1304,19 @@ proc binary_negation(n: PNode, context: AstContext, kind: TokenKind, size: int):
    result.size = size
 
    case kind
-   of TkIntLit, TkUIntLit:
-      result.base = Base10
-      result.inumber = not tok.inumber
-      reinterpret(result)
-      result.literal = $result.inumber
-   of TkAmbIntLit, TkAmbUIntLit:
-      # For ambiguous values we have to work with the literal value. We can
-      # handle all numeric bases as base 16 since the lexer has ensured that the
-      # token we get is on the correct format. Other than 'dx, 'dz etc.,
-      # ambiguous decimal literals consisting of multiple digitis in are not
-      # legal syntax.
-      set_len(result.literal, 0)
-      result.base = tok.base
-      let mask = case tok.base
-         of Base2:
-            0x1
-         of Base8:
-            0x7
-         of Base16:
-            0xF
-         of Base10:
-            0x0
-
+   of IntegerTokens:
+      result.base = Base2
       for c in tok.literal:
          case c
-         of HexChars:
-            let val = not parse_hex_int($c) and mask
-            add(result.literal, to_hex(val, 1))
+         of '0':
+            add(result.literal, '1')
+         of '1':
+            add(result.literal, '0')
          of ZChars, XChars:
             add(result.literal, 'x')
          else:
-            raise new_evaluation_error("Invalid literal character '$1'.", c)
+            raise new_evaluation_error("Invalid binary literal character '$1'.", c)
+      extend_or_truncate(result, result.kind, result.size)
    else:
       raise new_evaluation_error("Bitwise negation cannot yield kind '$1'.", $kind)
 
@@ -1352,19 +1330,15 @@ proc logical_negation(n: PNode, context: AstContext): Token =
 
    case tok.kind
    of TkIntLit, TkUIntLit:
-      if tok.inumber != 0:
-         result.inumber = 0
+      if is_zero(to_gmp_int(tok)):
+         from_gmp_int(result, new_int(1))
       else:
-         result.inumber = 1
-      result.base = Base10
-      result.literal = $result.inumber
+         from_gmp_int(result, new_int(0))
    of TkRealLit:
       if tok.fnumber != 0.0:
-         result.inumber = 0
+         from_gmp_int(result, new_int(0))
       else:
-         result.inumber = 1
-      result.base = Base10
-      result.literal = $result.inumber
+         from_gmp_int(result, new_int(1))
    of AmbiguousTokens:
       set_ambiguous(result)
    else:
@@ -1379,12 +1353,12 @@ template unary_reduction(n: PNode, context: AstContext, op: string): Token =
 
    case tok.kind
    of TkIntLit, TkUIntLit:
-      var carry = tok.inumber and 0x1
-      for i in 1..<tok.size:
-         carry = make_infix(carry, (tok.inumber shr i) and 0x1 , op)
-      result.base = Base10
-      result.inumber = carry
-      result.literal = $result.inumber
+      # FIXME: Assert len > 0?
+      var carry = ord(tok.literal[^1]) - ord('0')
+      for i in 2..len(tok.literal):
+         let c = ord(tok.literal[^i]) - ord('0')
+         carry = make_infix(carry, c , op)
+      from_gmp_int(result, new_int(carry))
    of TkAmbIntLit, TkAmbUIntLit:
       set_ambiguous(result)
    else:
@@ -1443,15 +1417,12 @@ template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size
 
    case kind
    of TkIntLit, TkUIntLit:
-      if iop == "div" and ytok.inumber == 0:
+      let ytok_int = to_gmp_int(ytok)
+      if iop == "div" and is_zero(ytok_int):
          set_ambiguous(result)
       else:
-         result.base = Base10
-         result.inumber = make_infix(xtok.inumber, ytok.inumber, iop)
-         # We have to be prepared to reinterpret the result of an integer operation
-         # to deal with overflow, underflow and truncation.
-         reinterpret(result)
-         result.literal = $result.inumber
+         result.base = Base2
+         from_gmp_int(result, make_infix(to_gmp_int(xtok), ytok_int, iop))
    of TkRealLit:
       if fop == "/" and ytok.fnumber == 0.0:
          set_ambiguous(result)
@@ -1483,15 +1454,14 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
       else:
          # The modulo operation always takes the sign of the first operand. This
          # is exactly how Nim's mod operation behaves so we just use it directly.
-         result.base = Base10
-         result.inumber = xtok.inumber mod ytok.inumber
-         reinterpret(result)
-         result.literal = $result.inumber
+         result.base = Base2
+         from_gmp_int(result, to_gmp_int(xtok) mod to_gmp_int(ytok))
    else:
       raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $result.kind)
 
 
 proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+   # FIXME: GMP this
    init(result)
    let xtok = evaluate_constant_expression(x, context, kind, size)
    # The second operand is always self-determined, so we don't pass the
@@ -1514,53 +1484,56 @@ proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token 
    elif xtok.kind == TkRealLit:
       result.kind = TkRealLit
       result.size = -1
-      if (xtok.fnumber == 0.0 and ytok.inumber < 0) or (xtok.fnumber < 0):
+      let ytok_float = to_float(new_rat(to_gmp_int(ytok)))
+      if (xtok.fnumber == 0.0 and ytok_float < 0.0) or (xtok.fnumber < 0):
          set_ambiguous(result)
       else:
-         result.fnumber = pow(xtok.fnumber, to_biggest_float(ytok.inumber))
+         result.fnumber = pow(xtok.fnumber, ytok_float)
          result.literal = $result.fnumber
 
    elif ytok.kind == TkRealLit:
       result.kind = TkRealLit
       result.size = -1
-      if xtok.inumber < 0:
+      let xtok_float = to_float(new_rat(to_gmp_int(xtok)))
+      if xtok_float < 0.0:
          set_ambiguous(result)
       else:
-         result.fnumber = pow(to_biggest_float(xtok.inumber), ytok.fnumber)
+         result.fnumber = pow(xtok_float, ytok.fnumber)
          result.literal = $result.fnumber
 
    elif xtok.kind in IntegerTokens and ytok.kind in IntegerTokens:
       result.kind = kind
       result.size = size
-      result.base = Base10
+      result.base = Base2
+      let xtok_int = to_gmp_int(xtok)
+      let ytok_int = to_gmp_int(ytok)
 
-      if xtok.inumber < -1 or xtok.inumber > 1:
-         if ytok.inumber > 0:
-            result.inumber = xtok.inumber ^ ytok.inumber
-         elif ytok.inumber == 0:
-            result.inumber = 1
+      if xtok_int < -1 or xtok_int > 1:
+         if ytok_int > 0:
+            if not fits_culong(ytok_int):
+               raise new_evaluation_error("Exponent too large, a value < $1 is required.", high(culong))
+            from_gmp_int(result, xtok_int ^ to_culong(ytok_int))
+         elif ytok_int == 0:
+            from_gmp_int(result, new_int(1))
          else:
-            result.inumber = 0
-      elif xtok.inumber == -1:
-         if ytok.inumber == 0:
-            result.inumber = 1
-         elif (ytok.inumber mod 2) == 0:
-            result.inumber = 1
+            from_gmp_int(result, new_int(0))
+      elif xtok_int == -1:
+         if ytok_int == 0:
+            from_gmp_int(result, new_int(1))
+         elif (ytok_int mod 2) == 0:
+            from_gmp_int(result, new_int(1))
          else:
-            result.inumber = -1
-      elif xtok.inumber == 0:
-         if ytok.inumber > 0:
-            result.inumber = 0
+            from_gmp_int(result, new_int(-1))
+      elif xtok_int == 0:
+         if ytok_int > 0:
+            from_gmp_int(result, new_int(0))
          elif ytok.inumber == 0:
-            result.inumber = 1
+            from_gmp_int(result, new_int(1))
          else:
             set_ambiguous(result)
-      elif xtok.inumber == 1:
-         result.inumber = 1
-
-      reinterpret(result)
-      if result.kind notin AmbiguousTokens:
-         result.literal = $result.inumber
+            result.base = Base10
+      elif xtok_int == 1:
+         from_gmp_int(result, new_int(1))
 
    else:
       raise new_evaluation_error("Power operation not allowed for kind '$1'.", $result.kind)
@@ -1577,7 +1550,7 @@ template logical_operation(x, y: PNode, context: AstContext, op: string): Token 
    var ambiguous = false
    let xres = case xtok.kind
    of TkIntLit, TkUIntLit:
-      xtok.inumber != 0
+      not is_zero(to_gmp_int(xtok))
    of TkRealLit:
       xtok.fnumber != 0.0
    of AmbiguousTokens:
@@ -1588,7 +1561,7 @@ template logical_operation(x, y: PNode, context: AstContext, op: string): Token 
 
    let yres = case ytok.kind
    of TkIntLit, TkUIntLit:
-      ytok.inumber != 0
+      not is_zero(to_gmp_int(ytok))
    of TkRealLit:
       ytok.fnumber != 0.0
    of AmbiguousTokens:
@@ -1600,9 +1573,8 @@ template logical_operation(x, y: PNode, context: AstContext, op: string): Token 
    if ambiguous:
       set_ambiguous(result)
    else:
-      result.base = Base10
-      result.inumber = BiggestInt(make_infix(xres, yres, op))
-      result.literal = $result.inumber
+      result.base = Base2
+      from_gmp_int(result, make_infix(xres, yres, op))
    result
 
 
@@ -1615,25 +1587,26 @@ template relational_operation(x, y: PNode, context: AstContext, op: string, allo
    let size = max(xprop.size, yprop.size)
    let xtok = evaluate_constant_expression(x, context, kind, size)
    let ytok = evaluate_constant_expression(y, context, kind, size)
-   result.base = Base10
+   result.base = Base2
    result.kind = TkUIntLit
    result.size = 1
 
    case kind
    of TkIntLit, TkUIntLit:
-      result.inumber = BiggestInt(make_infix(xtok.inumber, ytok.inumber, op))
+      result.inumber = ord(make_infix(to_gmp_int(xtok), to_gmp_int(ytok), op))
       result.literal = $result.inumber
    of TkRealLit:
-      result.inumber = BiggestInt(make_infix(xtok.fnumber, ytok.fnumber, op))
+      result.inumber = ord(make_infix(xtok.fnumber, ytok.fnumber, op))
       result.literal = $result.inumber
    of AmbiguousTokens:
       if allow_ambiguous:
          let xliteral = to_binary_literal(xtok)
          let yliteral = to_binary_literal(ytok)
-         result.inumber = BiggestInt(make_infix(xliteral, yliteral, op))
+         result.inumber = ord(make_infix(xliteral, yliteral, op))
          result.literal = $result.inumber
       else:
          set_ambiguous(result)
+         result.base = Base10
    else:
       raise new_evaluation_error("Relational operator '$1' cannot parse kind '$2'.", op, $kind)
    result
@@ -1777,8 +1750,7 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
       result.inumber = n.inumber
       result.literal = n.iraw
       result.base = n.base
-      result.size = n.size
-      reinterpret(result)
+      result.size = if n.size < 0: INTEGER_BITS else: n.size
       # When we reach a primitive integer token, we convert the token into the
       # propagated kind and size. If the expression is signed, the token is sign
       # extended. If the integer is part of a real expression, we convert the
@@ -1786,9 +1758,9 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
       case lkind
       of TkRealLit:
          result = convert(result, result.kind, result.size)
-         result.kind = TkRealLit
-         result.fnumber = to_biggest_float(result.inumber)
+         result.fnumber = to_float(new_rat(to_gmp_int(result)))
          result.literal = $result.fnumber
+         result.kind = TkRealLit
          result.size = -1
       of IntegerTokens:
          result = convert(result, lkind, lsize)
