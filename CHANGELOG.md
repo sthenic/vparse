@@ -25,6 +25,8 @@ All notable changes to this project will be documented in this file.
 - Fix `find_all_parameters()` always including the parameters declared in the
   module body. Like ports, these only get included if the parameter port list is
   omitted.
+- Fix an issue where the lexer would throw an exception when parsing a decimal
+  constant larger than 64 bits.
 
 ## [v0.2.2] - 2020-08-31
 
