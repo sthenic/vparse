@@ -1253,6 +1253,10 @@ proc convert*(tok: Token, kind: TokenKind, size: int): Token =
       else:
          result.kind = TkUIntLit
       extend_or_truncate(result, kind, size)
+      # If it turns out that truncation removed the ambiguous characters, we
+      # remove the ambiguity identifier.
+      if XChars + ZChars notin result.literal:
+         result.kind = TkUIntLit
    of TkIntLit, TkAmbIntLit:
       # The result should be signed, check what the token is.
       if tok.kind in AmbiguousTokens:
@@ -1260,6 +1264,8 @@ proc convert*(tok: Token, kind: TokenKind, size: int): Token =
       else:
          result.kind = TkIntLit
       extend_or_truncate(result, kind, size)
+      if XChars + ZChars notin result.literal:
+         result.kind = TkIntLit
    else:
       discard
 
@@ -1704,8 +1710,40 @@ proc evaluate_constant_system_function_call(n: PNode, context: AstContext, kind:
 
 
 proc evaluate_constant_conditional_expression(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
-   # FIXME: Implement
-   raise new_evaluation_error("Not implemented")
+   init(result)
+   let cond_idx = find_first_index(n, ExpressionTypes)
+   let lhs_idx = find_first_index(n, ExpressionTypes, cond_idx + 1)
+   let rhs_idx = find_first_index(n, ExpressionTypes, lhs_idx + 1)
+   if cond_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
+      raise new_evaluation_error("Invalid infix node.")
+
+   # The condition is always self-determined.
+   let cond_tok = evaluate_constant_expression(n.sons[cond_idx], context)
+   # FIXME: There's something about the operands being zero-extended, regardless
+   # of the sign of the surronding expression. That's not how it works currently.
+   let rhs_tok = evaluate_constant_expression(n.sons[rhs_idx], context, kind, size)
+   let lhs_tok = evaluate_constant_expression(n.sons[lhs_idx], context, kind, size)
+   if cond_tok.kind in AmbiguousTokens:
+      result.base = Base2
+      result.kind = kind
+      result.size = size
+      if rhs_tok.kind in RealTokens or lhs_tok.kind in RealTokens:
+         from_gmp_int(result, new_int(0))
+      else:
+         for i in 0..<size:
+            if lhs_tok.literal[i] == '0' and rhs_tok.literal[i] == '0':
+               add(result.literal, '0')
+            elif lhs_tok.literal[i] == '1' and rhs_tok.literal[i] == '1':
+               add(result.literal, '1')
+            else:
+               add(result.literal, 'x')
+         if XChars in result.literal:
+            set_ambiguous(result)
+         extend_or_truncate(result, result.kind, result.size)
+   elif is_zero(to_gmp_int(cond_tok)):
+      result = rhs_tok
+   else:
+      result = lhs_tok
 
 
 proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1754,7 +1792,6 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
    of IntegerTypes:
       init(result)
       result.kind = TokenKind(ord(TkIntLit) + ord(n.kind) - ord(NkIntLit))
-      result.inumber = n.inumber
       result.literal = n.iraw
       result.base = n.base
       result.size = if n.size < 0: INTEGER_BITS else: n.size
@@ -1968,10 +2005,17 @@ proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenK
       result.kind = TkRealLit
       result.size = -1
    of IntegerTypes:
-      result.kind = TokenKind(ord(TkIntLit) + ord(n.kind) - ord(NkIntLit))
-      if n.size > 0:
-         result.size = n.size
-      else:
-         result.size = INTEGER_BITS
+      # We have to set up a self-determined conversion of the integer token in
+      # order to properly decide if it's ambiguous or not. It's legal to declare
+      # an ambiguous integer where the ambiguous bits are truncated away.
+      var tok: Token
+      init(tok)
+      tok.kind = TokenKind(ord(TkIntLit) + ord(n.kind) - ord(NkIntLit))
+      tok.literal = n.iraw
+      tok.base = n.base
+      tok.size = if n.size < 0: INTEGER_BITS else: n.size
+      tok = convert(tok, tok.kind, tok.size)
+      result.kind = tok.kind
+      result.size = tok.size
    else:
       raise new_evaluation_error("The node '$1' is not an expression.", n.kind)

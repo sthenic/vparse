@@ -695,6 +695,18 @@ run_test_no_context("Relational (===) ambiguous, no extension (true)",
 run_test_no_context("Relational (===) ambiguous, signed w/ extension (false)",
    "6'sb110 === 3'sbx10", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
+run_test_no_context("Conditional (?) unsized",
+   "1 == 1 ? 3'b110 : 3'b001", new_inumber(TkUIntLit, loc(0, 0, 0), 6, Base2, 3, "110"))
+
+run_test_no_context("Conditional (?) ambiguous",
+   "3'b01x == 3'h01x ? 3'b110 : 3'b011", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 3, "x1x"))
+
+run_test_no_context("Conditional (?) ambiguous, truncated away",
+   "3'hXA == 3'hxA ? 3'b110 : 3'b011", new_inumber(TkUIntLit, loc(0, 0, 0), 6, Base2, 3, "110"))
+
+run_test_no_context("Conditional (?) case equality",
+   "3'b01x === 3'b01X ? 3'b110 : 3'b011", new_inumber(TkUIntLit, loc(0, 0, 0), 6, Base2, 3, "110"))
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
