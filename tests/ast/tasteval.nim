@@ -394,6 +394,11 @@ run_test_no_context("Prefix (+) ambiguous (1)",
 run_test_no_context("Prefix (+) ambiguous (2)",
    "+3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
 
+run_test_no_context("Prefix (+) big number",
+   "+256'h0000_0000_0000_0000_0000_0000_0000_000F_0000_0000_0000_FFFF_0000_0000_0000_0000",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 256,
+   "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111100000000000000000000000000000000000000000000000011111111111111110000000000000000000000000000000000000000000000000000000000000000"))
+
 run_test_no_context("Prefix (-) integer",
    "-3", new_inumber(TkIntLit, loc(0, 0, 0), -3, Base2, INTEGER_BITS, "11111111111111111111111111111101"))
 
@@ -411,6 +416,11 @@ run_test_no_context("Prefix (-) ambiguous (2)",
 
 run_test_no_context("Prefix (-) in infix expression",
    "-5 - 2", new_inumber(TkIntLit, loc(0, 0, 0), -7, Base2, INTEGER_BITS, "11111111111111111111111111111001"))
+
+run_test_no_context("Prefix (-) big number",
+   "-256'sh0000_0000_0000_0000_0000_0000_0000_000F_0000_0000_0000_FFFF_0000_0000_0000_0000",
+   new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 256,
+   "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111000011111111111111111111111111111111111111111111111100000000000000010000000000000000000000000000000000000000000000000000000000000000"))
 
 run_test_no_context("Prefix (~) unsized",
    "~0", new_inumber(TkIntLit, loc(0, 0, 0), -1, Base2, INTEGER_BITS, "11111111111111111111111111111111"))
@@ -435,6 +445,11 @@ run_test_no_context("Prefix (~) ambiguous decimal",
 
 run_test_no_context("Prefix (~) real (error)", "~9.0", Token(), true)
 
+run_test_no_context("Prefix (~) big number",
+   "~256'h0000_0000_0000_0000_0000_0000_0000_000F_0000_0000_0000_FFFF_0000_0000_0000_0000",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 256,
+   "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111000011111111111111111111111111111111111111111111111100000000000000001111111111111111111111111111111111111111111111111111111111111111"))
+
 run_test_no_context("Prefix (!) zero value, unsized",
    "!0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
@@ -456,6 +471,14 @@ run_test_no_context("Prefix (!) real, zero value",
 run_test_no_context("Prefix (!) ambiguous",
    "!2'bx1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Prefix (~) big number (1)",
+   "!256'h0000_0000_0000_0000_0000_0000_0000_000F_0000_0000_0000_FFFF_0000_0000_0000_0000",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
+
+run_test_no_context("Prefix (~) big number (2)",
+   "!256'h0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
+
 run_test_no_context("Prefix (&) unsized",
    "&32", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
@@ -467,6 +490,10 @@ run_test_no_context("Prefix (&) real (error)", "&3.14", Token(), true)
 run_test_no_context("Prefix (&) ambiguous",
    "&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
+run_test_no_context("Prefix (&) big number",
+   "&256'hFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
+
 run_test_no_context("Prefix (|) unsized",
    "|'b000", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
@@ -477,6 +504,10 @@ run_test_no_context("Prefix (|) ambiguous",
    "|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
 run_test_no_context("Prefix (|) real (error)", "|2.14", Token(), true)
+
+run_test_no_context("Prefix (|) big number",
+   "|256'h0000_1000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test_no_context("Prefix (^) unsized",
    "^'b100", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
@@ -491,6 +522,10 @@ run_test_no_context("Prefix (^) ambiguous",
    "^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
 
 run_test_no_context("Prefix (^) real (error)", "^0.14", Token(), true)
+
+run_test_no_context("Prefix (^) big number",
+   "^256'h0000_0000_0000_0010_0000_0000_0000_0000_0000_0008_0000_0000_0000_0000_0000_0001",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test_no_context("Prefix (~&) unsized",
    "~&32", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
@@ -589,6 +624,10 @@ run_test_no_context("Relational (>) real and converted integer",
 
 run_test_no_context("Relational (>) ambiguous",
    "0.1 > 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+
+run_test_no_context("Relational (>) big number and real",
+   "16.0 < 256'h1000_0000_0000_0000_0000_0000_0000_0000_0000_0008_0000_0000_0000_0000_0000_0000",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test_no_context("Relational (>=) equality",
    "7 >= 7", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
