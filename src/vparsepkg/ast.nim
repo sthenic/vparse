@@ -1165,14 +1165,18 @@ proc to_binary_literal(tok: Token): string =
 
 
 proc set_inumber_from_literal(tok: var Token) =
-   if tok.kind notin IntegerTokens:
+   if tok.kind notin IntegerTokens or tok.kind in AmbiguousTokens:
       return
 
-   if tok.kind notin AmbiguousTokens and fits_int(new_int(tok.literal, base = 2)):
-      tok.inumber = from_bin[BiggestInt](tok.literal)
-      if tok.kind == TkIntLit:
-         let sign_bit = 1 shl (tok.size - 1)
-         tok.inumber = (tok.inumber and (sign_bit - 1)) - (tok.inumber and sign_bit)
+   let signed_number = new_int(tok.literal, base = 2) and new_int('1' & repeat('0', tok.size - 1), base = 2)
+   let unsigned_number = new_int(tok.literal, base = 2) and new_int('0' & repeat('1', tok.size - 1), base = 2)
+   let i = if tok.kind == TkIntLit:
+      unsigned_number - signed_number
+   else:
+      unsigned_number + signed_number
+
+   if fits_int(i):
+      tok.inumber = to_int(i)
 
 
 proc extend_or_truncate*(tok: var Token, kind: TokenKind, size: int) =
@@ -1447,21 +1451,21 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
    result.kind = kind
    result.size = size
 
+   let ytok_int = to_gmp_int(ytok)
    case kind
    of IntegerTokens:
-      if kind in AmbiguousTokens or ytok.inumber == 0:
+      if kind in AmbiguousTokens or is_zero(ytok_int):
          set_ambiguous(result)
       else:
          # The modulo operation always takes the sign of the first operand. This
-         # is exactly how Nim's mod operation behaves so we just use it directly.
+         # is exactly how GMP's mod operation behaves so we just use it directly.
          result.base = Base2
-         from_gmp_int(result, to_gmp_int(xtok) mod to_gmp_int(ytok))
+         from_gmp_int(result, to_gmp_int(xtok) mod ytok_int)
    else:
       raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $result.kind)
 
 
 proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token =
-   # FIXME: GMP this
    init(result)
    let xtok = evaluate_constant_expression(x, context, kind, size)
    # The second operand is always self-determined, so we don't pass the
@@ -1512,6 +1516,9 @@ proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token 
          if ytok_int > 0:
             if not fits_culong(ytok_int):
                raise new_evaluation_error("Exponent too large, a value < $1 is required.", high(culong))
+            # FIXME: If the result is really big, libgmp will terminate w/
+            # SIGABRT. We'd have to install a signal handler to catch this
+            # event.
             from_gmp_int(result, xtok_int ^ to_culong(ytok_int))
          elif ytok_int == 0:
             from_gmp_int(result, new_int(1))
