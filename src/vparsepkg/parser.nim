@@ -743,11 +743,7 @@ proc parse_constant_range_expression(p: var Parser): PNode =
 
    let first = parse_constant_expression(p)
    case p.tok.kind
-   of TkColon:
-      get_token(p)
-      add(result.sons, first)
-      add(result.sons, parse_constant_expression(p))
-   of TkPlusColon, TkMinusColon:
+   of TkColon, TkPlusColon, TkMinusColon:
       let infix = new_node(p, NkInfix)
       add(infix.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
@@ -2393,7 +2389,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
    else:
       parse_proc = nil
 
-   if parse_proc != nil:
+   if not is_nil(parse_proc):
       # Expect only one top-level statement per call.
       get_token(p)
       result = parse_proc(p)

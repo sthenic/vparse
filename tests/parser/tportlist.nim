@@ -137,8 +137,11 @@ run_test("Port reference w/ range expressions", """(
          new_node(NkPortReference, li(3, 9), @[
             new_identifier_node(NkPortIdentifier, li(3, 9), "b"),
             new_node(NkConstantRangeExpression, li(3, 10), @[
-               new_inumber_node(NkIntLit, li(3, 11), 7, "7", Base10, -1),
-               new_inumber_node(NkIntLit, li(3, 13), 0, "0", Base10, -1)
+               new_node(NkInfix, li(3, 12), @[
+                  new_identifier_node(NkIdentifier, li(3, 12), ":"),
+                  new_inumber_node(NkIntLit, li(3, 11), 7, "7", Base10, -1),
+                  new_inumber_node(NkIntLit, li(3, 13), 0, "0", Base10, -1)
+               ])
             ])
          ])
       ]),
@@ -235,12 +238,15 @@ run_test("Anonymous port w/ range", """(
          new_node(NkPortReference, li(2, 4), @[
             new_identifier_node(NkPortIdentifier, li(2, 4), "addr"),
             new_node(NkConstantRangeExpression, li(2, 8), @[
-               new_node(NkInfix, li(2, 14), @[
-                  new_identifier_node(NkIdentifier, li(2, 14), "-"),
-                  new_identifier_node(NkIdentifier, li(2, 9), "WIDTH"),
-                  new_inumber_node(NkIntLit, li(2, 15), 1, "1", Base10, -1)
-               ]),
-               new_inumber_node(NkIntLit, li(2, 17), 0, "0", Base10, -1)
+               new_node(NkInfix, li(2, 16), @[
+                  new_identifier_node(NkIdentifier, li(2, 16), ":"),
+                  new_node(NkInfix, li(2, 14), @[
+                     new_identifier_node(NkIdentifier, li(2, 14), "-"),
+                     new_identifier_node(NkIdentifier, li(2, 9), "WIDTH"),
+                     new_inumber_node(NkIntLit, li(2, 15), 1, "1", Base10, -1)
+                  ]),
+                  new_inumber_node(NkIntLit, li(2, 17), 0, "0", Base10, -1)
+               ])
             ])
          ])
       ])
@@ -262,12 +268,15 @@ run_test("Anonymous port concatenation", """(
             new_node(NkPortReference, li(2, 11), @[
                new_identifier_node(NkPortIdentifier, li(2, 11), "addr"),
                new_node(NkConstantRangeExpression, li(2, 15), @[
-                  new_node(NkInfix, li(2, 21), @[
-                     new_identifier_node(NkIdentifier, li(2, 21), "-"),
-                     new_identifier_node(NkIdentifier, li(2, 16), "WIDTH"),
-                     new_inumber_node(NkIntLit, li(2, 22), 1, "1", Base10, -1)
-                  ]),
-                  new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1)
+                  new_node(NkInfix, li(2, 23), @[
+                     new_identifier_node(NkIdentifier, li(2, 23), ":"),
+                     new_node(NkInfix, li(2, 21), @[
+                        new_identifier_node(NkIdentifier, li(2, 21), "-"),
+                        new_identifier_node(NkIdentifier, li(2, 16), "WIDTH"),
+                        new_inumber_node(NkIntLit, li(2, 22), 1, "1", Base10, -1)
+                     ]),
+                     new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1)
+                  ])
                ])
             ]),
             new_node(NkPortReference, li(2, 28), @[

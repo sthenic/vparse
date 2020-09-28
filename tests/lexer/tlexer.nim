@@ -362,7 +362,7 @@ run_test("Special character: semicolon", ";", @[
 ])
 
 run_test("Special character: colon", ":", @[
-   new_token(TkColon, loc(1, 1, 0)),
+   new_identifier(TkColon, loc(1, 1, 0), ":"),
 ])
 
 run_test("Special character: at", "@", @[
@@ -460,7 +460,7 @@ run_test("Compiler directive: macro usage (with arguments)",
    new_token(TkRparen, loc(1, 1, 24)),
    new_identifier(TkOperator, loc(1, 1, 25), "-"),
    new_inumber(TkIntLit, loc(1, 1, 26), 1, Base10, -1, "1"),
-   new_token(TkColon, loc(1, 1, 27)),
+   new_identifier(TkColon, loc(1, 1, 27), ":"),
    new_inumber(TkIntLit, loc(1, 1, 28), 0, Base10, -1, "0"),
    new_token(TkRbracket, loc(1, 1, 29)),
    new_identifier(TkSymbol, loc(1, 1, 31), "bar"),
@@ -483,7 +483,7 @@ run_test("Compiler directive: macro usage (with arguments, nested parentheses)",
    new_token(TkRparen, loc(1, 1, 33)),
    new_identifier(TkOperator, loc(1, 1, 34), "-"),
    new_inumber(TkIntLit, loc(1, 1, 35), 1, Base10, -1, "1"),
-   new_token(TkColon, loc(1, 1, 36)),
+   new_identifier(TkColon, loc(1, 1, 36), ":"),
    new_inumber(TkIntLit, loc(1, 1, 37), 0, Base10, -1, "0"),
    new_token(TkRbracket, loc(1, 1, 38)),
    new_identifier(TkSymbol, loc(1, 1, 40), "bar"),

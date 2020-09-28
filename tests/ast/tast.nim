@@ -44,7 +44,7 @@ run_test("Net declaration", NkNetDecl,
 
 run_test("Net declaration assignment (ranged) (1)", NkNetDecl,
 "wire my_wire = some_other_wire[4][ 3:0 ];",
-"wire my_wire = some_other_wire[4][3:0]")
+"wire my_wire = some_other_wire[4][3 : 0]")
 
 
 run_test("Net declaration assignment (ranged) (2)", NkNetDecl,

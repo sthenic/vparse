@@ -202,7 +202,7 @@ proc add*(c: var AstContext, pos: int, n: PNode) =
 
 
 proc pretty*(n: PNode, indent: int = 0): string =
-   if n == nil:
+   if is_nil(n):
       return
    result = spaces(indent) & $n.kind & $n.loc
    case n.kind
@@ -946,9 +946,6 @@ proc `$`*(n: PNode): string =
    of NkConstantRangeExpression:
       add(result, '[')
       add(result, $n.sons[0])
-      if len(n.sons) > 1:
-         add(result, ':')
-         add(result, $n.sons[1])
       add(result, ']')
 
    of IntegerTypes:

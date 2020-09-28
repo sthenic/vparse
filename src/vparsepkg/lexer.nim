@@ -807,9 +807,6 @@ proc get_token*(l: var Lexer, tok: var Token) =
    of ';':
       tok.kind = TkSemicolon
       inc(l.bufpos)
-   of ':':
-      tok.kind = TkColon
-      inc(l.bufpos)
    of '@':
       tok.kind = TkAt
       inc(l.bufpos)
