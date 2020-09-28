@@ -1176,7 +1176,7 @@ proc set_inumber_from_literal(tok: var Token) =
       tok.inumber = to_int(i)
 
 
-proc extend_or_truncate*(tok: var Token, kind: TokenKind, size: int) =
+proc extend_or_truncate(tok: var Token, kind: TokenKind, size: int) =
    if size <= 0:
       raise new_evaluation_error("Cannot extend or truncate to size '$1'.", size)
 
@@ -1202,7 +1202,7 @@ proc extend_or_truncate*(tok: var Token, kind: TokenKind, size: int) =
    set_inumber_from_literal(tok)
 
 
-proc to_gmp_int*(tok: Token): Int =
+proc to_gmp_int(tok: Token): Int =
    ## Convert the integer token ``tok`` into a GMP integer ready for
    ## calculations. The numerical base is assumed to be ``Base2`` (binary encoded
    ## literal value).
@@ -1224,18 +1224,28 @@ proc to_gmp_int*(tok: Token): Int =
       discard
 
 
-proc from_gmp_int*(tok: var Token, i: Int) =
+proc from_gmp_int(tok: var Token, i: Int) =
    ## Convert a GMP integer into a binary literal that matches the token's size.
    tok.literal = `$`(i and new_int(repeat('1', tok.size), base = 2), base = 2)
    extend_or_truncate(tok, tok.kind, tok.size)
 
 
-proc from_gmp_int*(tok: var Token, b: bool) =
+proc from_gmp_int(tok: var Token, b: bool) =
    tok.literal = if b: "1" else: "0"
    extend_or_truncate(tok, tok.kind, tok.size)
 
 
-proc convert*(tok: Token, kind: TokenKind, size: int): Token =
+proc via_gmp_int(tok: Token): int =
+   if tok.kind notin IntegerTokens or tok.kind in AmbiguousTokens:
+      raise new_evaluation_error("Cannot interpret token '$1' as a GMP integer.", $tok.kind)
+
+   let gmp_int = to_gmp_int(tok)
+   if not fits_int(gmp_int):
+      raise new_evaluation_error("GMP integer too big to fit into type 'int'.")
+   result = to_int(gmp_int)
+
+
+proc convert(tok: Token, kind: TokenKind, size: int): Token =
    ## Convert the integer token to the target kind and size. If the target kind
    ## is signed, the resulting token will be sign extended. An unsigned integer
    ## is exteded with zeros and a signed integer is extended with its sign bit.
@@ -1683,7 +1693,6 @@ proc evaluate_constant_identifier(n: PNode, context: AstContext, kind: TokenKind
    if is_nil(expression):
       raise new_evaluation_error("The declaration of '$1' does not contain an expression.", n.identifier)
    result = evaluate_constant_expression(expression, context, kind, size)
-   # FIXME: apply size and kind to what we get?
 
 
 proc evaluate_constant_multiple_concat(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1696,9 +1705,68 @@ proc evaluate_constant_concat(n: PNode, context: AstContext, kind: TokenKind, si
    raise new_evaluation_error("Not implemented")
 
 
+proc parse_range_infix(n: PNode, context: AstContext): tuple[low, high: int] =
+   ## Parse the infix node ``n``, allowing the operators ':', '+:' and '-:' in
+   ## additional to all the others.
+   let op_idx = find_first_index(n, NkIdentifier)
+   let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
+   let rhs_idx = find_first_index(n, ExpressionTypes, lhs_idx + 1)
+   if op_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
+      raise new_evaluation_error("Invalid range.")
+
+   let lhs_tok = evaluate_constant_expression(n.sons[lhs_idx], context)
+   let rhs_tok = evaluate_constant_expression(n.sons[rhs_idx], context)
+   case n.sons[op_idx].identifier.s
+   of "+:":
+      # Expressions like [8 +: 8]
+      result.low = via_gmp_int(lhs_tok)
+      result.high = result.low + via_gmp_int(rhs_tok)
+   of "-:":
+      # Expressions like [15 -: 8]
+      result.high = via_gmp_int(lhs_tok)
+      result.low = result.high - via_gmp_int(rhs_tok)
+   of ":":
+      # Expressions like [3 : 0]
+      result.low = via_gmp_int(lhs_tok)
+      result.high = via_gmp_int(rhs_tok)
+   else:
+      # Expressions like [3 + (6/2)]
+      let tok = evaluate_constant_expression(n, context)
+      result.low = via_gmp_int(tok)
+      result.high = result.low
+
+
+proc parse_range(n: PNode, context: AstContext): tuple[low, high: int] =
+   # We expect either an infix node or a regular expression node.
+   let expression = find_first(n, ExpressionTypes)
+   if is_nil(expression):
+      raise new_evaluation_error("Invalid range.")
+   elif expression.kind == NkInfix:
+      result = parse_range_infix(expression, context)
+   else:
+      let tok = evaluate_constant_expression(n, context)
+      result.low = via_gmp_int(tok)
+      result.high = result.low
+
+
 proc evaluate_constant_ranged_identifier(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
-   # FIXME: Implement
-   raise new_evaluation_error("Not implemented")
+   let id = find_first(n, NkIdentifier)
+   let range = find_first(n, NkConstantRangeExpression)
+   if is_nil(id) or is_nil(range):
+      raise new_evaluation_error("Invalid ranged identifier node.")
+
+   # Evaluating a constant ranged identifier consists of finding the constant
+   # value of the identifier, then extracting the bits between the start and
+   # stop indexes.
+   result = evaluate_constant_identifier(id, context, kind, size)
+   let (low, high) = parse_range(range, context)
+   if low < 0 or low > result.size:
+      raise new_evaluation_error("Low index '$1' out of range for identifier '$2'.", low, id.identifier.s)
+   elif high < 0 or high > result.size:
+      raise new_evaluation_error("High index '$1' out of range for identifier '$2'.", high, id.identifier.s)
+
+   result.literal = result.literal[low..high]
+   extend_or_truncate(result, kind, size)
 
 
 proc evaluate_constant_system_function_call(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1925,6 +1993,7 @@ proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):
    if is_nil(range):
       raise new_evaluation_error("Invalid ranged identifier node.")
 
+   # FIXME: We can probably clean this up (see evaluate_constant_ranged_identifier).
    let first_idx = find_first_index(range, ExpressionTypes)
    let second_idx = find_first_index(range, ExpressionTypes, first_idx +  1)
    let infix_idx = find_first_index(range, NkInfix)
@@ -1944,11 +2013,11 @@ proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):
          if result.size < 0 or
                first.kind in RealTokens + AmbiguousTokens or
                second.kind in RealTokens + AmbiguousTokens:
-            raise new_evaluation_error("aInvalid ranged identifier node.")
+            raise new_evaluation_error("Invalid ranged identifier node.")
       else:
          result.size = 1
    else:
-      raise new_evaluation_error("cInvalid ranged identifier node.")
+      raise new_evaluation_error("Invalid ranged identifier node.")
 
 
 proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext):

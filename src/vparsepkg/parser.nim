@@ -2397,4 +2397,3 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
       result = new_error_node(p, NkCritical, GrammarNotSupported, $kind)
 
    close_parser(p)
-

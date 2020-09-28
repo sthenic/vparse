@@ -5,11 +5,9 @@ import math
 import ../../src/vparsepkg/parser
 import ../lexer/constructors
 
-var
-   nof_passed = 0
-   nof_failed = 0
-   cache: IdentifierCache
-
+var nof_passed = 0
+var nof_failed = 0
+var cache: IdentifierCache
 
 template run_test_no_context(title, stimuli: string, reference: Token, expect_error: bool = false) =
    cache = new_ident_cache()
@@ -17,6 +15,35 @@ template run_test_no_context(title, stimuli: string, reference: Token, expect_er
 
    try:
       let response = evaluate_constant_expression(n, @[])
+      if response == reference:
+         styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
+                         fgWhite, "Test '",  title, "'")
+         nof_passed += 1
+      else:
+         styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
+                         fgWhite, "Test '",  title, "'")
+         nof_failed += 1
+         echo pretty(response)
+         echo pretty(reference)
+   except EvaluationError as e:
+      if expect_error:
+         styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
+                         fgWhite, "Test '",  title, "'")
+         nof_passed += 1
+      else:
+         styledWriteLine(stdout, styleBright, fgRed, "[✗] ",
+                         fgWhite, "Test '",  title, "'")
+         nof_failed += 1
+         echo "Exception: ", e.msg
+
+
+template run_test(title, context, stimuli: string, reference: Token, expect_error: bool = false) =
+   cache = new_ident_cache()
+   let n = parse_specific_grammar(stimuli, cache, NkConstantExpression)
+   let cn = parse_string("module test(); " & context & " endmodule", cache).sons[0]
+
+   try:
+      let response = evaluate_constant_expression(n, @[AstContextItem(pos: len(cn.sons) - 1, n: cn)])
       if response == reference:
          styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
                          fgWhite, "Test '",  title, "'")
@@ -706,6 +733,10 @@ run_test_no_context("Conditional (?) ambiguous, truncated away",
 
 run_test_no_context("Conditional (?) case equality",
    "3'b01x === 3'b01X ? 3'b110 : 3'b011", new_inumber(TkUIntLit, loc(0, 0, 0), 6, Base2, 3, "110"))
+
+run_test("Identifier lookup", """
+   localparam FOO = 3 + 3;
+""", "3'b010 + FOO", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base2, 32, "00000000000000000000000000001000"))
 
 
 # Print summary
