@@ -738,6 +738,46 @@ run_test("Identifier lookup", """
    localparam FOO = 3 + 3;
 """, "3'b010 + FOO", new_inumber(TkUIntLit, loc(0, 0, 0), 8, Base2, 32, "00000000000000000000000000001000"))
 
+run_test("Ranged identifier, unsized", """
+   localparam FOO = 35;
+""", "FOO[5:1]", new_inumber(TkIntLit, loc(0, 0, 0), -15, Base2, 5, "10001"))
+
+run_test("Ranged identifier, sized", """
+   localparam FOO = 6'b100011;
+""", "FOO[5:1]", new_inumber(TkUIntLit, loc(0, 0, 0), 17, Base2, 5, "10001"))
+
+run_test("Ranged identifier, sized (high index out of range) (1)", """
+   localparam FOO = 6'b100011;
+""", "FOO[6:1]", Token(), true)
+
+run_test("Ranged identifier, sized (high index out of range) (2)", """
+   localparam FOO = 6'b100011;
+""", "FOO[-1:1]", Token(), true)
+
+run_test("Ranged identifier, sized (low index out of range) (1)", """
+   localparam FOO = 6'b100011;
+""", "FOO[7:6]", Token(), true)
+
+run_test("Ranged identifier, sized (low index out of range) (2)", """
+   localparam FOO = 6'b100011;
+""", "FOO[7:-1]", Token(), true)
+
+run_test("Ranged identifier, ambiguous", """
+   localparam FOO = 12'hAxB;
+""", "FOO[4:0]", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 5, "x1011"))
+
+run_test("Ranged identifier, ambiguous removed", """
+   localparam FOO = 12'hAxB;
+""", "FOO[11:9]", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 3, "101"))
+
+run_test("Ranged identifier, signed ambiguous", """
+   localparam FOO = 12'shAxB;
+""", "FOO[5:1]", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 5, "xx101"))
+
+run_test("Ranged identifier, signed ambiguous removed", """
+   localparam FOO = 12'shAxB;
+""", "FOO[2:1]", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 2, "01"))
+
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

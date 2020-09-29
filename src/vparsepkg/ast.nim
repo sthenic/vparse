@@ -1727,8 +1727,8 @@ proc parse_range_infix(n: PNode, context: AstContext): tuple[low, high: int] =
       result.low = result.high - via_gmp_int(rhs_tok)
    of ":":
       # Expressions like [3 : 0]
-      result.low = via_gmp_int(lhs_tok)
-      result.high = via_gmp_int(rhs_tok)
+      result.low = via_gmp_int(rhs_tok)
+      result.high = via_gmp_int(lhs_tok)
    else:
       # Expressions like [3 + (6/2)]
       let tok = evaluate_constant_expression(n, context)
@@ -1758,15 +1758,15 @@ proc evaluate_constant_ranged_identifier(n: PNode, context: AstContext, kind: To
    # Evaluating a constant ranged identifier consists of finding the constant
    # value of the identifier, then extracting the bits between the start and
    # stop indexes.
-   result = evaluate_constant_identifier(id, context, kind, size)
+   result = evaluate_constant_expression(id, context)
    let (low, high) = parse_range(range, context)
-   if low < 0 or low > result.size:
+   if low < 0 or low >= result.size:
       raise new_evaluation_error("Low index '$1' out of range for identifier '$2'.", low, id.identifier.s)
-   elif high < 0 or high > result.size:
+   elif high < 0 or high >= result.size:
       raise new_evaluation_error("High index '$1' out of range for identifier '$2'.", high, id.identifier.s)
 
-   result.literal = result.literal[low..high]
-   extend_or_truncate(result, kind, size)
+   result.literal = result.literal[^(high + 1)..^(low + 1)]
+   result = convert(result, kind, size)
 
 
 proc evaluate_constant_system_function_call(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
@@ -1988,36 +1988,20 @@ proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext):
 
 proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
-   result.kind = TkUIntLit
+   let id = find_first(n, NkIdentifier)
    let range = find_first(n, NkConstantRangeExpression)
-   if is_nil(range):
+   if is_nil(id) or is_nil(range):
       raise new_evaluation_error("Invalid ranged identifier node.")
 
-   # FIXME: We can probably clean this up (see evaluate_constant_ranged_identifier).
-   let first_idx = find_first_index(range, ExpressionTypes)
-   let second_idx = find_first_index(range, ExpressionTypes, first_idx +  1)
-   let infix_idx = find_first_index(range, NkInfix)
-   if infix_idx >= 0:
-      let infix = range.sons[infix_idx]
-      let infix_op_idx = find_first_index(infix, NkIdentifier)
-      let infix_first_idx = find_first_index(infix, ExpressionTypes, infix_op_idx + 1)
-      let infix_second_idx = find_first_index(infix, ExpressionTypes, infix_first_idx + 1)
-      if infix_op_idx < 0 or infix_first_idx < 0 or infix_second_idx < 0:
-         raise new_evaluation_error("bInvalid ranged identifier node.")
-      result.size = int(evaluate_constant_expression(infix.sons[infix_second_idx], context).inumber)
-   elif first_idx >= 0:
-      if second_idx >= 0:
-         let first = evaluate_constant_expression(range.sons[first_idx], context)
-         let second = evaluate_constant_expression(range.sons[second_idx], context)
-         result.size = int(first.inumber - second.inumber) + 1
-         if result.size < 0 or
-               first.kind in RealTokens + AmbiguousTokens or
-               second.kind in RealTokens + AmbiguousTokens:
-            raise new_evaluation_error("Invalid ranged identifier node.")
-      else:
-         result.size = 1
-   else:
-      raise new_evaluation_error("Invalid ranged identifier node.")
+   let tok = evaluate_constant_expression(id, context)
+   let (low, high) = parse_range(range, context)
+   if low < 0 or low > tok.size:
+      raise new_evaluation_error("Low index '$1' out of range for identifier '$2'.", low, id.identifier.s)
+   elif high < 0 or high > tok.size:
+      raise new_evaluation_error("High index '$1' out of range for identifier '$2'.", high, id.identifier.s)
+
+   result.kind = tok.kind
+   result.size = high - low + 1
 
 
 proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext):
