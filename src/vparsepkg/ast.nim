@@ -1696,13 +1696,46 @@ proc evaluate_constant_identifier(n: PNode, context: AstContext, kind: TokenKind
 
 
 proc evaluate_constant_multiple_concat(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
-   # FIXME: Implement
-   raise new_evaluation_error("Not implemented")
+   init(result)
+   let multiplier_idx = find_first_index(n, ExpressionTypes)
+   let concat_idx = find_first_index(n, NkConstantConcat, multiplier_idx + 1)
+   if multiplier_idx < 0 or concat_idx < 0:
+      raise new_evaluation_error("Invalid multiple concatenation node.")
+
+   # The multiplier is self-determined and so is the concatenation.
+   let multiplier_tok = evaluate_constant_expression(n.sons[multiplier_idx], context)
+   let concat_tok = evaluate_constant_expression(n.sons[concat_idx], context)
+   for i in 0..<via_gmp_int(multiplier_tok):
+      add(result.literal, concat_tok.literal)
+
+   result.kind = kind
+   result.size = size
+   result = convert(result, kind, size)
 
 
 proc evaluate_constant_concat(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
-   # FIXME: Implement
-   raise new_evaluation_error("Not implemented")
+   # In constant concatenation, each son is expected to be a constant
+   # expression. We work with the literal value, reading the expressions from
+   # left to right, concatenating the literal value as we go. All the
+   # expressions are self determined.
+   init(result)
+   result.kind = kind
+   result.base = Base2
+   result.size = size
+
+   var idx = -1
+   var valid = false
+   while true:
+      idx = find_first_index(n, ExpressionTypes, idx + 1)
+      if idx < 0:
+         break
+      valid = true
+      let tok = evaluate_constant_expression(n.sons[idx], context)
+      add(result.literal, tok.literal)
+
+   if not valid:
+      raise new_evaluation_error("A constant concatenation node must contain at least one expression.")
+   result = convert(result, kind, size)
 
 
 proc parse_range_infix(n: PNode, context: AstContext): tuple[low, high: int] =
@@ -1969,21 +2002,30 @@ proc determine_kind_and_size_identifier(n: PNode, context: AstContext):
 
 proc determine_kind_and_size_concat(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
+   result = (TkInvalid, 0)
    for s in walk_sons(n, ExpressionTypes):
-      let (_, size) = determine_kind_and_size(s, context)
+      # FIXME: Unsized integer literals are not allowed in constant concatenations. We
+      # have to capture those here because once determine_kind_and_size() is
+      # called, they assume a size of INTEGER_BITS.
+      let (kind, size) = determine_kind_and_size(s, context)
+      if result.kind == TkInvalid:
+         result.kind = kind
+      else:
+         result.kind = determine_expression_kind(result.kind, kind)
       inc(result.size, size)
 
 
 proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext):
       tuple[kind: TokenKind, size: int] =
-   let factor_idx = find_first_index(n, ExpressionTypes)
-   let concat_idx = find_first_index(n, NkConstantConcat, factor_idx + 1)
-   if factor_idx < 0 or concat_idx < 0:
+   let multiplier_idx = find_first_index(n, ExpressionTypes)
+   let concat_idx = find_first_index(n, NkConstantConcat, multiplier_idx + 1)
+   if multiplier_idx < 0 or concat_idx < 0:
       raise new_evaluation_error("Invalid multiple concatenation node.")
 
-   let factor = evaluate_constant_expression(n.sons[factor_idx], context)
-   let (_, size) = determine_kind_and_size_concat(n.sons[concat_idx], context)
-   result.size = int(factor.inumber) * size
+   let multiplier_tok = evaluate_constant_expression(n.sons[multiplier_idx], context)
+   let (kind, size) = determine_kind_and_size_concat(n.sons[concat_idx], context)
+   result.size = via_gmp_int(multiplier_tok) * size
+   result.kind = kind
 
 
 proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):

@@ -778,6 +778,28 @@ run_test("Ranged identifier, signed ambiguous removed", """
    localparam FOO = 12'shAxB;
 """, "FOO[2:1]", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 2, "01"))
 
+run_test("Constant concatenation, one bit", "",
+   "{1'b1}", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
+
+run_test("Constant concatenation, two bits", "",
+   "{1'b1, 1'b0}", new_inumber(TkUIntLit, loc(0, 0, 0), 2, Base2, 2, "10"))
+
+run_test("Constant concatenation, nested", "",
+   "{1'b1, 2'd3, {2'hA, 5'd2}}", new_inumber(TkUIntLit, loc(0, 0, 0), 962, Base2, 10, "1111000010"))
+
+run_test("Constant concatenation, w/ identifier", """
+   localparam CONCAT = 32;
+""",
+   "{1'b1, CONCAT, 1'b0}", new_inumber(TkUIntLit, loc(0, 0, 0), 8589934656, Base2, 34, "1000000000000000000000000001000000"))
+
+# FIXME:
+# run_test("Constant concatenation, w/ unsized (error)", "",
+#    "{1'b1, 32}", Token(), true)
+
+run_test("Constant replication, one bit -> two bits", "",
+   "{2{1'b1}}", new_inumber(TkUIntLit, loc(0, 0, 0), 3, Base2, 2, "11"))
+
+# FIXME: More replication test cases
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
