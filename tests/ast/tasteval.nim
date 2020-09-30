@@ -799,7 +799,44 @@ run_test("Constant concatenation, w/ identifier", """
 run_test("Constant replication, one bit -> two bits", "",
    "{2{1'b1}}", new_inumber(TkUIntLit, loc(0, 0, 0), 3, Base2, 2, "11"))
 
-# FIXME: More replication test cases
+run_test("Constant replication, nested", "",
+   "{2{{5{2'b01}}}", new_inumber(TkUIntLit, loc(0, 0, 0), 349525, Base2, 20, "01010101010101010101"))
+
+run_test("Constant replication, negative constant", "", "{-1{2'b0}}", Token(), true)
+
+run_test("Constant replication, negative constant from identifier", """
+   localparam NEG = -2;
+""", "{(NEG){2'b0}}", Token(), true)
+
+run_test("Constant replication, ambiguous constant (x)", "", "{1'bx{1'b0}}", Token(), true)
+
+run_test("Constant replication, ambiguous constant (z)", "", "{1'bz{1'b1}}", Token(), true)
+
+run_test("Constant replication, ambiguous constant (?)", "", "{1'b?{1'b1}}", Token(), true)
+
+run_test("Constant replication, zero not allowed (operand)", "", "2 + {0{1'b1}}", Token(), true)
+
+run_test("Constant replication, zero not allowed (alone in concatenation)", """
+   localparam P = 32;
+   localparam a = 32'hAAAA_BBBB;
+""", "{ {{32-P{1’b1}}}, a[P-1:0] }", Token(), true)
+
+# FIXME:
+# run_test("Constant replication, zero allowed (other operand w/ positive size)", """
+#    localparam P = 32;
+#    localparam a = 32'hAAAA_BBBB;
+# """, "{ {32-P{1’b1}}, a[P-1:0] }", Token())
+
+run_test("Constant replication, used in expression (unsigned)", "",
+   "4'd3 + {(2+1){1'b1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), 10, Base2, 4, "1010"))
+
+run_test("Constant replication, used in expression (signed)", "",
+   "4'sd3 + {(2+1){1'sb1}}",  new_inumber(TkIntLit, loc(0, 0, 0), 2, Base2, 4, "0010"))
+
+run_test("Constant replication, used in expression (unsigned due to range select)", """
+   localparam BAR = 6'sd3;
+""",
+   "BAR[3:0] + {(2+1){1'sb1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), 10, Base2, 4, "1010"))
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

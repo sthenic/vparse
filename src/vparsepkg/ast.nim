@@ -1221,6 +1221,7 @@ proc to_gmp_int(tok: Token): Int =
       # The token is unsigned.
       result = new_int(tok.literal, base = 2)
    else:
+      # FIXME: Exception/
       discard
 
 
@@ -1695,21 +1696,37 @@ proc evaluate_constant_identifier(n: PNode, context: AstContext, kind: TokenKind
    result = evaluate_constant_expression(expression, context, kind, size)
 
 
-proc evaluate_constant_multiple_concat(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_multiple_concat(n: PNode, context: AstContext, kind: TokenKind, size: int,
+                                       allow_zero: bool): Token =
    init(result)
-   let multiplier_idx = find_first_index(n, ExpressionTypes)
-   let concat_idx = find_first_index(n, NkConstantConcat, multiplier_idx + 1)
-   if multiplier_idx < 0 or concat_idx < 0:
+   let constant_idx = find_first_index(n, ExpressionTypes)
+   let concat_idx = find_first_index(n, NkConstantConcat, constant_idx + 1)
+   if constant_idx < 0 or concat_idx < 0:
       raise new_evaluation_error("Invalid multiple concatenation node.")
 
-   # The multiplier is self-determined and so is the concatenation.
-   let multiplier_tok = evaluate_constant_expression(n.sons[multiplier_idx], context)
+   # The multiplier is self-determined and so is the concatenation. The
+   # multiplier has to be nonnegative and not ambiguous. We also assume that the
+   # multiplier fits in an int.
+   let constant_tok = evaluate_constant_expression(n.sons[constant_idx], context)
+   if constant_tok.kind in AmbiguousTokens:
+      raise new_evaluation_error("Replication constant cannot be ambiguous.")
+   let constant = via_gmp_int(constant_tok)
+   if constant < 0:
+      raise new_evaluation_error("Replication constant cannot be negative.")
+   elif constant == 0:
+      if allow_zero:
+         result.kind = TkInvalid
+         result.size = 0
+         return
+      else:
+         raise new_evaluation_error("Replication with zero is not allowed in this context.")
+
    let concat_tok = evaluate_constant_expression(n.sons[concat_idx], context)
-   for i in 0..<via_gmp_int(multiplier_tok):
+   for i in 0..<constant:
       add(result.literal, concat_tok.literal)
 
    result.kind = kind
-   result.size = size
+   result.size = len(result.literal)
    result.base = Base2
    result = convert(result, kind, size)
 
@@ -1731,6 +1748,7 @@ proc evaluate_constant_concat(n: PNode, context: AstContext, kind: TokenKind, si
       if idx < 0:
          break
       valid = true
+      # FIXME: Add infrastructure to propagate allow_zero = true from evaluate_constant_concat().
       let tok = evaluate_constant_expression(n.sons[idx], context)
       add(result.literal, tok.literal)
 
@@ -1872,7 +1890,7 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
    of NkIdentifier:
       result = evaluate_constant_identifier(n, context, lkind, lsize)
    of NkConstantMultipleConcat:
-      result = evaluate_constant_multiple_concat(n, context, lkind, lsize)
+      result = evaluate_constant_multiple_concat(n, context, lkind, lsize, allow_zero = false)
    of NkConstantConcat:
       result = evaluate_constant_concat(n, context, lkind, lsize)
    of NkRangedIdentifier:
@@ -2020,14 +2038,14 @@ proc determine_kind_and_size_concat(n: PNode, context: AstContext): tuple[kind: 
 
 
 proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
-   let multiplier_idx = find_first_index(n, ExpressionTypes)
-   let concat_idx = find_first_index(n, NkConstantConcat, multiplier_idx + 1)
-   if multiplier_idx < 0 or concat_idx < 0:
+   let constant_idx = find_first_index(n, ExpressionTypes)
+   let concat_idx = find_first_index(n, NkConstantConcat, constant_idx + 1)
+   if constant_idx < 0 or concat_idx < 0:
       raise new_evaluation_error("Invalid multiple concatenation node.")
 
-   let multiplier_tok = evaluate_constant_expression(n.sons[multiplier_idx], context)
+   let constant_tok = evaluate_constant_expression(n.sons[constant_idx], context)
    let (kind, size) = determine_kind_and_size_concat(n.sons[concat_idx], context)
-   result.size = via_gmp_int(multiplier_tok) * size
+   result.size = via_gmp_int(constant_tok) * size
    result.kind = kind
 
 
