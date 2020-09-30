@@ -1710,6 +1710,7 @@ proc evaluate_constant_multiple_concat(n: PNode, context: AstContext, kind: Toke
 
    result.kind = kind
    result.size = size
+   result.base = Base2
    result = convert(result, kind, size)
 
 
@@ -1735,6 +1736,10 @@ proc evaluate_constant_concat(n: PNode, context: AstContext, kind: TokenKind, si
 
    if not valid:
       raise new_evaluation_error("A constant concatenation node must contain at least one expression.")
+
+   result.kind = kind
+   result.size = size
+   result.base = Base2
    result = convert(result, kind, size)
 
 
@@ -2000,8 +2005,7 @@ proc determine_kind_and_size_identifier(n: PNode, context: AstContext):
    result = determine_kind_and_size(expression, context)
 
 
-proc determine_kind_and_size_concat(n: PNode, context: AstContext):
-      tuple[kind: TokenKind, size: int] =
+proc determine_kind_and_size_concat(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
    result = (TkInvalid, 0)
    for s in walk_sons(n, ExpressionTypes):
       # FIXME: Unsized integer literals are not allowed in constant concatenations. We
@@ -2015,8 +2019,7 @@ proc determine_kind_and_size_concat(n: PNode, context: AstContext):
       inc(result.size, size)
 
 
-proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext):
-      tuple[kind: TokenKind, size: int] =
+proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
    let multiplier_idx = find_first_index(n, ExpressionTypes)
    let concat_idx = find_first_index(n, NkConstantConcat, multiplier_idx + 1)
    if multiplier_idx < 0 or concat_idx < 0:
@@ -2028,8 +2031,7 @@ proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext):
    result.kind = kind
 
 
-proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):
-      tuple[kind: TokenKind, size: int] =
+proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
    let id = find_first(n, NkIdentifier)
    let range = find_first(n, NkConstantRangeExpression)
    if is_nil(id) or is_nil(range):
@@ -2042,7 +2044,8 @@ proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext):
    elif high < 0 or high > tok.size:
       raise new_evaluation_error("High index '$1' out of range for identifier '$2'.", high, id.identifier.s)
 
-   result.kind = tok.kind
+   # The kind of part- or bit-select result is always unsigned, regardless of the operand.
+   result.kind = TkUIntLit
    result.size = high - low + 1
 
 

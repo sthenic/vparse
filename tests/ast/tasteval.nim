@@ -740,7 +740,7 @@ run_test("Identifier lookup", """
 
 run_test("Ranged identifier, unsized", """
    localparam FOO = 35;
-""", "FOO[5:1]", new_inumber(TkIntLit, loc(0, 0, 0), -15, Base2, 5, "10001"))
+""", "FOO[5:1]", new_inumber(TkUIntLit, loc(0, 0, 0), 17, Base2, 5, "10001"))
 
 run_test("Ranged identifier, sized", """
    localparam FOO = 6'b100011;
@@ -772,11 +772,11 @@ run_test("Ranged identifier, ambiguous removed", """
 
 run_test("Ranged identifier, signed ambiguous", """
    localparam FOO = 12'shAxB;
-""", "FOO[5:1]", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 5, "xx101"))
+""", "FOO[5:1]", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 5, "xx101"))
 
 run_test("Ranged identifier, signed ambiguous removed", """
    localparam FOO = 12'shAxB;
-""", "FOO[2:1]", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 2, "01"))
+""", "FOO[2:1]", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 2, "01"))
 
 run_test("Constant concatenation, one bit", "",
    "{1'b1}", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
