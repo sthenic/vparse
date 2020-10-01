@@ -6,15 +6,52 @@ import macros
 import ./ast
 import ./lexer
 
+type
+   ExpressionContext* = object
+      ast_context: AstContext
+      kind: TokenKind
+      size: int
+      allow_unsized: bool
+      allow_zero_replication: bool
+
+const
+   INTEGER_BITS* = 32
+
+
+proc init(context: var ExpressionContext) =
+   set_len(context.ast_context, 0)
+   context.kind = TkInvalid
+   context.size = -1
+   context.allow_unsized = true
+   context.allow_zero_replication = false
+
+
+proc new_expression_context(ast_context: AstContext): ExpressionContext =
+   ## Create a default expression context initialized with the input AST context.
+   init(result)
+   result.ast_context = ast_context
+
+
 # Forward declarations
-const INTEGER_BITS* = 32
-proc evaluate_constant_expression*(n: PNode, context: AstContext, kind: TokenKind, size: int): Token
+proc evaluate_constant_expression*(n: PNode, context: ExpressionContext): Token
 proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int]
 proc determine_expression_kind(x, y: TokenKind): TokenKind
 
 
-template evaluate_constant_expression*(n: PNode, context: AstContext): Token =
-   evaluate_constant_expression(n, context, TkInvalid, -1)
+template evaluate_constant_expression*(n: PNode, ast_context: AstContext, tkind: TokenKind, tsize: int): Token =
+   ## Shorthand to create a self-determined expression with a target
+   ## ``ast_context``, ``kind`` and ``size``.
+   var context = new_expression_context(ast_context)
+   context.kind = tkind
+   context.size = tsize
+   evaluate_constant_expression(n, context)
+
+
+template evaluate_constant_expression*(n: PNode, ast_context: AstContext): Token =
+   ## Shorthand to create a self-determined expression with a target
+   ## ``ast_context``.
+   let (kind, size) = determine_kind_and_size(n, ast_context)
+   evaluate_constant_expression(n, ast_context, kind, size)
 
 
 proc new_evaluation_error(msg: string, args: varargs[string, `$`]): ref EvaluationError =
@@ -118,7 +155,7 @@ proc to_gmp_int(tok: Token): Int =
       # The token is unsigned.
       result = new_int(tok.literal, base = 2)
    else:
-      # FIXME: Exception/
+      # FIXME: Exception
       discard
 
 
@@ -188,13 +225,13 @@ macro make_infix(x, y: typed, op: string): untyped =
    add(result, y)
 
 
-template unary_sign(n: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
+template unary_sign(n: PNode, context: ExpressionContext, op: string): Token =
    init(result)
-   let tok = evaluate_constant_expression(n, context, kind, size)
-   result.kind = kind
-   result.size = size
+   let tok = evaluate_constant_expression(n, context)
+   result.kind = context.kind
+   result.size = context.size
 
-   case kind
+   case context.kind
    of TkIntLit, TkUIntLit:
       result.base = Base2
       when op == "+":
@@ -208,17 +245,17 @@ template unary_sign(n: PNode, context: AstContext, kind: TokenKind, size: int, o
    of AmbiguousTokens:
       set_ambiguous(result)
    else:
-      raise new_evaluation_error("Unary operator '$1' cannot yield kind '$2'.", op, $kind)
+      raise new_evaluation_error("Unary operator '$1' cannot yield kind '$2'.", op, $context.kind)
    result
 
 
-proc binary_negation(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc binary_negation(n: PNode, context: ExpressionContext): Token =
    init(result)
-   let tok = evaluate_constant_expression(n, context, kind, size)
-   result.kind = kind
-   result.size = size
+   let tok = evaluate_constant_expression(n, context)
+   result.kind = context.kind
+   result.size = context.size
 
-   case kind
+   case context.kind
    of IntegerTokens:
       result.base = Base2
       for c in tok.literal:
@@ -233,13 +270,13 @@ proc binary_negation(n: PNode, context: AstContext, kind: TokenKind, size: int):
             raise new_evaluation_error("Invalid binary literal character '$1'.", c)
       extend_or_truncate(result, result.kind, result.size)
    else:
-      raise new_evaluation_error("Bitwise negation cannot yield kind '$1'.", $kind)
+      raise new_evaluation_error("Bitwise negation cannot yield kind '$1'.", $context.kind)
 
 
-proc logical_negation(n: PNode, context: AstContext): Token =
+proc logical_negation(n: PNode, context: ExpressionContext): Token =
    init(result)
    # The operand is self-determined in a logical negation.
-   let tok = evaluate_constant_expression(n, context)
+   let tok = evaluate_constant_expression(n, context.ast_context)
    result.kind = TkUIntLit
    result.size = 1
 
@@ -260,9 +297,10 @@ proc logical_negation(n: PNode, context: AstContext): Token =
       raise new_evaluation_error("Logical negation cannot parse kind '$1'.", $tok.kind)
 
 
-template unary_reduction(n: PNode, context: AstContext, op: string): Token =
+template unary_reduction(n: PNode, context: ExpressionContext, op: string): Token =
    init(result)
-   let tok = evaluate_constant_expression(n, context)
+   # The operand is self-determined in a unary reduction.
+   let tok = evaluate_constant_expression(n, context.ast_context)
    result.kind = TkUIntLit
    result.size = 1
 
@@ -281,7 +319,7 @@ template unary_reduction(n: PNode, context: AstContext, op: string): Token =
    result
 
 
-proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_prefix(n: PNode, context: ExpressionContext): Token =
    template invert(result: Token) =
       if result.kind == TkUIntLit:
          result.inumber = 1 - ord(result.inumber == 1)
@@ -289,48 +327,48 @@ proc evaluate_constant_prefix(n: PNode, context: AstContext, kind: TokenKind, si
 
    init(result)
    let op_idx = find_first_index(n, NkIdentifier)
-   let e_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
-   if op_idx < 0 or e_idx < 0:
+   let expression_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
+   if op_idx < 0 or expression_idx < 0:
       raise new_evaluation_error("Invalid infix node.")
 
-   let e = n.sons[e_idx]
+   let expression = n.sons[expression_idx]
    let op = n.sons[op_idx].identifier.s
    case op
    of "+":
-      result = unary_sign(e, context, kind, size, "+")
+      result = unary_sign(expression, context, "+")
    of "-":
-      result = unary_sign(e, context, kind, size, "-")
+      result = unary_sign(expression, context, "-")
    of "~":
-      result = binary_negation(e, context, kind, size)
+      result = binary_negation(expression, context)
    of "!":
-      result = logical_negation(e, context)
+      result = logical_negation(expression, context)
    of "&":
-      result = unary_reduction(e, context, "and")
+      result = unary_reduction(expression, context, "and")
    of "|":
-      result = unary_reduction(e, context, "or")
+      result = unary_reduction(expression, context, "or")
    of "^":
-      result = unary_reduction(e, context, "xor")
+      result = unary_reduction(expression, context, "xor")
    of "~&":
-      result = unary_reduction(e, context, "and")
+      result = unary_reduction(expression, context, "and")
       invert(result)
    of "~|":
-      result = unary_reduction(e, context, "or")
+      result = unary_reduction(expression, context, "or")
       invert(result)
    of "~^", "^~":
-      result = unary_reduction(e, context, "xor")
+      result = unary_reduction(expression, context, "xor")
       invert(result)
    else:
       raise new_evaluation_error("Prefix operator '$1' not implemented.", op)
 
 
-template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size: int, iop, fop: string): Token =
+template infix_operation(x, y: PNode, context: ExpressionContext, iop, fop: string): Token =
    init(result)
-   let xtok = evaluate_constant_expression(x, context, kind, size)
-   let ytok = evaluate_constant_expression(y, context, kind, size)
-   result.kind = kind
-   result.size = size
+   let xtok = evaluate_constant_expression(x, context)
+   let ytok = evaluate_constant_expression(y, context)
+   result.kind = context.kind
+   result.size = context.size
 
-   case kind
+   case context.kind
    of TkIntLit, TkUIntLit:
       let ytok_int = to_gmp_int(ytok)
       if iop == "div" and is_zero(ytok_int):
@@ -347,25 +385,25 @@ template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size
    of AmbiguousTokens:
       set_ambiguous(result)
    else:
-      raise new_evaluation_error("Infix operation '$1'/'$2' cannot yield kind '$3'.", iop, fop, $result.kind)
+      raise new_evaluation_error("Infix operation '$1'/'$2' cannot yield kind '$3'.", iop, fop, $context.kind)
    result
 
 
-template infix_operation(x, y: PNode, context: AstContext, kind: TokenKind, size: int, op: string): Token =
-   infix_operation(x, y, context, kind, size, op, op)
+template infix_operation(x, y: PNode, context: ExpressionContext, op: string): Token =
+   infix_operation(x, y, context, op, op)
 
 
-proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc modulo(x, y: PNode, context: ExpressionContext): Token =
    init(result)
-   let xtok = evaluate_constant_expression(x, context, kind, size)
-   let ytok = evaluate_constant_expression(y, context, kind, size)
-   result.kind = kind
-   result.size = size
+   let xtok = evaluate_constant_expression(x, context)
+   let ytok = evaluate_constant_expression(y, context)
+   result.kind = context.kind
+   result.size = context.size
 
    let ytok_int = to_gmp_int(ytok)
-   case kind
+   case context.kind
    of IntegerTokens:
-      if kind in AmbiguousTokens or is_zero(ytok_int):
+      if context.kind in AmbiguousTokens or is_zero(ytok_int):
          set_ambiguous(result)
       else:
          # The modulo operation always takes the sign of the first operand. This
@@ -373,18 +411,18 @@ proc modulo(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token
          result.base = Base2
          from_gmp_int(result, to_gmp_int(xtok) mod ytok_int)
    else:
-      raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $result.kind)
+      raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $context.kind)
 
 
-proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc power(x, y: PNode, context: ExpressionContext): Token =
    init(result)
-   let xtok = evaluate_constant_expression(x, context, kind, size)
+   let xtok = evaluate_constant_expression(x, context)
    # The second operand is always self-determined, so we don't pass the
    # context's kind and size when evaluating this operand.
-   let ytok = evaluate_constant_expression(y, context)
+   let ytok = evaluate_constant_expression(y, context.ast_context)
 
-   if kind in AmbiguousTokens:
-      result.kind = kind
+   if context.kind in AmbiguousTokens:
+      result.kind = context.kind
       set_ambiguous(result)
 
    elif xtok.kind == TkRealLit and ytok.kind == TkRealLit:
@@ -417,8 +455,8 @@ proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token 
          result.literal = $result.fnumber
 
    elif xtok.kind in IntegerTokens and ytok.kind in IntegerTokens:
-      result.kind = kind
-      result.size = size
+      result.kind = context.kind
+      result.size = context.size
       result.base = Base2
       let xtok_int = to_gmp_int(xtok)
       let ytok_int = to_gmp_int(ytok)
@@ -454,14 +492,14 @@ proc power(x, y: PNode, context: AstContext, kind: TokenKind, size: int): Token 
          from_gmp_int(result, new_int(1))
 
    else:
-      raise new_evaluation_error("Power operation not allowed for kind '$1'.", $result.kind)
+      raise new_evaluation_error("Power operation not allowed for kind '$1'.", $context.kind)
 
 
-template logical_operation(x, y: PNode, context: AstContext, op: string): Token =
+template logical_operation(x, y: PNode, context: ExpressionContext, op: string): Token =
    init(result)
    # The operands are self-determined in a logical operation.
-   let xtok = evaluate_constant_expression(x, context)
-   let ytok = evaluate_constant_expression(y, context)
+   let xtok = evaluate_constant_expression(x, context.ast_context)
+   let ytok = evaluate_constant_expression(y, context.ast_context)
    result.kind = TkUIntLit
    result.size = 1
 
@@ -496,15 +534,15 @@ template logical_operation(x, y: PNode, context: AstContext, op: string): Token 
    result
 
 
-template relational_operation(x, y: PNode, context: AstContext, op: string, allow_ambiguous: bool = false): Token =
+template relational_operation(x, y: PNode, context: ExpressionContext, op: string, allow_ambiguous: bool = false): Token =
    init(result)
-   # Operands are sized to max(x, y).
-   let xprop = determine_kind_and_size(x, context)
-   let yprop = determine_kind_and_size(y, context)
+   # Operands are self-determined and sized to max(x, y).
+   let xprop = determine_kind_and_size(x, context.ast_context)
+   let yprop = determine_kind_and_size(y, context.ast_context)
    let kind = determine_expression_kind(xprop.kind, yprop.kind)
    let size = max(xprop.size, yprop.size)
-   let xtok = evaluate_constant_expression(x, context, kind, size)
-   let ytok = evaluate_constant_expression(y, context, kind, size)
+   let xtok = evaluate_constant_expression(x, context.ast_context, kind, size)
+   let ytok = evaluate_constant_expression(y, context.ast_context, kind, size)
    result.base = Base2
    result.kind = TkUIntLit
    result.size = 1
@@ -530,7 +568,7 @@ template relational_operation(x, y: PNode, context: AstContext, op: string, allo
    result
 
 
-proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_infix(n: PNode, context: ExpressionContext): Token =
    let op_idx = find_first_index(n, NkIdentifier)
    let lhs_idx = find_first_index(n, ExpressionTypes, op_idx + 1)
    let rhs_idx = find_first_index(n, ExpressionTypes, lhs_idx + 1)
@@ -542,17 +580,17 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
    let op = n.sons[op_idx].identifier.s
    case op
    of "+":
-      result = infix_operation(lhs, rhs, context, kind, size, "+")
+      result = infix_operation(lhs, rhs, context, "+")
    of "-":
-      result = infix_operation(lhs, rhs, context, kind, size, "-")
+      result = infix_operation(lhs, rhs, context, "-")
    of "/":
-      result = infix_operation(lhs, rhs, context, kind, size, "div", "/")
+      result = infix_operation(lhs, rhs, context, "div", "/")
    of "*":
-      result = infix_operation(lhs, rhs, context, kind, size, "*")
+      result = infix_operation(lhs, rhs, context, "*")
    of "%":
-      result = modulo(lhs, rhs, context, kind, size)
+      result = modulo(lhs, rhs, context)
    of "**":
-      result = power(lhs, rhs, context, kind, size)
+      result = power(lhs, rhs, context)
    of "&&":
       result = logical_operation(lhs, rhs, context, "and")
    of "||":
@@ -577,67 +615,69 @@ proc evaluate_constant_infix(n: PNode, context: AstContext, kind: TokenKind, siz
       raise new_evaluation_error("Infix operator '$1' not implemented.", op)
 
 
-proc evaluate_constant_function_call(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_function_call(n: PNode, context: ExpressionContext): Token =
    # FIXME: Implement
    raise new_evaluation_error("Not implemented")
 
 
-proc evaluate_constant_identifier(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_identifier(n: PNode, context: ExpressionContext): Token =
    # To evaluate a constant identifier we look up its declaration in the context
    # and evaluate what we find.
-   let (declaration, _, expression, _) = find_declaration(context, n.identifier)
+   let (declaration, _, expression, _) = find_declaration(context.ast_context, n.identifier)
    if is_nil(declaration):
       raise new_evaluation_error("Failed to find the declaration of identifier '$1'.", n.identifier)
    if is_nil(expression):
       raise new_evaluation_error("The declaration of '$1' does not contain an expression.", n.identifier)
-   result = evaluate_constant_expression(expression, context, kind, size)
+   result = evaluate_constant_expression(expression, context)
 
 
-proc evaluate_constant_multiple_concat(n: PNode, context: AstContext, kind: TokenKind, size: int,
-                                       allow_zero: bool): Token =
+proc evaluate_constant_multiple_concat(n: PNode, context: ExpressionContext): Token =
    init(result)
    let constant_idx = find_first_index(n, ExpressionTypes)
    let concat_idx = find_first_index(n, NkConstantConcat, constant_idx + 1)
    if constant_idx < 0 or concat_idx < 0:
       raise new_evaluation_error("Invalid multiple concatenation node.")
 
-   # The multiplier is self-determined and so is the concatenation. The
-   # multiplier has to be nonnegative and not ambiguous. We also assume that the
-   # multiplier fits in an int.
-   let constant_tok = evaluate_constant_expression(n.sons[constant_idx], context)
+   # The replication constant is self-determined and so is the concatenation.
+   # The multiplier has to be nonnegative and not ambiguous. We also assume that
+   # the multiplier fits in an int.
+   let constant_tok = evaluate_constant_expression(n.sons[constant_idx], context.ast_context)
    if constant_tok.kind in AmbiguousTokens:
       raise new_evaluation_error("Replication constant cannot be ambiguous.")
    let constant = via_gmp_int(constant_tok)
    if constant < 0:
       raise new_evaluation_error("Replication constant cannot be negative.")
    elif constant == 0:
-      if allow_zero:
+      if context.allow_zero_replication:
          result.kind = TkInvalid
          result.size = 0
          return
       else:
          raise new_evaluation_error("Replication with zero is not allowed in this context.")
 
-   let concat_tok = evaluate_constant_expression(n.sons[concat_idx], context)
+   let concat_tok = evaluate_constant_expression(n.sons[concat_idx], context.ast_context)
    for i in 0..<constant:
       add(result.literal, concat_tok.literal)
 
-   result.kind = kind
+   result.kind = context.kind
    result.size = len(result.literal)
    result.base = Base2
-   result = convert(result, kind, size)
+   result = convert(result, context.kind, context.size)
 
 
-proc evaluate_constant_concat(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_concat(n: PNode, context: ExpressionContext): Token =
    # In constant concatenation, each son is expected to be a constant
    # expression. We work with the literal value, reading the expressions from
    # left to right, concatenating the literal value as we go. All the
    # expressions are self determined.
    init(result)
-   result.kind = kind
+   result.kind = context.kind
    result.base = Base2
-   result.size = size
+   result.size = context.size
 
+   # Create a new expression context that allows replication with zero.
+   var lcontext = new_expression_context(context.ast_context)
+   lcontext.allow_zero_replication = true
    var idx = -1
    var valid = false
    while true:
@@ -645,17 +685,21 @@ proc evaluate_constant_concat(n: PNode, context: AstContext, kind: TokenKind, si
       if idx < 0:
          break
       valid = true
-      # FIXME: Add infrastructure to propagate allow_zero = true from evaluate_constant_concat().
-      let tok = evaluate_constant_expression(n.sons[idx], context)
+      # The constant expression is self-determined and replication with zero is
+      # allowed in this context.
+      (lcontext.kind, lcontext.size) = determine_kind_and_size(n.sons[idx], lcontext.ast_context)
+      let tok = evaluate_constant_expression(n.sons[idx], lcontext)
+      # FIXME: Check if we got a zero-sized token and ignore it. Check if alone
+      # and error etc.
       add(result.literal, tok.literal)
 
    if not valid:
       raise new_evaluation_error("A constant concatenation node must contain at least one expression.")
 
-   result.kind = kind
-   result.size = size
+   result.kind = context.kind
+   result.size = context.size
    result.base = Base2
-   result = convert(result, kind, size)
+   result = convert(result, context.kind, context.size)
 
 
 proc parse_range_infix(n: PNode, context: AstContext): tuple[low, high: int] =
@@ -702,7 +746,7 @@ proc parse_range(n: PNode, context: AstContext): tuple[low, high: int] =
       result.high = result.low
 
 
-proc evaluate_constant_ranged_identifier(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_ranged_identifier(n: PNode, context: ExpressionContext): Token =
    let id = find_first(n, NkIdentifier)
    let range = find_first(n, NkConstantRangeExpression)
    if is_nil(id) or is_nil(range):
@@ -711,23 +755,23 @@ proc evaluate_constant_ranged_identifier(n: PNode, context: AstContext, kind: To
    # Evaluating a constant ranged identifier consists of finding the constant
    # value of the identifier, then extracting the bits between the start and
    # stop indexes.
-   result = evaluate_constant_expression(id, context)
-   let (low, high) = parse_range(range, context)
+   result = evaluate_constant_expression(id, context.ast_context)
+   let (low, high) = parse_range(range, context.ast_context)
    if low < 0 or low >= result.size:
       raise new_evaluation_error("Low index '$1' out of range for identifier '$2'.", low, id.identifier.s)
    elif high < 0 or high >= result.size:
       raise new_evaluation_error("High index '$1' out of range for identifier '$2'.", high, id.identifier.s)
 
    result.literal = result.literal[^(high + 1)..^(low + 1)]
-   result = convert(result, kind, size)
+   result = convert(result, context.kind, context.size)
 
 
-proc evaluate_constant_system_function_call(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext): Token =
    # FIXME: Implement
    raise new_evaluation_error("Not implemented")
 
 
-proc evaluate_constant_conditional_expression(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_conditional_expression(n: PNode, context: ExpressionContext): Token =
    init(result)
    let cond_idx = find_first_index(n, ExpressionTypes)
    let lhs_idx = find_first_index(n, ExpressionTypes, cond_idx + 1)
@@ -736,19 +780,19 @@ proc evaluate_constant_conditional_expression(n: PNode, context: AstContext, kin
       raise new_evaluation_error("Invalid infix node.")
 
    # The condition is always self-determined.
-   let cond_tok = evaluate_constant_expression(n.sons[cond_idx], context)
+   let cond_tok = evaluate_constant_expression(n.sons[cond_idx], context.ast_context)
    # FIXME: There's something about the operands being zero-extended, regardless
    # of the sign of the surronding expression. That's not how it works currently.
-   let rhs_tok = evaluate_constant_expression(n.sons[rhs_idx], context, kind, size)
-   let lhs_tok = evaluate_constant_expression(n.sons[lhs_idx], context, kind, size)
+   let rhs_tok = evaluate_constant_expression(n.sons[rhs_idx], context.ast_context)
+   let lhs_tok = evaluate_constant_expression(n.sons[lhs_idx], context.ast_context)
    if cond_tok.kind in AmbiguousTokens:
       result.base = Base2
-      result.kind = kind
-      result.size = size
+      result.kind = context.kind
+      result.size = context.size
       if rhs_tok.kind in RealTokens or lhs_tok.kind in RealTokens:
          from_gmp_int(result, new_int(0))
       else:
-         for i in 0..<size:
+         for i in 0..<context.size:
             if lhs_tok.literal[i] == '0' and rhs_tok.literal[i] == '0':
                add(result.literal, '0')
             elif lhs_tok.literal[i] == '1' and rhs_tok.literal[i] == '1':
@@ -764,40 +808,34 @@ proc evaluate_constant_conditional_expression(n: PNode, context: AstContext, kin
       result = lhs_tok
 
 
-proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind, size: int): Token =
+proc evaluate_constant_expression(n: PNode, context: ExpressionContext): Token =
    ## Evalue the constant expression starting in ``n`` in the given ``context``.
    ## The result is represented using a Verilog ``Token`` and an
    ## ``EvaluationError`` is raised if the evaluation fails.
    if is_nil(n):
       raise new_evaluation_error("Invalid node (nil).")
 
-   # We begin by determining the expression size and kind (signed/unsigned/real).
-   let (lkind, lsize) = if kind == TkInvalid:
-      determine_kind_and_size(n, context)
-   else:
-      (kind, size)
-
    case n.kind
    of NkPrefix:
-      result = evaluate_constant_prefix(n, context, lkind, lsize)
+      result = evaluate_constant_prefix(n, context)
    of NkInfix:
-      result = evaluate_constant_infix(n, context, lkind, lsize)
+      result = evaluate_constant_infix(n, context)
    of NkConstantFunctionCall:
-      result = evaluate_constant_function_call(n, context, lkind, lsize)
+      result = evaluate_constant_function_call(n, context)
    of NkIdentifier:
-      result = evaluate_constant_identifier(n, context, lkind, lsize)
+      result = evaluate_constant_identifier(n, context)
    of NkConstantMultipleConcat:
-      result = evaluate_constant_multiple_concat(n, context, lkind, lsize, allow_zero = false)
+      result = evaluate_constant_multiple_concat(n, context)
    of NkConstantConcat:
-      result = evaluate_constant_concat(n, context, lkind, lsize)
+      result = evaluate_constant_concat(n, context)
    of NkRangedIdentifier:
-      result = evaluate_constant_ranged_identifier(n, context, lkind, lsize)
+      result = evaluate_constant_ranged_identifier(n, context)
    of NkConstantSystemFunctionCall:
-      result = evaluate_constant_system_function_call(n, context, lkind, lsize)
+      result = evaluate_constant_system_function_call(n, context)
    of NkParenthesis:
-      result = evaluate_constant_expression(find_first(n, ExpressionTypes), context, lkind, lsize)
+      result = evaluate_constant_expression(find_first(n, ExpressionTypes), context)
    of NkConstantConditionalExpression:
-      result = evaluate_constant_conditional_expression(n, context, lkind, lsize)
+      result = evaluate_constant_conditional_expression(n, context)
    of NkStrLit:
       init(result)
       result.kind = TkStrLit
@@ -817,7 +855,7 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
       # propagated kind and size. If the expression is signed, the token is sign
       # extended. If the integer is part of a real expression, we convert the
       # token to real after sign extending it as a self-determined operand.
-      case lkind
+      case context.kind
       of TkRealLit:
          result = convert(result, result.kind, result.size)
          result.fnumber = to_float(new_rat(to_gmp_int(result)))
@@ -825,11 +863,11 @@ proc evaluate_constant_expression(n: PNode, context: AstContext, kind: TokenKind
          result.kind = TkRealLit
          result.size = -1
       of IntegerTokens:
-         result = convert(result, lkind, lsize)
+         result = convert(result, context.kind, context.size)
       of TkAmbRealLit:
          discard
       else:
-         raise new_evaluation_error("Cannot convert a primitive integer token to kind '$1'.", lkind)
+         raise new_evaluation_error("Cannot convert a primitive integer token to kind '$1'.", context.kind)
    else:
       raise new_evaluation_error("The node '$1' is not an expression.", n.kind)
 
