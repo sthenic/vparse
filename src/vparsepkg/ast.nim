@@ -204,6 +204,13 @@ template `[]`*(n: PNode, i: BackwardsIndex): PNode = n[len(n) - int(i)]
 template `[]=`*(n: PNode, i: BackwardsIndex, x: PNode) = n[len(n) - int(i)] = x
 
 
+proc len*(n: PNode): int {.inline.} =
+   if is_nil(n):
+      result = 0
+   else:
+      result = len(n.sons)
+
+
 proc pretty*(n: PNode, indent: int = 0): string =
    if is_nil(n):
       return
@@ -329,11 +336,11 @@ proc `==`*(x, y: PNode): bool =
    of ErrorTypes, NkWildcard:
       return true
    else:
-      if len(x.sons) != len(y.sons):
+      if len(x) != len(y):
          return false
 
       result = true
-      for i in 0..<len(x.sons):
+      for i in 0..<len(x):
          if x[i] != y[i]:
             result = false
             break
@@ -366,13 +373,13 @@ proc detailed_compare*(x, y: PNode) =
          echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
          return
    else:
-      if len(x.sons) != len(y.sons):
+      if len(x) != len(y):
          let str = format("Length of subtree differs, LHS($1), RHS($2):\n",
-                          len(x.sons), len(y.sons))
+                          len(x), len(y))
          echo str, pretty(x, indent), pretty(y, indent)
          return
 
-      for i in 0..<len(x.sons):
+      for i in 0..<len(x):
          detailed_compare(x[i], y[i])
 
 
@@ -384,7 +391,7 @@ proc has_errors*(n: PNode): bool =
    of PrimitiveTypes - ErrorTypes:
       return false
    else:
-      for i in 0..<len(n.sons):
+      for i in 0..<len(n):
          if has_errors(n[i]):
             return true
       return false
@@ -442,7 +449,7 @@ proc find_first*(n: PNode, kinds: NodeKinds, start: Natural = 0): PNode =
    ## Return the first son in ``n`` whose kind is in ``kinds``. If a matching
    ## node cannot be found, ``nil`` is returned. The search begins at ``start``.
    result = nil
-   if n.kind notin PrimitiveTypes and start < len(n.sons):
+   if n.kind notin PrimitiveTypes and start < len(n):
       for i in start..high(n.sons):
          if n[i].kind in kinds:
             return n[i]
@@ -469,7 +476,7 @@ proc find_first_index*(n: PNode, kinds: NodeKinds, start: Natural = 0): int =
    ## If a matching node cannot be found, ``-1`` is returned. The search
    ## begins at ``start``.
    result = -1
-   if n.kind notin PrimitiveTypes and start < len(n.sons):
+   if n.kind notin PrimitiveTypes and start < len(n):
       for i in start..high(n.sons):
          if n[i].kind in kinds:
             return i
@@ -483,14 +490,14 @@ template find_first_index*(n: PNode, kind: NodeKind, start: Natural = 0): int =
 
 
 template walk_sons_common(n: PNode, kinds: NodeKinds, start: Natural = 0) =
-   if n.kind notin PrimitiveTypes and start < len(n.sons):
+   if n.kind notin PrimitiveTypes and start < len(n):
       for i in start..high(n.sons):
          if n[i].kind in kinds:
             yield n[i]
 
 
 template walk_sons_common_index(n: PNode, kinds: NodeKinds, start: Natural = 0) =
-   if n.kind notin PrimitiveTypes and start < len(n.sons):
+   if n.kind notin PrimitiveTypes and start < len(n):
       var idx = 0
       for i in start..high(n.sons):
          if n[i].kind in kinds:

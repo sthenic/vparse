@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 - Add operators `[]` and `[]=` to AST nodes. This is shorthand to access the
   sequence of sons for nonprimitive nodes, i.e. `n.sons[i]` is equivalent to
   `n[i]`.
+- Define the `len()` proc for nonprimitive AST nodes. The operation is
+  equivalent to `len(n.sons)`.
 
 ## Fixed
 
