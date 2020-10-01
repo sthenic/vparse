@@ -787,14 +787,18 @@ run_test("Constant concatenation, two bits", "",
 run_test("Constant concatenation, nested", "",
    "{1'b1, 2'd3, {2'hA, 5'd2}}", new_inumber(TkUIntLit, loc(0, 0, 0), 962, Base2, 10, "1111000010"))
 
-run_test("Constant concatenation, w/ identifier", """
-   localparam CONCAT = 32;
+run_test("Constant concatenation, w/ sized identifier", """
+   localparam CONCAT = 32'd32;
 """,
    "{1'b1, CONCAT, 1'b0}", new_inumber(TkUIntLit, loc(0, 0, 0), 8589934656, Base2, 34, "1000000000000000000000000001000000"))
 
-# FIXME:
-# run_test("Constant concatenation, w/ unsized (error)", "",
-#    "{1'b1, 32}", Token(), true)
+run_test("Constant concatenation, w/ unsized identifier (error)", """
+   localparam CONCAT = 32;
+""",
+   "{1'b1, CONCAT, 1'b0}", Token(), true)
+
+run_test("Constant concatenation, w/ unsized (error)", "",
+   "{1'b1, 32}", Token(), true)
 
 run_test("Constant replication, one bit -> two bits", "",
    "{2{1'b1}}", new_inumber(TkUIntLit, loc(0, 0, 0), 3, Base2, 2, "11"))
@@ -821,11 +825,10 @@ run_test("Constant replication, zero not allowed (alone in concatenation)", """
    localparam a = 32'hAAAA_BBBB;
 """, "{ {{32-P{1’b1}}}, a[P-1:0] }", Token(), true)
 
-# FIXME:
-# run_test("Constant replication, zero allowed (other operand w/ positive size)", """
-#    localparam P = 32;
-#    localparam a = 32'hAAAA_BBBB;
-# """, "{ {32-P{1’b1}}, a[P-1:0] }", Token())
+run_test("Constant replication, zero allowed (other operand w/ positive size)", """
+   localparam P = 32;
+   localparam a = 32'hAAAA_BBBB;
+""", "{ {32-P{1'b1}}, a[P-1:0] }", new_inumber(TkUIntLit, loc(0, 0, 0), 2863315899, Base2, 32, "10101010101010101011101110111011"))
 
 run_test("Constant replication, used in expression (unsigned)", "",
    "4'd3 + {(2+1){1'b1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), 10, Base2, 4, "1010"))

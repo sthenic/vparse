@@ -678,6 +678,7 @@ proc evaluate_constant_concat(n: PNode, context: ExpressionContext): Token =
    # Create a new expression context that allows replication with zero.
    var lcontext = new_expression_context(context.ast_context)
    lcontext.allow_zero_replication = true
+   lcontext.allow_unsized = false
    var idx = -1
    var valid = false
    while true:
@@ -689,12 +690,11 @@ proc evaluate_constant_concat(n: PNode, context: ExpressionContext): Token =
       # allowed in this context.
       (lcontext.kind, lcontext.size) = determine_kind_and_size(n.sons[idx], lcontext.ast_context)
       let tok = evaluate_constant_expression(n.sons[idx], lcontext)
-      # FIXME: Check if we got a zero-sized token and ignore it. Check if alone
-      # and error etc.
       add(result.literal, tok.literal)
 
-   if not valid:
-      raise new_evaluation_error("A constant concatenation node must contain at least one expression.")
+   if not valid or len(result.literal) == 0:
+      raise new_evaluation_error("A constant concatenation must contain at least one expression " &
+                                 "with a positive size.")
 
    result.kind = context.kind
    result.size = context.size
@@ -850,7 +850,12 @@ proc evaluate_constant_expression(n: PNode, context: ExpressionContext): Token =
       result.kind = TokenKind(ord(TkIntLit) + ord(n.kind) - ord(NkIntLit))
       result.literal = n.iraw
       result.base = n.base
-      result.size = if n.size < 0: INTEGER_BITS else: n.size
+      result.size = if n.size < 0:
+         if not context.allow_unsized:
+            raise new_evaluation_error("An unsized integer is not allowed in this context.")
+         INTEGER_BITS
+      else:
+         n.size
       # When we reach a primitive integer token, we convert the token into the
       # propagated kind and size. If the expression is signed, the token is sign
       # extended. If the integer is part of a real expression, we convert the
