@@ -11,7 +11,7 @@ var
 
 template run_test_module_decl(title, operation: untyped, stimuli: string, reference: untyped) =
    cache = new_ident_cache()
-   let n = parse_string(stimuli, cache).sons[0]
+   let n = parse_string(stimuli, cache)[0]
    let response = operation(n)
 
    if response == reference:

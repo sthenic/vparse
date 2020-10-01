@@ -19,6 +19,9 @@ All notable changes to this project will be documented in this file.
 - Add a set for the node types involved in expressions.
 - Add the option to specify the start of the search for the various
   `find_first()` functions.
+- Add operators `[]` and `[]=` to AST nodes. This is shorthand to access the
+  sequence of sons for nonprimitive nodes, i.e. `n.sons[i]` is equivalent to
+  `n[i]`.
 
 ## Fixed
 

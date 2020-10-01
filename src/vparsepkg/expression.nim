@@ -331,8 +331,8 @@ proc evaluate_constant_prefix(n: PNode, context: ExpressionContext): Token =
    if op_idx < 0 or expression_idx < 0:
       raise new_evaluation_error("Invalid infix node.")
 
-   let expression = n.sons[expression_idx]
-   let op = n.sons[op_idx].identifier.s
+   let expression = n[expression_idx]
+   let op = n[op_idx].identifier.s
    case op
    of "+":
       result = unary_sign(expression, context, "+")
@@ -575,9 +575,9 @@ proc evaluate_constant_infix(n: PNode, context: ExpressionContext): Token =
    if op_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
       raise new_evaluation_error("Invalid infix node.")
 
-   let lhs = n.sons[lhs_idx]
-   let rhs = n.sons[rhs_idx]
-   let op = n.sons[op_idx].identifier.s
+   let lhs = n[lhs_idx]
+   let rhs = n[rhs_idx]
+   let op = n[op_idx].identifier.s
    case op
    of "+":
       result = infix_operation(lhs, rhs, context, "+")
@@ -641,7 +641,7 @@ proc evaluate_constant_multiple_concat(n: PNode, context: ExpressionContext): To
    # The replication constant is self-determined and so is the concatenation.
    # The multiplier has to be nonnegative and not ambiguous. We also assume that
    # the multiplier fits in an int.
-   let constant_tok = evaluate_constant_expression(n.sons[constant_idx], context.ast_context)
+   let constant_tok = evaluate_constant_expression(n[constant_idx], context.ast_context)
    if constant_tok.kind in AmbiguousTokens:
       raise new_evaluation_error("Replication constant cannot be ambiguous.")
    let constant = via_gmp_int(constant_tok)
@@ -655,7 +655,7 @@ proc evaluate_constant_multiple_concat(n: PNode, context: ExpressionContext): To
       else:
          raise new_evaluation_error("Replication with zero is not allowed in this context.")
 
-   let concat_tok = evaluate_constant_expression(n.sons[concat_idx], context.ast_context)
+   let concat_tok = evaluate_constant_expression(n[concat_idx], context.ast_context)
    for i in 0..<constant:
       add(result.literal, concat_tok.literal)
 
@@ -688,8 +688,8 @@ proc evaluate_constant_concat(n: PNode, context: ExpressionContext): Token =
       valid = true
       # The constant expression is self-determined and replication with zero is
       # allowed in this context.
-      (lcontext.kind, lcontext.size) = determine_kind_and_size(n.sons[idx], lcontext.ast_context)
-      let tok = evaluate_constant_expression(n.sons[idx], lcontext)
+      (lcontext.kind, lcontext.size) = determine_kind_and_size(n[idx], lcontext.ast_context)
+      let tok = evaluate_constant_expression(n[idx], lcontext)
       add(result.literal, tok.literal)
 
    if not valid or len(result.literal) == 0:
@@ -711,9 +711,9 @@ proc parse_range_infix(n: PNode, context: AstContext): tuple[low, high: int] =
    if op_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
       raise new_evaluation_error("Invalid range.")
 
-   let lhs_tok = evaluate_constant_expression(n.sons[lhs_idx], context)
-   let rhs_tok = evaluate_constant_expression(n.sons[rhs_idx], context)
-   case n.sons[op_idx].identifier.s
+   let lhs_tok = evaluate_constant_expression(n[lhs_idx], context)
+   let rhs_tok = evaluate_constant_expression(n[rhs_idx], context)
+   case n[op_idx].identifier.s
    of "+:":
       # Expressions like [8 +: 8]
       result.low = via_gmp_int(lhs_tok)
@@ -780,11 +780,11 @@ proc evaluate_constant_conditional_expression(n: PNode, context: ExpressionConte
       raise new_evaluation_error("Invalid infix node.")
 
    # The condition is always self-determined.
-   let cond_tok = evaluate_constant_expression(n.sons[cond_idx], context.ast_context)
+   let cond_tok = evaluate_constant_expression(n[cond_idx], context.ast_context)
    # FIXME: There's something about the operands being zero-extended, regardless
    # of the sign of the surronding expression. That's not how it works currently.
-   let rhs_tok = evaluate_constant_expression(n.sons[rhs_idx], context.ast_context)
-   let lhs_tok = evaluate_constant_expression(n.sons[lhs_idx], context.ast_context)
+   let rhs_tok = evaluate_constant_expression(n[rhs_idx], context.ast_context)
+   let lhs_tok = evaluate_constant_expression(n[lhs_idx], context.ast_context)
    if cond_tok.kind in AmbiguousTokens:
       result.base = Base2
       result.kind = context.kind
@@ -910,14 +910,14 @@ proc determine_kind_and_size_prefix(n: PNode, context: AstContext):
    if op_idx < 0 or expr_idx < 0:
       raise new_evaluation_error("Invalid prefix node.")
 
-   case n.sons[op_idx].identifier.s
+   case n[op_idx].identifier.s
    of "+", "-", "~":
-      result = determine_kind_and_size(n.sons[expr_idx], context)
+      result = determine_kind_and_size(n[expr_idx], context)
    of "&", "~&", "|", "~|", "^", "~^", "^~", "!":
       result.size = 1
       result.kind = TkUIntLit
    else:
-      raise new_evaluation_error("Invalid prefix operator '$1'.", n.sons[op_idx].identifier.s)
+      raise new_evaluation_error("Invalid prefix operator '$1'.", n[op_idx].identifier.s)
 
 
 proc determine_kind_and_size_infix(n: PNode, context: AstContext):
@@ -928,9 +928,9 @@ proc determine_kind_and_size_infix(n: PNode, context: AstContext):
    if op_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
       raise new_evaluation_error("Invalid infix node.")
 
-   let lhs = determine_kind_and_size(n.sons[lhs_idx], context)
-   let rhs = determine_kind_and_size(n.sons[rhs_idx], context)
-   let op = n.sons[op_idx].identifier.s
+   let lhs = determine_kind_and_size(n[lhs_idx], context)
+   let rhs = determine_kind_and_size(n[rhs_idx], context)
+   let op = n[op_idx].identifier.s
    result.kind = determine_expression_kind(lhs.kind, rhs.kind)
 
    case op
@@ -983,8 +983,8 @@ proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext): tup
    if constant_idx < 0 or concat_idx < 0:
       raise new_evaluation_error("Invalid multiple concatenation node.")
 
-   let constant_tok = evaluate_constant_expression(n.sons[constant_idx], context)
-   let (kind, size) = determine_kind_and_size_concat(n.sons[concat_idx], context)
+   let constant_tok = evaluate_constant_expression(n[constant_idx], context)
+   let (kind, size) = determine_kind_and_size_concat(n[concat_idx], context)
    result.size = via_gmp_int(constant_tok) * size
    result.kind = kind
 
@@ -1020,8 +1020,8 @@ proc determine_kind_and_size_conditional_expression(n: PNode, context: AstContex
    if condition_idx < 0 or lhs_idx < 0 or rhs_idx < 0:
       raise new_evaluation_error("Invalid conditional expression node.")
 
-   let lhs = determine_kind_and_size(n.sons[lhs_idx], context)
-   let rhs = determine_kind_and_size(n.sons[rhs_idx], context)
+   let lhs = determine_kind_and_size(n[lhs_idx], context)
+   let rhs = determine_kind_and_size(n[rhs_idx], context)
    result.size = max(lhs.size, rhs.size)
    result.kind = determine_expression_kind(lhs.kind, rhs.kind)
 

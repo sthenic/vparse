@@ -198,6 +198,12 @@ proc add*(c: var AstContext, pos: int, n: PNode) =
    add(c, AstContextItem(pos: pos, n: n))
 
 
+template `[]`*(n: PNode, i: int): PNode = n.sons[i]
+template `[]=`*(n: PNode, i: int, x: PNode) = n.sons[i] = x
+template `[]`*(n: PNode, i: BackwardsIndex): PNode = n[len(n) - int(i)]
+template `[]=`*(n: PNode, i: BackwardsIndex, x: PNode) = n[len(n) - int(i)] = x
+
+
 proc pretty*(n: PNode, indent: int = 0): string =
    if is_nil(n):
       return
@@ -328,7 +334,7 @@ proc `==`*(x, y: PNode): bool =
 
       result = true
       for i in 0..<len(x.sons):
-         if x.sons[i] != y.sons[i]:
+         if x[i] != y[i]:
             result = false
             break
 
@@ -367,7 +373,7 @@ proc detailed_compare*(x, y: PNode) =
          return
 
       for i in 0..<len(x.sons):
-         detailed_compare(x.sons[i], y.sons[i])
+         detailed_compare(x[i], y[i])
 
 
 proc has_errors*(n: PNode): bool =
@@ -379,7 +385,7 @@ proc has_errors*(n: PNode): bool =
       return false
    else:
       for i in 0..<len(n.sons):
-         if has_errors(n.sons[i]):
+         if has_errors(n[i]):
             return true
       return false
 
@@ -438,8 +444,8 @@ proc find_first*(n: PNode, kinds: NodeKinds, start: Natural = 0): PNode =
    result = nil
    if n.kind notin PrimitiveTypes and start < len(n.sons):
       for i in start..high(n.sons):
-         if n.sons[i].kind in kinds:
-            return n.sons[i]
+         if n[i].kind in kinds:
+            return n[i]
 
 
 template find_first*(n: PNode, kind: NodeKind, start: Natural = 0): PNode =
@@ -465,7 +471,7 @@ proc find_first_index*(n: PNode, kinds: NodeKinds, start: Natural = 0): int =
    result = -1
    if n.kind notin PrimitiveTypes and start < len(n.sons):
       for i in start..high(n.sons):
-         if n.sons[i].kind in kinds:
+         if n[i].kind in kinds:
             return i
 
 
@@ -479,16 +485,16 @@ template find_first_index*(n: PNode, kind: NodeKind, start: Natural = 0): int =
 template walk_sons_common(n: PNode, kinds: NodeKinds, start: Natural = 0) =
    if n.kind notin PrimitiveTypes and start < len(n.sons):
       for i in start..high(n.sons):
-         if n.sons[i].kind in kinds:
-            yield n.sons[i]
+         if n[i].kind in kinds:
+            yield n[i]
 
 
 template walk_sons_common_index(n: PNode, kinds: NodeKinds, start: Natural = 0) =
    if n.kind notin PrimitiveTypes and start < len(n.sons):
       var idx = 0
       for i in start..high(n.sons):
-         if n.sons[i].kind in kinds:
-            yield (idx, n.sons[i])
+         if n[i].kind in kinds:
+            yield (idx, n[i])
             inc(idx)
 
 
@@ -521,7 +527,7 @@ iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
       if stop < 0 or stop > high(n.sons):
          lstop = high(n.sons)
       for i in lstart..lstop:
-         yield n.sons[i]
+         yield n[i]
 
 
 iterator walk_ports*(n: PNode): PNode {.inline.} =
@@ -710,7 +716,7 @@ proc find_declaration*(context: AstContext, identifier: PIdentifier):
       let context_item = context[i]
       if context_item.n.kind notin PrimitiveTypes:
          for pos in countdown(context_item.pos, 0):
-            let s = context_item.n.sons[pos]
+            let s = context_item.n[pos]
             if s.kind in DeclarationTypes - {NkDefparamDecl}:
                (result.declaration, result.identifier, result.expression) = find_declaration(s, identifier)
                if not is_nil(result.declaration):
@@ -773,7 +779,7 @@ proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declar
    of NkModuleDecl:
       let idx = find_first_index(n, NkModuleIdentifier)
       if idx > -1:
-         add(result, (n, n.sons[idx]))
+         add(result, (n, n[idx]))
       for s in walk_sons(n, idx + 1):
          add(result, find_all_declarations(s, recursive))
 
@@ -797,7 +803,7 @@ proc find_all_declarations*(context: AstContext): seq[tuple[declaration, identif
    for context_item in context:
       if context_item.n.kind notin PrimitiveTypes:
          for pos in 0..<context_item.pos:
-            add(result, find_all_declarations(context_item.n.sons[pos]))
+            add(result, find_all_declarations(context_item.n[pos]))
 
 
 proc find_references*(n: PNode, identifier: PIdentifier): seq[PNode] =
@@ -884,7 +890,7 @@ proc find_all_drivers*(context: AstContext): seq[tuple[driver, identifier: PNode
    for context_item in context:
       if context_item.n.kind notin PrimitiveTypes:
          for pos in 0..<context_item.pos:
-            add(result, find_all_drivers(context_item.n.sons[pos]))
+            add(result, find_all_drivers(context_item.n[pos]))
 
 
 proc find_all_ports*(n: PNode): seq[tuple[port, identifier: PNode]] =
@@ -942,7 +948,7 @@ proc `$`*(n: PNode): string =
 
    of NkConstantRangeExpression:
       add(result, '[')
-      add(result, $n.sons[0])
+      add(result, $n[0])
       add(result, ']')
 
    of IntegerTypes:
@@ -969,34 +975,34 @@ proc `$`*(n: PNode): string =
       result = "*"
 
    of NkInfix:
-      add(result, $n.sons[1])
-      add(result, ' ' & $n.sons[0] & ' ')
-      add(result, $n.sons[2])
+      add(result, $n[1])
+      add(result, ' ' & $n[0] & ' ')
+      add(result, $n[2])
 
    of NkRange:
       add(result, '[')
-      add(result, $n.sons[0])
+      add(result, $n[0])
       add(result, ':')
-      add(result, $n.sons[1])
+      add(result, $n[1])
       add(result, ']')
 
    of NkAssignment, NkParamAssignment:
-      add(result, $n.sons[0])
+      add(result, $n[0])
       add(result, " = ")
-      add(result, $n.sons[1])
+      add(result, $n[1])
 
    of NkAttributeInst:
       add(result, "(* ")
       for i in countup(0, high(n.sons), 2):
-         add(result, format("$1 = $2", n.sons[i], n.sons[i+1]))
+         add(result, format("$1 = $2", n[i], n[i+1]))
       add(result, " *)")
 
    of NkPort:
       let id = find_first(n, NkPortIdentifier)
       if not is_nil(id):
-         add(result, format(".$1($2)", $id, $n.sons[1]))
+         add(result, format(".$1($2)", $id, $n[1]))
       else:
-         add(result, $n.sons[0])
+         add(result, $n[0])
 
    of ErrorTypes, NkExpectError, NkComment, OperatorTypes:
       # FIXME: OperatorTypes are unused right now.
@@ -1004,9 +1010,9 @@ proc `$`*(n: PNode): string =
 
    of NkDelay:
       add(result, '#')
-      if n.sons[0].kind == NkParenthesis:
+      if n[0].kind == NkParenthesis:
          add(result, '(')
-         for i, s in n.sons[0].sons:
+         for i, s in n[0].sons:
             if i > 0:
                add(result, ", ")
             add(result, $s)
@@ -1029,7 +1035,7 @@ proc `$`*(n: PNode): string =
             add(result, $s & ' ')
 
       if idx >= 0:
-         add(result, n.sons[idx].identifier.s)
+         add(result, n[idx].identifier.s)
          add(result, '(')
          for i, s in walk_sons_index(n, NkTaskFunctionPortDecl):
             if i > 0:
@@ -1081,8 +1087,8 @@ proc `$`*(n: PNode): string =
 
    of NkConstantMultipleConcat:
       add(result, '{')
-      add(result, $n.sons[0])
-      add(result, $n.sons[1])
+      add(result, $n[0])
+      add(result, $n[1])
       add(result, '}')
 
    of ConcatenationTypes - {NkConstantMultipleConcat}:

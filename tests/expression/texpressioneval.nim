@@ -40,7 +40,7 @@ template run_test_no_context(title, stimuli: string, reference: Token, expect_er
 template run_test(title, context, stimuli: string, reference: Token, expect_error: bool = false) =
    cache = new_ident_cache()
    let n = parse_specific_grammar(stimuli, cache, NkConstantExpression)
-   let cn = parse_string("module test(); " & context & " endmodule", cache).sons[0]
+   let cn = parse_string("module test(); " & context & " endmodule", cache)[0]
 
    try:
       let response = evaluate_constant_expression(n, @[AstContextItem(pos: len(cn.sons) - 1, n: cn)])
