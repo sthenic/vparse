@@ -888,14 +888,14 @@ proc determine_expression_kind(x, y: TokenKind): TokenKind =
    elif x in UnsignedTokens or y in UnsignedTokens:
       # If any operand is unsigned, the result is unsigned. If any operand is
       # ambiguous (containing X or Z), the result is also ambiguous.
-      if x == TkAmbUIntLit or y == TkAmbUIntLit:
+      if x in AmbiguousTokens or y in AmbiguousTokens:
          result = TkAmbUIntLit
       else:
          result = TkUIntLit
    elif x in SignedTokens and x in SignedTokens:
       # If both operands are signed, the result is signed. If any operand is
       # ambiguous, the result is also ambiguous.
-      if x == TkAmbIntLit or y == TkAmbIntLit:
+      if x in AmbiguousTokens or y in AmbiguousTokens:
          result = TkAmbIntLit
       else:
          result = TkIntLit
