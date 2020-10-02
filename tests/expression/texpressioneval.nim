@@ -65,7 +65,7 @@ run_test("Arithmetic (+) three terms, one real", "",
    "2 + 3.7 + 4'b1000", new_fnumber(TkRealLit, loc(0, 0, 0), 13.7, "13.7"))
 
 run_test("Arithmetic (+) two terms, one ambiguous", "",
-   "2 + 4'bXX11", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
+   "2 + 4'bXX11", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, INTEGER_BITS, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 run_test("Arithmetic (+) three terms, one ambiguous and one real", "",
    "2 + 4'bXX11 + 3.44", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0.0, ""))
@@ -165,19 +165,19 @@ run_test("Arithmetic (/) promotion to real", "",
    "1.0 / 2 + 33 / 32", new_fnumber(TkRealLit, loc(0, 0, 0), 1.53125, "1.53125"))
 
 run_test("Arithmetic (/) ambiguous, unsized", "",
-   "'hXF / 2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
+   "'hXF / 2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, INTEGER_BITS, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 run_test("Arithmetic (/) ambiguous, unsized, signed", "",
-   "'shXF / 2", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
+   "'shXF / 2", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, INTEGER_BITS, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 run_test("Arithmetic (/) ambiguous, sized", "",
-   "8'hFF / 8'hz2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 8, ""))
+   "8'hFF / 8'hz2", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 8, "xxxxxxxx"))
 
 run_test("Arithmetic (/) division by zero (signed integer)", "",
-   "32 / 0", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
+   "32 / 0", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, INTEGER_BITS, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 run_test("Arithmetic (/) division by zero (unsigned integer)", "",
-   "'d32 / 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
+   "'d32 / 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, INTEGER_BITS, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 run_test("Arithmetic (/) division by zero (real) (1)", "",
    "3.0 / 0", new_fnumber(TkAmbRealLit, loc(0, 0, 0), 0, ""))
@@ -303,7 +303,7 @@ run_test("Arithmetic (**) x == 0, y == 0", "",
    "0 ** 0", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base2, INTEGER_BITS, "00000000000000000000000000000001"))
 
 run_test("Arithmetic (**) x == 0, y < 0", "",
-   "0 ** 4'sb1110", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, INTEGER_BITS, ""))
+   "0 ** 4'sb1110", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, INTEGER_BITS, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"))
 
 run_test("Arithmetic (**) x == 1, y > 0", "",
    "1 ** 2", new_inumber(TkIntLit, loc(0, 0, 0), 1, Base2, INTEGER_BITS, "00000000000000000000000000000001"))
@@ -389,10 +389,10 @@ run_test("Prefix (+) real", "",
    "+9.1", new_fnumber(TkRealLit, loc(0, 0, 0), 9.1, "9.1"))
 
 run_test("Prefix (+) ambiguous (1)", "",
-   "+3'b0X1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+   "+3'b0X1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 3, "xxx"))
 
 run_test("Prefix (+) ambiguous (2)", "",
-   "+3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+   "+3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 3, "xxx"))
 
 run_test("Prefix (+) big number", "",
    "+256'h0000_0000_0000_0000_0000_0000_0000_000F_0000_0000_0000_FFFF_0000_0000_0000_0000",
@@ -409,10 +409,10 @@ run_test("Prefix (-) real", "",
    "-9.1", new_fnumber(TkRealLit, loc(0, 0, 0), -9.1, "-9.1"))
 
 run_test("Prefix (-) ambiguous (1)", "",
-   "-3'b0X1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+   "-3'b0X1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 3, "xxx"))
 
 run_test("Prefix (-) ambiguous (2)", "",
-   "-3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base10, 3, ""))
+   "-3'sb?01", new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 3, "xxx"))
 
 run_test("Prefix (-) in infix expression", "",
    "-5 - 2", new_inumber(TkIntLit, loc(0, 0, 0), -7, Base2, INTEGER_BITS, "11111111111111111111111111111001"))
@@ -469,7 +469,7 @@ run_test("Prefix (!) real, zero value", "",
    "!4.2", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Prefix (!) ambiguous", "",
-   "!2'bx1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "!2'bx1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (~) big number (1)", "",
    "!256'h0000_0000_0000_0000_0000_0000_0000_000F_0000_0000_0000_FFFF_0000_0000_0000_0000",
@@ -488,7 +488,7 @@ run_test("Prefix (&) sized", "",
 run_test("Prefix (&) real (error)", "&3.14", "", Token(), true)
 
 run_test("Prefix (&) ambiguous", "",
-   "&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (&) big number", "",
    "&256'hFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF",
@@ -501,7 +501,7 @@ run_test("Prefix (|) sized", "",
    "|8'h08", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test("Prefix (|) ambiguous", "",
-   "|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (|) real (error)", "|2.14", "", Token(), true)
 
@@ -519,7 +519,7 @@ run_test("Prefix (^) sized, odd ones", "",
    "^4'b1011", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test("Prefix (^) ambiguous", "",
-   "^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (^) real (error)", "^0.14", "", Token(), true)
 
@@ -534,7 +534,7 @@ run_test("Prefix (~&) sized", "",
    "~&3'b111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Prefix (~&) ambiguous", "",
-   "~&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "~&12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (~&) real (error)", "~&6.14", "", Token(), true)
 
@@ -545,7 +545,7 @@ run_test("Prefix (~|) sized", "",
    "~|8'h08", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Prefix (~|) ambiguous", "",
-   "~|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "~|12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (~|) real (error)", "~|46.14", "", Token(), true)
 
@@ -559,7 +559,7 @@ run_test("Prefix (~^) sized, odd ones", "",
    "~^4'b1011", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Prefix (~^) ambiguous", "",
-   "~^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "~^12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (~^) real (error)", "~^0.5", "", Token(), true)
 
@@ -573,7 +573,7 @@ run_test("Prefix (^~) sized, odd ones", "",
    "^~4'b1011", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Prefix (^~) ambiguous", "",
-   "^~12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "^~12'hx01", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Prefix (^~) real (error)", "^~0.5", "", Token(), true)
 
@@ -590,7 +590,7 @@ run_test("Infix (&&) integer/real, false", "",
    "0.0 && 1", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Infix (&&) ambiguous", "",
-   "'dx && 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "'dx && 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Infix (||) integers, false", "",
    "1 || 0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
@@ -605,7 +605,7 @@ run_test("Infix (||) integer/real, false", "",
    "0.0 || 0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Infix (||) ambiguous", "",
-   "'dx || 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "'dx || 1", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Relational (>) unsized (1)", "",
    "7 > 0", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
@@ -623,7 +623,7 @@ run_test("Relational (>) real and converted integer", "",
    "0.1 > 3'sb111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test("Relational (>) ambiguous", "",
-   "0.1 > 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "0.1 > 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Relational (>) big number and real", "",
    "16.0 < 256'h1000_0000_0000_0000_0000_0000_0000_0000_0000_0008_0000_0000_0000_0000_0000_0000",
@@ -648,7 +648,7 @@ run_test("Relational (<) real and converted integer", "",
    "0.1 < 3'sb111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Relational (<) ambiguous", "",
-   "0.1 < 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "0.1 < 'dx", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Relational (>=) equality", "",
    "-4 <= -'d4", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
@@ -663,7 +663,7 @@ run_test("Relational (==) sized, signed expansion (true)", "",
    "3'sb111 == 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 1, "1"))
 
 run_test("Relational (==) ambiguous", "",
-   "'bx != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "'bx != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Relational (!=) real and converted integer, equal", "",
    "45 != 45.0", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
@@ -675,7 +675,7 @@ run_test("Relational (!=) sized, signed expansion (false)", "",
    "3'sb111 != 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))
 
 run_test("Relational (!=) ambiguous", "",
-   "'bZ != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base10, 1, ""))
+   "'bZ != 0", new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 1, "x"))
 
 run_test("Relational (===) sized, signed expansion (false)", "",
    "3'b111 === 4'sb1111", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 1, "0"))

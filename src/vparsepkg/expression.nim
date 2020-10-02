@@ -212,6 +212,12 @@ proc convert(tok: Token, kind: TokenKind, size: int): Token =
       discard
 
 
+proc set_ambiguous*(tok: var Token) =
+   lexer.set_ambiguous(tok)
+   if tok.kind in IntegerTokens:
+      tok.literal = repeat('x', tok.size)
+
+
 macro make_prefix(x: typed, op: string): untyped =
    result = new_nim_node(nnkPrefix)
    add(result, new_ident_node(op.str_val))
@@ -243,6 +249,7 @@ template unary_sign(n: PNode, context: ExpressionContext, op: string): Token =
       result.fnumber = make_prefix(tok.fnumber, op)
       result.literal = $result.fnumber
    of AmbiguousTokens:
+      result.base = Base2
       set_ambiguous(result)
    else:
       raise new_evaluation_error("Unary operator '$1' cannot yield kind '$2'.", op, $context.kind)
@@ -292,6 +299,7 @@ proc logical_negation(n: PNode, context: ExpressionContext): Token =
       else:
          from_gmp_int(result, new_int(1))
    of AmbiguousTokens:
+      result.base = Base2
       set_ambiguous(result)
    else:
       raise new_evaluation_error("Logical negation cannot parse kind '$1'.", $tok.kind)
@@ -313,6 +321,7 @@ template unary_reduction(n: PNode, context: ExpressionContext, op: string): Toke
          carry = make_infix(carry, c , op)
       from_gmp_int(result, new_int(carry))
    of TkAmbIntLit, TkAmbUIntLit:
+      result.base = Base2
       set_ambiguous(result)
    else:
       raise new_evaluation_error("Unary reduction cannot parse kind '$1'.", $tok.kind)
@@ -372,6 +381,7 @@ template infix_operation(x, y: PNode, context: ExpressionContext, iop, fop: stri
    of TkIntLit, TkUIntLit:
       let ytok_int = to_gmp_int(ytok)
       if iop == "div" and is_zero(ytok_int):
+         result.base = Base2
          set_ambiguous(result)
       else:
          result.base = Base2
@@ -382,7 +392,10 @@ template infix_operation(x, y: PNode, context: ExpressionContext, iop, fop: stri
       else:
          result.fnumber = make_infix(xtok.fnumber, ytok.fnumber, fop)
          result.literal = $result.fnumber
-   of AmbiguousTokens:
+   of AmbiguousTokens - {TkAmbRealLit}:
+      result.base = Base2
+      set_ambiguous(result)
+   of TkAmbRealLit:
       set_ambiguous(result)
    else:
       raise new_evaluation_error("Infix operation '$1'/'$2' cannot yield kind '$3'.", iop, fop, $context.kind)
@@ -399,6 +412,7 @@ proc modulo(x, y: PNode, context: ExpressionContext): Token =
    let ytok = evaluate_constant_expression(y, context)
    result.kind = context.kind
    result.size = context.size
+   result.base = Base2
 
    let ytok_int = to_gmp_int(ytok)
    case context.kind
@@ -408,7 +422,6 @@ proc modulo(x, y: PNode, context: ExpressionContext): Token =
       else:
          # The modulo operation always takes the sign of the first operand. This
          # is exactly how GMP's mod operation behaves so we just use it directly.
-         result.base = Base2
          from_gmp_int(result, to_gmp_int(xtok) mod ytok_int)
    else:
       raise new_evaluation_error("Modulo operation not allowed for kind '$1'.", $context.kind)
@@ -486,8 +499,8 @@ proc power(x, y: PNode, context: ExpressionContext): Token =
          elif ytok.inumber == 0:
             from_gmp_int(result, new_int(1))
          else:
+            result.base = Base2
             set_ambiguous(result)
-            result.base = Base10
       elif xtok_int == 1:
          from_gmp_int(result, new_int(1))
 
@@ -527,6 +540,7 @@ template logical_operation(x, y: PNode, context: ExpressionContext, op: string):
       raise new_evaluation_error("Logical operation cannot parse kind '$1'.", $ytok.kind)
 
    if ambiguous:
+      result.base = Base2
       set_ambiguous(result)
    else:
       result.base = Base2
@@ -561,8 +575,8 @@ template relational_operation(x, y: PNode, context: ExpressionContext, op: strin
          result.inumber = ord(make_infix(xliteral, yliteral, op))
          result.literal = $result.inumber
       else:
+         result.base = Base2
          set_ambiguous(result)
-         result.base = Base10
    else:
       raise new_evaluation_error("Relational operator '$1' cannot parse kind '$2'.", op, $kind)
    result
@@ -800,7 +814,7 @@ proc evaluate_constant_conditional_expression(n: PNode, context: ExpressionConte
             else:
                add(result.literal, 'x')
          if XChars in result.literal:
-            set_ambiguous(result)
+            lexer.set_ambiguous(result)
          extend_or_truncate(result, result.kind, result.size)
    elif is_zero(to_gmp_int(cond_tok)):
       result = rhs_tok
@@ -966,9 +980,6 @@ proc determine_kind_and_size_identifier(n: PNode, context: AstContext):
 proc determine_kind_and_size_concat(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
    result = (TkInvalid, 0)
    for s in walk_sons(n, ExpressionTypes):
-      # FIXME: Unsized integer literals are not allowed in constant concatenations. We
-      # have to capture those here because once determine_kind_and_size() is
-      # called, they assume a size of INTEGER_BITS.
       let (kind, size) = determine_kind_and_size(s, context)
       if result.kind == TkInvalid:
          result.kind = kind
