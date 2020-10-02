@@ -814,6 +814,34 @@ run_test("Constant replication, used in expression (unsigned due to range select
 """,
    "BAR[3:0] + {(2+1){1'sb1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), 10, Base2, 4, "1010"))
 
+run_test("Conversion functions, $unsigned, no argument (error)", "",
+   "$unsigned()",  Token(), true)
+
+run_test("Conversion functions, $unsigned, noninteger argument (error)", "",
+   "$unsigned(3.14)",  Token(), true)
+
+run_test("Conversion functions, $unsigned (1)", "",
+   "$unsigned(-4)",  new_inumber(TkUIntLit, loc(0, 0, 0), 4294967292, Base2, 32, "11111111111111111111111111111100"))
+
+run_test("Conversion functions, $unsigned (2)", "",
+   "0 + $unsigned(-4'sd4)",  new_inumber(TkUIntLit, loc(0, 0, 0), 12, Base2, 32, "00000000000000000000000000001100"))
+
+run_test("Conversion functions, $unsigned, ambiguous", "",
+   "$unsigned(-4'sb11xZ)",  new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 4, "xxxx"))
+
+run_test("Conversion functions, $signed (1)", "",
+   "$signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), -4, Base2, 4, "1100"))
+
+run_test("Conversion functions, $signed (2)", "",
+   "0 + $signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), -4, Base2, 32, "11111111111111111111111111111100"))
+
+run_test("Conversion functions, $signed, ambiguous", "",
+   "$signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 3, "x?1"))
+
+run_test("Conversion functions, $signed, ambiguous", "",
+   "6'sd0 + $signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 6, "xxxxxx"))
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

@@ -780,9 +780,37 @@ proc evaluate_constant_ranged_identifier(n: PNode, context: ExpressionContext): 
    result = convert(result, context.kind, context.size)
 
 
+proc evaluate_system_function_call_signed_unsigned(n: PNode, context: ExpressionContext, op: string): Token =
+   if is_nil(n):
+      raise new_evaluation_error("Expected an expression.")
+
+   # The argument expression is self-determined.
+   result = evaluate_constant_expression(n, context.ast_context)
+   if result.kind notin IntegerTokens:
+      raise new_evaluation_error("The expression must yield an integer.")
+
+   let kind = if op == "unsigned":
+      TkUIntLit
+   else:
+      TkIntLit
+   result = convert(result, kind, context.size)
+
+
 proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext): Token =
-   # FIXME: Implement
-   raise new_evaluation_error("Not implemented")
+   # The system functions allowed in a constant expression are conversion
+   # functions and math functions.
+   init(result)
+   let id_idx = find_first_index(n, NkIdentifier)
+   if id_idx < 0:
+      raise new_evaluation_error("Invalid constant system function call.")
+
+   let id = n[id_idx]
+   case id.identifier.s
+   of "unsigned", "signed":
+      let arg = find_first(n, ExpressionTypes, id_idx + 1)
+      result = evaluate_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   else:
+      raise new_evaluation_error("Unsupported system function '$1'.", id.identifier.s)
 
 
 proc evaluate_constant_conditional_expression(n: PNode, context: ExpressionContext): Token =
@@ -1018,9 +1046,39 @@ proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext): t
    result.size = high - low + 1
 
 
-proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext):
-      tuple[kind: TokenKind, size: int] =
-   raise new_evaluation_error("Not implemented")
+proc determine_kind_and_size_system_function_call_signed_unsigned(n: PNode, context: AstContext, op: string):
+                                                                  tuple[kind: TokenKind, size: int] =
+   if is_nil(n) or n.kind notin ExpressionTypes:
+      raise new_evaluation_error("Expected an expression.")
+
+   result = determine_kind_and_size(n, context)
+   case result.kind
+   of TkIntLit, TkUIntLit:
+      result.kind = if op == "unsigned":
+         TkUIntLit
+      else:
+         TkIntLit
+   of TkAmbUIntLit, TkAmbIntLit:
+      result.kind = if op == "unsigned":
+         TkAmbUIntLit
+      else:
+         TkAmbIntLit
+   else:
+      raise new_evaluation_error("The expression must yield an integer.")
+
+
+proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
+   let id_idx = find_first_index(n, NkIdentifier)
+   if id_idx < 0:
+      raise new_evaluation_error("Invalid constant system function call.")
+
+   let id = n[id_idx]
+   case id.identifier.s
+   of "unsigned", "signed":
+      let arg = find_first(n, ExpressionTypes, id_idx + 1)
+      result = determine_kind_and_size_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   else:
+      raise new_evaluation_error("Unsupported system function '$1'.", id.identifier.s)
 
 
 proc determine_kind_and_size_conditional_expression(n: PNode, context: AstContext):
