@@ -808,8 +808,6 @@ macro make_call(name: string, args: varargs[untyped]): untyped =
 
 
 template ensure_real(n: PNode, context: AstContext): Token =
-   if is_nil(n):
-      raise new_evaluation_error("Invalid argument (nil).")
    result = evaluate_constant_expression(n, context)
    if result.kind != TkRealLit:
       raise new_evaluation_error("Argument must be a real number.")
