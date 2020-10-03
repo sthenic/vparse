@@ -7,11 +7,10 @@ import ../lexer/constructors
 
 var nof_passed = 0
 var nof_failed = 0
-var cache: IdentifierCache
 
 
-template run_test(title, context, stimuli: string, reference: Token, expect_error: bool = false) =
-   cache = new_ident_cache()
+proc run_test(title, context, stimuli: string, reference: Token, expect_error: bool, nof_passed, nof_failed: var int) =
+   let cache = new_ident_cache()
    let n = parse_specific_grammar(stimuli, cache, NkConstantExpression)
    let cn = parse_string("module test(); " & context & " endmodule", cache)[0]
 
@@ -37,6 +36,10 @@ template run_test(title, context, stimuli: string, reference: Token, expect_erro
                          fgWhite, "Test '",  title, "'")
          nof_failed += 1
          echo "Exception: ", e.msg
+
+
+template run_test(title, context, stimuli: string, reference: Token, expect_error: bool = false) =
+   run_test(title, context, stimuli, reference, expect_error, nof_passed, nof_failed)
 
 
 # Arithmetic '+'

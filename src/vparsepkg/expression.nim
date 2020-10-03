@@ -850,7 +850,7 @@ template real_math_two_args(n: PNode, context: AstContext, id_idx: int, op: stri
 
 proc evaluate_system_function_call_real_math(n: PNode, context: ExpressionContext): Token =
    init(result)
-   let id_idx = find_first_index(n, ExpressionTypes)
+   let id_idx = find_first_index(n, NkIdentifier)
    if id_idx < 0:
       raise new_evaluation_error("Invalid constant system function call.")
 
