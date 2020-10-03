@@ -17,6 +17,10 @@ type
 const
    INTEGER_BITS* = 32
 
+   RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
+                        "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
+                        "acosh", "atanh"]
+
 
 proc init(context: var ExpressionContext) =
    set_len(context.ast_context, 0)
@@ -796,6 +800,111 @@ proc evaluate_system_function_call_signed_unsigned(n: PNode, context: Expression
    result = convert(result, kind, context.size)
 
 
+macro make_call(name: string, args: varargs[untyped]): untyped =
+   result = new_nim_node(nnkCall)
+   add(result, new_ident_node(name.str_val))
+   for arg in args:
+      add(result, arg)
+
+
+template ensure_real(n: PNode, context: AstContext): Token =
+   if is_nil(n):
+      raise new_evaluation_error("Invalid argument (nil).")
+   result = evaluate_constant_expression(n, context)
+   if result.kind != TkRealLit:
+      raise new_evaluation_error("Argument must be a real number.")
+   result
+
+
+template real_math(x: PNode, context: AstContext, op: string): untyped =
+   let xtok = ensure_real(x, context)
+   make_call(op, xtok.fnumber)
+
+
+template real_math(x, y: PNode, context: AstContext, op: string): untyped =
+   let xtok = ensure_real(x, context)
+   let ytok = ensure_real(y, context)
+   make_call(op, xtok.fnumber, ytok.fnumber)
+
+
+proc collect_arguments(n: PNode, nof_arguments, start: int): seq[PNode] =
+   for i, s in walk_sons_index(n, ExpressionTypes, start):
+      add(result, s)
+
+   if len(result) != nof_arguments:
+      let str = if len(result) < nof_arguments: "few" else: "many"
+      raise new_evaluation_error("Too $1 arguments in function call.", str)
+
+
+template real_math_one_arg(n: PNode, context: AstContext, id_idx: int, op: string): untyped =
+   let args = collect_arguments(n, 1, id_idx + 1)
+   result.fnumber = real_math(args[0], context, op)
+   result.literal = $result.fnumber
+
+
+template real_math_two_args(n: PNode, context: AstContext, id_idx: int, op: string): untyped =
+   let args = collect_arguments(n, 2, id_idx + 1)
+   result.fnumber = real_math(args[0], args[1], context, op)
+   result.literal = $result.fnumber
+
+
+proc evaluate_system_function_call_real_math(n: PNode, context: ExpressionContext): Token =
+   init(result)
+   let id_idx = find_first_index(n, ExpressionTypes)
+   if id_idx < 0:
+      raise new_evaluation_error("Invalid constant system function call.")
+
+   result.kind = TkRealLit
+   result.size = -1
+
+   let id = n[id_idx]
+   case id.identifier.s
+   of "ln":
+      real_math_one_arg(n, context.ast_context, id_idx, "ln")
+   of "log10":
+      real_math_one_arg(n, context.ast_context, id_idx, "log10")
+   of "exp":
+      real_math_one_arg(n, context.ast_context, id_idx, "exp")
+   of "sqrt":
+      real_math_one_arg(n, context.ast_context, id_idx, "sqrt")
+   of "pow":
+      real_math_two_args(n, context.ast_context, id_idx, "pow")
+   of "floor":
+      real_math_one_arg(n, context.ast_context, id_idx, "floor")
+   of "ceil":
+      real_math_one_arg(n, context.ast_context, id_idx, "ceil")
+   of "sin":
+      real_math_one_arg(n, context.ast_context, id_idx, "sin")
+   of "cos":
+      real_math_one_arg(n, context.ast_context, id_idx, "cos")
+   of "tan":
+      real_math_one_arg(n, context.ast_context, id_idx, "tan")
+   of "asin":
+      real_math_one_arg(n, context.ast_context, id_idx, "arcsin")
+   of "acos":
+      real_math_one_arg(n, context.ast_context, id_idx, "arccos")
+   of "atan":
+      real_math_one_arg(n, context.ast_context, id_idx, "arctan")
+   of "atan2":
+      real_math_two_args(n, context.ast_context, id_idx, "arctan2")
+   of "hypot":
+      real_math_two_args(n, context.ast_context, id_idx, "hypot")
+   of "sinh":
+      real_math_one_arg(n, context.ast_context, id_idx, "sinh")
+   of "cosh":
+      real_math_one_arg(n, context.ast_context, id_idx, "cosh")
+   of "tanh":
+      real_math_one_arg(n, context.ast_context, id_idx, "tanh")
+   of "asinh":
+      real_math_one_arg(n, context.ast_context, id_idx, "arcsinh")
+   of "acosh":
+      real_math_one_arg(n, context.ast_context, id_idx, "arccosh")
+   of "atanh":
+      real_math_one_arg(n, context.ast_context, id_idx, "arctanh")
+   else:
+      raise new_evaluation_error("Unsupported real function '$1'.", id.identifier.s)
+
+
 proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext): Token =
    # The system functions allowed in a constant expression are conversion
    # functions and math functions.
@@ -809,6 +918,11 @@ proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext
    of "unsigned", "signed":
       let arg = find_first(n, ExpressionTypes, id_idx + 1)
       result = evaluate_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   of "clog2":
+      # FIXME: Implement
+      raise new_evaluation_error("Not implemented.")
+   of RealMathFunctions:
+      result = evaluate_system_function_call_real_math(n, context)
    else:
       raise new_evaluation_error("Unsupported system function '$1'.", id.identifier.s)
 
@@ -1072,11 +1186,15 @@ proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext)
    if id_idx < 0:
       raise new_evaluation_error("Invalid constant system function call.")
 
+   # FIXME: Implement other conversion functions: $rtoi, $itor, $realtobits and $bitstoreal.
    let id = n[id_idx]
    case id.identifier.s
    of "unsigned", "signed":
       let arg = find_first(n, ExpressionTypes, id_idx + 1)
       result = determine_kind_and_size_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   of RealMathFunctions:
+      # The result of a system math function is always a real number.
+      result = (TkRealLit, -1)
    else:
       raise new_evaluation_error("Unsupported system function '$1'.", id.identifier.s)
 

@@ -841,6 +841,78 @@ run_test("Conversion functions, $signed, ambiguous", "",
 run_test("Conversion functions, $signed, ambiguous", "",
    "6'sd0 + $signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 6, "xxxxxx"))
 
+run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
+
+run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)
+
+run_test("Math functions, too many arguments (1)", "", "$ln(2.0, 2.0)", Token(), true)
+
+run_test("Math functions, too many arguments (2)", "", "$hypot(2.0, 0.0, 0.0)", Token(), true)
+
+run_test("Math functions, argument is not a real number", "", "$hypot(2.0, 0)", Token(), true)
+
+run_test("Math functions, $ln", "",
+   "$ln(1.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+
+run_test("Math functions, $log10", "",
+   "$log10(100.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 2.0, "2.0"))
+
+run_test("Math functions, $exp", "",
+   "$exp($ln(2.3))",  new_fnumber(TkRealLit, loc(0, 0, 0), 2.3, "2.3"))
+
+run_test("Math functions, $sqrt", "",
+   "$sqrt(144.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 12.0, "12.0"))
+
+run_test("Math functions, $pow", "",
+   "$pow(2.0, 5.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 32.0, "32.0"))
+
+run_test("Math functions, $floor", "",
+   "$floor(4.99)",  new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+
+run_test("Math functions, $ceil", "",
+   "$ceil(4.01)",  new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
+
+run_test("Math functions, $sin", "",
+   "$ceil($sin(3.14159 / 2))",  new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+
+run_test("Math functions, $cos", "",
+   "$floor($cos(3.14159 / 2))",  new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+
+run_test("Math functions, $tan", "",
+   "$ceil($tan(3.14159 / 4))",  new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+
+run_test("Math functions, $asin", "",
+   "$floor($asin(1.0) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $acos", "",
+   "$floor($acos(0.0) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $atan", "",
+   "$floor($atan(1.0) * 400)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $atan2", "",
+   "$floor($atan2(2.0, 2.0) * 400)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $hypot", "",
+   "$hypot(3.0, 4.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
+
+run_test("Math functions, $sinh", "",
+   "$floor($sinh(1.0) * 100)",  new_fnumber(TkRealLit, loc(0, 0, 0), 117.0, "117.0"))
+
+run_test("Math functions, $cosh", "",
+   "$floor($cosh(1.0) * 100)",  new_fnumber(TkRealLit, loc(0, 0, 0), 154.0, "154.0"))
+
+run_test("Math functions, $tanh", "",
+   "$floor($tanh(1.0) * 100)",  new_fnumber(TkRealLit, loc(0, 0, 0), 76.0, "76.0"))
+
+run_test("Math functions, $asinh", "",
+   "$floor($asinh(2.301298902307295) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $acosh", "",
+   "$floor($acosh(2.509178478658057) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $atanh", "",
+   "$floor($atanh(0.9171523356672744) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
