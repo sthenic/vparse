@@ -810,72 +810,108 @@ proc evaluate_constant_ranged_identifier(n: PNode, context: ExpressionContext): 
    result = convert(result, context.kind, context.size)
 
 
+proc collect_arguments(n: PNode, nof_arguments, start: int): seq[PNode] =
+   for i, s in walk_sons_index(n, ExpressionTypes, start):
+      add(result, s)
+
+   if len(result) != nof_arguments:
+      let str = if len(result) < nof_arguments: "few" else: "many"
+      raise new_evaluation_error("Too $1 arguments in function call.", str)
+
+
+proc signed_unsigned(n: PNode, context: ExpressionContext, id_idx: int): Token =
+   init(result)
+   let arg = collect_arguments(n, 1, id_idx + 1)[0]
+   var tok = evaluate_constant_expression(arg, context.ast_context)
+   if tok.kind notin IntegerTokens:
+      raise new_evaluation_error("The expression must yield an integer.")
+
+   if n[id_idx].identifier.s == "unsigned":
+      set_unsigned(tok.kind)
+   else:
+      set_signed(tok.kind)
+   result = convert(tok, context.kind, context.size)
+
+
+proc rtoi(n: PNode, context: ExpressionContext, id_idx: int): Token =
+   init(result)
+   # Conversion is done by truncating to the decimal point. We reset the
+   # token after making a copy of the floting point value.
+   let arg = collect_arguments(n, 1, id_idx + 1)[0]
+   let tok = evaluate_constant_expression(arg, context.ast_context)
+   if tok.kind != TkRealLit:
+      raise new_evaluation_error("The expression must yield a real value.")
+   init(result)
+   result.kind = TkIntLit
+   result.size = INTEGER_BITS
+   result.base = Base2
+   from_gmp_int(result, to_int(new_rat(trunc(tok.fnumber))))
+   result = convert(result, context.kind, context.size)
+
+
+proc itor(n: PNode, context: ExpressionContext, id_idx: int): Token =
+   init(result)
+   # The conversion to real happens in the call to convert() below since real
+   # has the highest preceedence. Basically, it's guaranteed that
+   # context.kind == TkRealLit. However, we do have to ensure that the token
+   # is an unambiguous integer.
+   let arg = collect_arguments(n, 1, id_idx + 1)[0]
+   let tok = evaluate_constant_expression(arg, context.ast_context)
+   if tok.kind notin IntegerTokens - AmbiguousTokens:
+      raise new_evaluation_error("The argument must be an unambiguous integer value.")
+   result = convert(tok, context.kind, context.size)
+
+
+proc realtobits(n: PNode, context: ExpressionContext, id_idx: int): Token =
+   init(result)
+   let arg = collect_arguments(n, 1, id_idx + 1)[0]
+   let tok = evaluate_constant_expression(arg, context.ast_context)
+   if tok.kind != TkRealLit:
+      raise new_evaluation_error("The expression must yield a real value.")
+   # Since Nim uses IEEE 754 to represent floating point values we just cast
+   # the token's value to a 64-bit integer.
+   result.kind = TkUIntLit
+   result.size = 64
+   result.base = Base2
+   from_gmp_int(result, new_int($to_hex(cast[uint64](tok.fnumber)), base = 16))
+   result = convert(result, context.kind, context.size)
+
+
+proc bitstoreal(n: PNode, context: ExpressionContext, id_idx: int): Token =
+   init(result)
+   # The argument is interpreted as an unsigned 64-bit value. We reevaluate
+   # the expression in that context and interpret the bitpattern as an IEEE
+   # 754 floating point number.
+   let arg = collect_arguments(n, 1, id_idx + 1)[0]
+   let (_, size) = determine_kind_and_size(arg, context.ast_context)
+   let tok = evaluate_constant_expression(arg, context.ast_context, TkUIntLit, max(64, size))
+   if tok.kind notin IntegerTokens - AmbiguousTokens:
+      raise new_evaluation_error("The argument must be an unambiguous integer value.")
+   result.fnumber = cast[float64](via_gmp_uint(tok))
+   result.literal = $result.fnumber
+   result.size = -1
+   result.kind = TkRealLit
+
+
 proc evaluate_system_function_call_conversion(n: PNode, context: ExpressionContext): Token =
    let id_idx = find_first_index(n, NkIdentifier)
-   let arg_idx = find_first_index(n, ExpressionTypes, id_idx + 1)
-   if id_idx < 0 or arg_idx < 0:
+   if id_idx < 0:
       raise new_evaluation_error("Invalid constant system function call.")
 
-   # The argument expression is self-determined.
-   result = evaluate_constant_expression(n[arg_idx], context.ast_context)
-
-   let id = n[id_idx]
-   case id.identifier.s
-   of "unsigned":
-      if result.kind notin IntegerTokens:
-         raise new_evaluation_error("The expression must yield an integer.")
-      set_unsigned(result.kind)
-   of "signed":
-      if result.kind notin IntegerTokens:
-         raise new_evaluation_error("The expression must yield an integer.")
-      set_signed(result.kind)
+   let function = n[id_idx].identifier.s
+   case function
+   of "unsigned", "signed":
+      result = signed_unsigned(n, context, id_idx)
    of "rtoi":
-      if result.kind != TkRealLit:
-         raise new_evaluation_error("The expression must yield a real value.")
-      # Conversion is done by truncating to the decimal point. We reset the
-      # token after making a copy of the floting point value.
-      let fnumber = result.fnumber
-      init(result)
-      result.kind = TkIntLit
-      result.size = INTEGER_BITS
-      result.base = Base2
-      from_gmp_int(result, to_int(new_rat(trunc(fnumber))))
+      result = rtoi(n, context, id_idx)
    of "itor":
-      # The conversion to real happens in the call to convert() below since real
-      # has the highest preceedence. Basically, it's guaranteed that
-      # context.kind == TkRealLit. However, we do have to ensure that the token
-      # is an unambiguous integer.
-      if result.kind notin IntegerTokens - AmbiguousTokens:
-         raise new_evaluation_error("The argument must be an unambiguous integer value.")
+      result = itor(n, context, id_idx)
    of "realtobits":
-      if result.kind != TkRealLit:
-         raise new_evaluation_error("The expression must yield a real value.")
-      # Since Nim uses IEEE 754 to represent floating point values we just cast
-      # the token's value to a 64-bit integer.
-      let i = new_int($to_hex(cast[uint64](result.fnumber)), base = 16)
-      init(result)
-      result.kind = TkUIntLit
-      result.size = 64
-      result.base = Base2
-      from_gmp_int(result, i)
+      result = realtobits(n, context, id_idx)
    of "bitstoreal":
-      if result.kind notin IntegerTokens - AmbiguousTokens:
-         raise new_evaluation_error("The argument must be an unambiguous integer value.")
-      # The argument is interpreted as an unsigned 64-bit value. We reevaluate
-      # the expression in that context and interpret the bitpattern as an IEEE
-      # 754 floating point number.
-      result = evaluate_constant_expression(n[arg_idx], context.ast_context, TkUIntLit, max(64, result.size))
-      let fnumber = cast[float64](via_gmp_uint(result))
-      init(result)
-      result.fnumber = fnumber
-      result.literal = $fnumber
-      result.size = -1
-      result.kind = TkRealLit
-      return
+      result = bitstoreal(n, context, id_idx)
    else:
-      raise new_evaluation_error("Unsupported conversion function '$1'.", id.identifier.s)
-   # FIXME: Unnecessary for 'to real' functions. Refactor into subprocs?
-   result = convert(result, context.kind, context.size)
+      raise new_evaluation_error("Unsupported conversion function '$1'.", function)
 
 
 macro make_call(name: string, args: varargs[untyped]): untyped =
@@ -901,15 +937,6 @@ template real_math(x, y: PNode, context: AstContext, op: string): untyped =
    let xtok = ensure_real(x, context)
    let ytok = ensure_real(y, context)
    make_call(op, xtok.fnumber, ytok.fnumber)
-
-
-proc collect_arguments(n: PNode, nof_arguments, start: int): seq[PNode] =
-   for i, s in walk_sons_index(n, ExpressionTypes, start):
-      add(result, s)
-
-   if len(result) != nof_arguments:
-      let str = if len(result) < nof_arguments: "few" else: "many"
-      raise new_evaluation_error("Too $1 arguments in function call.", str)
 
 
 template real_math_one_arg(n: PNode, context: AstContext, id_idx: int, op: string): untyped =

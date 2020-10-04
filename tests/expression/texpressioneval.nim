@@ -860,7 +860,7 @@ run_test("Conversion functions, $rtoi, out of range (32 bits)", "",
    "$rtoi(123.45E8)", new_inumber(TkIntLit, loc(0, 0, 0), -539901888, Base2, 32, "11011111110100011100000001000000"))
 
 run_test("Conversion functions, $rtoi, in expression", "",
-   "4 + $rtoi(-4.1)", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 32, "00000000000000000000000000000000"))
+   "33'sd4 + $rtoi(-4.1)", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 33, "000000000000000000000000000000000"))
 
 run_test("Conversion functions, $rtoi, nonreal argument (error))", "", "$rtoi(-4)", Token(), true)
 
@@ -890,7 +890,7 @@ run_test("Conversion functions, $realtobits (3)", "",
    "$realtobits(34e-3)", new_inumber(TkUIntLit, loc(0, 0, 0), 4585060737430373532, Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
 
 run_test("Conversion functions, $realtobits (3)", "",
-   "3'b1 + $realtobits(2.0)", new_inumber(TkUIntLit, loc(0, 0, 0), 4611686018427387905, Base2, 64, "0100000000000000000000000000000000000000000000000000000000000001"))
+   "65'b1 + $realtobits(2.0)", new_inumber(TkUIntLit, loc(0, 0, 0), 4611686018427387905, Base2, 65, "00100000000000000000000000000000000000000000000000000000000000001"))
 
 run_test("Conversion functions, $realtobits, nonreal argument (error))", "", "$realtobits(55)", Token(), true)
 
@@ -914,6 +914,12 @@ run_test("Conversion functions, $bitstoreal, argument too big (error)", "",
 
 run_test("Conversion functions, $bitstoreal, noninteger argument (error)", "",
    "$bitstoreal(3.0)", Token(), true)
+
+run_test("Conversion functions, $bitstoreal, too few arguments (error)", "",
+   "$bitstoreal()", Token(), true)
+
+run_test("Conversion functions, $bitstoreal, too many arguments (error)", "",
+   "$bitstoreal(34, 23)", Token(), true)
 
 # FIXME:
 # run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned -> nan (error)", "",
