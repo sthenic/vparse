@@ -850,6 +850,20 @@ run_test("Conversion functions, $signed, ambiguous", "",
 run_test("Conversion functions, $signed, ambiguous", "",
    "6'sd0 + $signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), 0, Base2, 6, "xxxxxx"))
 
+run_test("Conversion functions, $rtoi (1)", "",
+   "$rtoi(33.22)", new_inumber(TkIntLit, loc(0, 0, 0), 33, Base2, 32, "00000000000000000000000000100001"))
+
+run_test("Conversion functions, $rtoi (2)", "",
+   "$rtoi(-123.45E7)", new_inumber(TkIntLit, loc(0, 0, 0), -1234500000, Base2, 32, "10110110011010110000011001100000"))
+
+run_test("Conversion functions, $rtoi, out of range (32 bits)", "",
+   "$rtoi(123.45E8)", new_inumber(TkIntLit, loc(0, 0, 0), -539901888, Base2, 32, "11011111110100011100000001000000"))
+
+run_test("Conversion functions, $rtoi, in expression", "",
+   "4 + $rtoi(-4.1)", new_inumber(TkIntLit, loc(0, 0, 0), 0, Base2, 32, "00000000000000000000000000000000"))
+
+run_test("Conversion functions, $rtoi, nonreal argument (error))", "", "$rtoi(-4)", Token(), true)
+
 run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
 
 run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)

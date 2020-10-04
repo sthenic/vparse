@@ -18,7 +18,7 @@ type
 const
    INTEGER_BITS* = 32
 
-   ConversionFunctions = ["unsigned", "signed"]
+   ConversionFunctions = ["unsigned", "signed", "rtoi"]
 
    RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
                         "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
@@ -815,6 +815,17 @@ proc evaluate_system_function_call_conversion(n: PNode, context: ExpressionConte
       if result.kind notin IntegerTokens:
          raise new_evaluation_error("The expression must yield an integer.")
       set_signed(result.kind)
+   of "rtoi":
+      if result.kind != TkRealLit:
+         raise new_evaluation_error("The expression must yield a real value.")
+      # Conversion is done by truncating to the decimal point. We reset the
+      # token after making a copy of the floting point value.
+      let fnumber = result.fnumber
+      init(result)
+      result.kind = TkIntLit
+      result.size = INTEGER_BITS
+      result.base = Base2
+      from_gmp_int(result, to_int(new_rat(trunc(fnumber))))
    else:
       raise new_evaluation_error("Unsupported conversion function '$1'.", id.identifier.s)
    result = convert(result, context.kind, context.size)
@@ -1232,6 +1243,11 @@ proc determine_kind_and_size_system_function_call_conversion(n: PNode, context: 
       set_unsigned(result.kind)
    of "signed":
       set_signed(result.kind)
+   of "rtoi":
+      set_signed(result.kind)
+      result.size = INTEGER_BITS
+   of "itor":
+      result = (TkRealLit, -1)
    else:
       raise new_evaluation_error("Unsupported conversion function '$1'.", function)
 
