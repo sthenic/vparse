@@ -42,6 +42,12 @@ template run_test(title, context, stimuli: string, reference: Token, expect_erro
    run_test(title, context, stimuli, reference, expect_error, nof_passed, nof_failed)
 
 
+# Make sure that expression evaluation is supported on the system.
+if not is_evaluation_supported():
+   echo "Expression evaluation is not supported on the system. Install libgmp."
+   quit(-1)
+
+
 # Arithmetic '+'
 run_test("Arithmetic (+) two terms, unsized", "",
    "1 + 1", new_inumber(TkIntLit, loc(0, 0, 0), 2, Base2, INTEGER_BITS, "00000000000000000000000000000010"))

@@ -2,6 +2,7 @@ import strutils
 import math
 import bignum
 import macros
+import dynlib
 
 import ./ast
 import ./lexer
@@ -23,6 +24,18 @@ const
    RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
                         "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
                         "acosh", "atanh"]
+
+
+proc is_evaluation_supported*(): bool =
+   ## Test if expression evaluation is supported on the platform. Effectively,
+   ## this checks that `libgmp` can be loaded.
+   const libgmp = when defined(windows):
+      "libgmp.dll"
+   elif defined(macosx):
+      "libgmp.dylib"
+   else:
+      "libgmp.so"
+   result = not is_nil(load_lib(libgmp))
 
 
 proc init(context: var ExpressionContext) =
