@@ -12,6 +12,7 @@ type
       kind: TokenKind
       size: int
       allow_unsized: bool
+      allow_real: bool
       allow_zero_replication: bool
 
 const
@@ -27,6 +28,7 @@ proc init(context: var ExpressionContext) =
    context.kind = TkInvalid
    context.size = -1
    context.allow_unsized = true
+   context.allow_real = true
    context.allow_zero_replication = false
 
 
@@ -697,6 +699,7 @@ proc evaluate_constant_concat(n: PNode, context: ExpressionContext): Token =
    var lcontext = new_expression_context(context.ast_context)
    lcontext.allow_zero_replication = true
    lcontext.allow_unsized = false
+   lcontext.allow_real = false
    var idx = -1
    var valid = false
    while true:
@@ -995,6 +998,8 @@ proc evaluate_constant_expression(n: PNode, context: ExpressionContext): Token =
       result.kind = TkStrLit
       result.literal = n.s
    of NkRealLit:
+      if not context.allow_real:
+         raise new_evaluation_error("A real value is not allowed in this context.")
       init(result)
       result.kind = TkRealLit
       result.fnumber = n.fnumber

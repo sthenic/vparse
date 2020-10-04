@@ -776,6 +776,9 @@ run_test("Constant concatenation, w/ unsized identifier (error)", """
 run_test("Constant concatenation, w/ unsized (error)", "",
    "{1'b1, 32}", Token(), true)
 
+run_test("Constant concatenation, w/ real (error)", "",
+   "{1'b1, 32.0}", Token(), true)
+
 run_test("Constant replication, one bit -> two bits", "",
    "{2{1'b1}}", new_inumber(TkUIntLit, loc(0, 0, 0), 3, Base2, 2, "11"))
 
