@@ -226,7 +226,7 @@ proc convert(tok: Token, kind: TokenKind, size: int): Token =
 
 
 proc set_ambiguous*(tok: var Token) =
-   lexer.set_ambiguous(tok)
+   lexer.set_ambiguous(tok.kind)
    if tok.kind in IntegerTokens:
       tok.literal = repeat('x', tok.size)
 
@@ -804,9 +804,9 @@ proc evaluate_system_function_call_signed_unsigned(n: PNode, context: Expression
       raise new_evaluation_error("The expression must yield an integer.")
 
    if op == "unsigned":
-      set_unsigned(result)
+      set_unsigned(result.kind)
    else:
-      set_signed(result)
+      set_signed(result.kind)
    result = convert(result, context.kind, context.size)
 
 
@@ -1000,7 +1000,7 @@ proc evaluate_constant_conditional_expression(n: PNode, context: ExpressionConte
             else:
                add(result.literal, 'x')
          if XChars in result.literal:
-            lexer.set_ambiguous(result)
+            lexer.set_ambiguous(result.kind)
          extend_or_truncate(result, result.kind, result.size)
    elif is_zero(to_gmp_int(cond_tok)):
       result = rhs_tok
@@ -1212,19 +1212,10 @@ proc determine_kind_and_size_system_function_call_signed_unsigned(n: PNode, cont
       raise new_evaluation_error("Expected an expression.")
 
    result = determine_kind_and_size(n, context)
-   case result.kind
-   of TkIntLit, TkUIntLit:
-      result.kind = if op == "unsigned":
-         TkUIntLit
-      else:
-         TkIntLit
-   of TkAmbUIntLit, TkAmbIntLit:
-      result.kind = if op == "unsigned":
-         TkAmbUIntLit
-      else:
-         TkAmbIntLit
+   if op == "unsigned":
+      set_unsigned(result.kind)
    else:
-      raise new_evaluation_error("The expression must yield an integer.")
+      set_signed(result.kind)
 
 
 proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =

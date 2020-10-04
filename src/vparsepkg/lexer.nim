@@ -505,38 +505,38 @@ proc get_base(l: var Lexer, tok: var Token) =
       tok.base = Base10
 
 
-proc set_ambiguous*(tok: var Token) =
-   case tok.kind
+proc set_ambiguous*(kind: var TokenKind) =
+   case kind
    of TkIntLit:
-      tok.kind = TkAmbIntLit
+      kind = TkAmbIntLit
    of TkUIntLit:
-      tok.kind = TkAmbUIntLit
+      kind = TkAmbUIntLit
    of TkRealLit:
-      tok.kind = TkAmbRealLit
+      kind = TkAmbRealLit
    of {TkAmbIntLit, TkAmbUIntLit, TkAmbRealLit}:
       discard
    else:
-      tok.kind = TkInvalid
+      kind = TkInvalid
 
 
-proc set_unsigned*(tok: var Token) =
-   case tok.kind
+proc set_unsigned*(kind: var TokenKind) =
+   case kind
    of TkIntLit, TkUIntLit:
-      tok.kind = TkUIntLit
+      kind = TkUIntLit
    of TkAmbIntLit, TkAmbUIntLit:
-      tok.kind = TkAmbUIntLit
+      kind = TkAmbUIntLit
    else:
-      tok.kind = TkInvalid
+      kind = TkInvalid
 
 
-proc set_signed*(tok: var Token) =
-   case tok.kind
+proc set_signed*(kind: var TokenKind) =
+   case kind
    of TkIntLit, TkUIntLit:
-      tok.kind = TkIntLit
+      kind = TkIntLit
    of TkAmbIntLit, TkAmbUIntLit:
-      tok.kind = TkAmbIntLit
+      kind = TkAmbIntLit
    else:
-      tok.kind = TkInvalid
+      kind = TkInvalid
 
 
 # Forward declaration
@@ -610,7 +610,7 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
    # with another base. We also have to handle X- and Z-digits separately.
    let c = l.buf[l.bufpos]
    if c in XChars + ZChars:
-      set_ambiguous(tok)
+      set_ambiguous(tok.kind)
       tok.literal = $to_lower_ascii(c)
       if l.buf[l.bufpos + 1] == '_':
          inc(l.bufpos, 2)
@@ -662,7 +662,7 @@ proc handle_binary(l: var Lexer, tok: var Token) =
       of BinaryChars:
          add(tok.literal, c)
       of XChars + ZChars:
-         set_ambiguous(tok)
+         set_ambiguous(tok.kind)
          add(tok.literal, to_lower_ascii(c))
       of '_':
          discard
@@ -690,7 +690,7 @@ proc handle_octal(l: var Lexer, tok: var Token) =
       of '_':
          discard
       of XChars + ZChars:
-         set_ambiguous(tok)
+         set_ambiguous(tok.kind)
          add(tok.literal, to_lower_ascii(c))
       else:
          break
@@ -716,7 +716,7 @@ proc handle_hex(l: var Lexer, tok: var Token) =
       of '_':
          discard
       of XChars + ZChars:
-         set_ambiguous(tok)
+         set_ambiguous(tok.kind)
          add(tok.literal, to_lower_ascii(c))
       else:
          break
