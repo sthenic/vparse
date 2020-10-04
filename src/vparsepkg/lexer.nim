@@ -519,6 +519,26 @@ proc set_ambiguous*(tok: var Token) =
       tok.kind = TkInvalid
 
 
+proc set_unsigned*(tok: var Token) =
+   case tok.kind
+   of TkIntLit, TkUIntLit:
+      tok.kind = TkUIntLit
+   of TkAmbIntLit, TkAmbUIntLit:
+      tok.kind = TkAmbUIntLit
+   else:
+      tok.kind = TkInvalid
+
+
+proc set_signed*(tok: var Token) =
+   case tok.kind
+   of TkIntLit, TkUIntLit:
+      tok.kind = TkIntLit
+   of TkAmbIntLit, TkAmbUIntLit:
+      tok.kind = TkAmbIntLit
+   else:
+      tok.kind = TkInvalid
+
+
 # Forward declaration
 proc handle_number(l: var Lexer, tok: var Token)
 

@@ -796,11 +796,11 @@ proc evaluate_system_function_call_signed_unsigned(n: PNode, context: Expression
    if result.kind notin IntegerTokens:
       raise new_evaluation_error("The expression must yield an integer.")
 
-   let kind = if op == "unsigned":
-      TkUIntLit
+   if op == "unsigned":
+      set_unsigned(result)
    else:
-      TkIntLit
-   result = convert(result, kind, context.size)
+      set_signed(result)
+   result = convert(result, context.kind, context.size)
 
 
 macro make_call(name: string, args: varargs[untyped]): untyped =

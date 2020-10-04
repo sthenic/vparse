@@ -835,6 +835,9 @@ run_test("Conversion functions, $unsigned (2)", "",
 run_test("Conversion functions, $unsigned, ambiguous", "",
    "$unsigned(-4'sb11xZ)",  new_inumber(TkAmbUIntLit, loc(0, 0, 0), 0, Base2, 4, "xxxx"))
 
+run_test("Conversion functions, $unsigned w/ real", "",
+   "0.1 + $unsigned(-2)",  new_fnumber(TkRealLit, loc(0, 0, 0), 4294967294.1, "4294967294.1"))
+
 run_test("Conversion functions, $signed (1)", "",
    "$signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), -4, Base2, 4, "1100"))
 
