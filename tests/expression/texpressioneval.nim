@@ -861,67 +861,83 @@ run_test("Math functions, too many arguments (2)", "", "$hypot(2.0, 0.0, 0.0)", 
 run_test("Math functions, argument is not a real number", "", "$hypot(2.0, 0)", Token(), true)
 
 run_test("Math functions, $ln", "",
-   "$ln(1.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+   "$ln(1.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
 
 run_test("Math functions, $log10", "",
-   "$log10(100.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 2.0, "2.0"))
+   "$log10(100.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 2.0, "2.0"))
 
 run_test("Math functions, $exp", "",
-   "$exp($ln(2.3))",  new_fnumber(TkRealLit, loc(0, 0, 0), 2.3, "2.3"))
+   "$exp($ln(2.3))", new_fnumber(TkRealLit, loc(0, 0, 0), 2.3, "2.3"))
 
 run_test("Math functions, $sqrt", "",
-   "$sqrt(144.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 12.0, "12.0"))
+   "$sqrt(144.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 12.0, "12.0"))
 
 run_test("Math functions, $pow", "",
-   "$pow(2.0, 5.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 32.0, "32.0"))
+   "$pow(2.0, 5.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 32.0, "32.0"))
 
 run_test("Math functions, $floor", "",
-   "$floor(4.99)",  new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+   "$floor(4.99)", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
 
 run_test("Math functions, $ceil", "",
-   "$ceil(4.01)",  new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
+   "$ceil(4.01)", new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
 
 run_test("Math functions, $sin", "",
-   "$ceil($sin(3.14159 / 2))",  new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+   "$ceil($sin(3.14159 / 2))", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
 
 run_test("Math functions, $cos", "",
-   "$floor($cos(3.14159 / 2))",  new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+   "$floor($cos(3.14159 / 2))", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
 
 run_test("Math functions, $tan", "",
-   "$ceil($tan(3.14159 / 4))",  new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+   "$ceil($tan(3.14159 / 4))", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
 
 run_test("Math functions, $asin", "",
-   "$floor($asin(1.0) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($asin(1.0) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 run_test("Math functions, $acos", "",
-   "$floor($acos(0.0) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($acos(0.0) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 run_test("Math functions, $atan", "",
-   "$floor($atan(1.0) * 400)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($atan(1.0) * 400)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 run_test("Math functions, $atan2", "",
-   "$floor($atan2(2.0, 2.0) * 400)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($atan2(2.0, 2.0) * 400)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 run_test("Math functions, $hypot", "",
-   "$hypot(3.0, 4.0)",  new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
+   "$hypot(3.0, 4.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
 
 run_test("Math functions, $sinh", "",
-   "$floor($sinh(1.0) * 100)",  new_fnumber(TkRealLit, loc(0, 0, 0), 117.0, "117.0"))
+   "$floor($sinh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 117.0, "117.0"))
 
 run_test("Math functions, $cosh", "",
-   "$floor($cosh(1.0) * 100)",  new_fnumber(TkRealLit, loc(0, 0, 0), 154.0, "154.0"))
+   "$floor($cosh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 154.0, "154.0"))
 
 run_test("Math functions, $tanh", "",
-   "$floor($tanh(1.0) * 100)",  new_fnumber(TkRealLit, loc(0, 0, 0), 76.0, "76.0"))
+   "$floor($tanh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 76.0, "76.0"))
 
 run_test("Math functions, $asinh", "",
-   "$floor($asinh(2.301298902307295) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($asinh(2.301298902307295) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 run_test("Math functions, $acosh", "",
-   "$floor($acosh(2.509178478658057) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($acosh(2.509178478658057) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
 run_test("Math functions, $atanh", "",
-   "$floor($atanh(0.9171523356672744) * 200)",  new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+   "$floor($atanh(0.9171523356672744) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+
+run_test("Math functions, $clog2, unsized number, positive", "",
+   "$clog2(33)", new_inumber(TkUIntLit, loc(0, 0, 0), 6, Base2, 32, "00000000000000000000000000000110"))
+
+run_test("Math functions, $clog2, unsized number, negative (interpreted as unsigned)", "",
+   "$clog2(-4)", new_inumber(TkUIntLit, loc(0, 0, 0), 32, Base2, 32, "00000000000000000000000000100000"))
+
+run_test("Math functions, $clog2, sized number", "",
+   "$clog2(-3'b110) // '-6' in 3 bits -> truncated to 2",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 1, Base2, 32, "00000000000000000000000000000001"))
+
+run_test("Math functions, $clog2, sized number", """
+   localparam FOO = $clog2(23)
+""",
+   "FOO-1",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 4, Base2, 32, "00000000000000000000000000000100"))
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

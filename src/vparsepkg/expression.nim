@@ -191,7 +191,8 @@ proc convert(tok: Token, kind: TokenKind, size: int): Token =
    ## is signed, the resulting token will be sign extended. An unsigned integer
    ## is exteded with zeros and a signed integer is extended with its sign bit.
    ## If the target size is smaller than the size of the integer, the value is
-   ## truncated.
+   ## truncated. If the target kind is real, the integer just gets converted via
+   ## the GMP functions.
    result = tok
    case kind
    of TkUIntLit, TkAmbUIntLit:
@@ -214,6 +215,12 @@ proc convert(tok: Token, kind: TokenKind, size: int): Token =
       extend_or_truncate(result, kind, size)
       if XChars + ZChars notin result.literal:
          result.kind = TkIntLit
+   of TkRealLit:
+      result = convert(result, result.kind, result.size)
+      result.fnumber = to_float(new_rat(to_gmp_int(result)))
+      result.literal = $result.fnumber
+      result.kind = TkRealLit
+      result.size = -1
    else:
       discard
 
@@ -906,6 +913,42 @@ proc evaluate_system_function_call_real_math(n: PNode, context: ExpressionContex
       raise new_evaluation_error("Unsupported real function '$1'.", id.identifier.s)
 
 
+proc clog2(n: PNode, context: ExpressionContext, id_idx: int): Token =
+   init(result)
+   result.base = Base2
+   # The argument is always treated as an unsigned value. However, if it's
+   # anything other than an unambiguous integer, it's an error.
+   let arg = collect_arguments(n, 1, id_idx + 1)[0]
+   let (kind, size) = determine_kind_and_size(arg, context.ast_context)
+   if kind notin IntegerTokens - AmbiguousTokens:
+      raise new_evaluation_error("The argument must be an unambiguous integer value.")
+
+   let inumber = via_gmp_int(evaluate_constant_expression(arg, context.ast_context, TkUIntLit, size))
+   let clog2_result = if inumber != 0:
+      ceil(log2(to_biggest_float(inumber)))
+   else:
+      0
+
+   result.kind = TkUIntLit
+   result.size = size
+   from_gmp_int(result, new_int(to_int(clog2_result)))
+   result = convert(result, context.kind, context.size)
+
+
+proc evaluate_system_function_call_integer_math(n: PNode, context: ExpressionContext): Token =
+   init(result)
+   let id_idx = find_first_index(n, NkIdentifier)
+   if id_idx < 0:
+      raise new_evaluation_error("Invalid constant system function call.")
+
+   let id = n[id_idx]
+   case id.identifier.s
+   of "clog2":
+      result = clog2(n, context, id_idx)
+   else:
+      raise new_evaluation_error("Unsupported integer function '$1'.", id.identifier.s)
+
+
 proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext): Token =
    # The system functions allowed in a constant expression are conversion
    # functions and math functions.
@@ -917,11 +960,11 @@ proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext
    let id = n[id_idx]
    case id.identifier.s
    of "unsigned", "signed":
+      # FIXME: Generalize to "conversion".
       let arg = find_first(n, ExpressionTypes, id_idx + 1)
       result = evaluate_system_function_call_signed_unsigned(arg, context, id.identifier.s)
    of "clog2":
-      # FIXME: Implement
-      raise new_evaluation_error("Not implemented.")
+      result = evaluate_system_function_call_integer_math(n, context)
    of RealMathFunctions:
       result = evaluate_system_function_call_real_math(n, context)
    else:
@@ -1195,6 +1238,8 @@ proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext)
    of "unsigned", "signed":
       let arg = find_first(n, ExpressionTypes, id_idx + 1)
       result = determine_kind_and_size_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   of "clog2":
+      result = (TkUIntLit, INTEGER_BITS)
    of RealMathFunctions:
       # The result of a system math function is always a real number.
       result = (TkRealLit, -1)
