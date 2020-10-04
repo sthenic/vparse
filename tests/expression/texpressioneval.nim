@@ -894,6 +894,31 @@ run_test("Conversion functions, $realtobits (3)", "",
 
 run_test("Conversion functions, $realtobits, nonreal argument (error))", "", "$realtobits(55)", Token(), true)
 
+run_test("Conversion functions, $bitstoreal (1)", "",
+   "$bitstoreal(64'h3FF0_0000_0000_0000)", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+
+run_test("Conversion functions, $bitstoreal (2)", "",
+   "$bitstoreal(64'hBFF0_0000_0000_0000)", new_fnumber(TkRealLit, loc(0, 0, 0), -1.0, "-1.0"))
+
+run_test("Conversion functions, $bitstoreal (3)", "",
+   "$bitstoreal(64'h3FA1_6872_B020_C49C)", new_fnumber(TkRealLit, loc(0, 0, 0), 0.034, "0.034"))
+
+run_test("Conversion functions, $bitstoreal in expression", "",
+   "3 + $bitstoreal(64'h3FA1_6872_B020_C49C)", new_fnumber(TkRealLit, loc(0, 0, 0), 3.034, "3.034"))
+
+run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned", "",
+   "$bitstoreal(-64'd4616189618054758400)", new_fnumber(TkRealLit, loc(0, 0, 0), -1.0, "-1.0"))
+
+run_test("Conversion functions, $bitstoreal, argument too big (error)", "",
+   "$bitstoreal(65'h1BFF0_0000_0000_0000)", Token(), true)
+
+run_test("Conversion functions, $bitstoreal, noninteger argument (error)", "",
+   "$bitstoreal(3.0)", Token(), true)
+
+# FIXME:
+# run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned -> nan (error)", "",
+#    "$bitstoreal(-2)", Token(), true)
+
 run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
 
 run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)

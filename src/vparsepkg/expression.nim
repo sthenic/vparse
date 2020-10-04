@@ -18,7 +18,7 @@ type
 const
    INTEGER_BITS* = 32
 
-   ConversionFunctions = ["unsigned", "signed", "rtoi", "itor", "realtobits"]
+   ConversionFunctions = ["unsigned", "signed", "rtoi", "itor", "realtobits", "bitstoreal"]
 
    RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
                         "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
@@ -188,6 +188,17 @@ proc via_gmp_int(tok: Token): int =
    result = to_int(gmp_int)
 
 
+proc via_gmp_uint(tok: Token): uint64 =
+   if tok.kind notin IntegerTokens or tok.kind in AmbiguousTokens:
+      raise new_evaluation_error("Cannot interpret token '$1' as a GMP integer.", $tok.kind)
+
+   let gmp_int = to_gmp_int(tok)
+   let masked_gmp_int = gmp_int div new_int('1' & repeat('0', 64), base = 2)
+   if not is_zero(masked_gmp_int):
+      raise new_evaluation_error("GMP integer too big to fit into type 'uint64'.")
+   result = parse_biggest_uint(`$`(gmp_int, base = 10))
+
+
 proc convert(tok: Token, kind: TokenKind, size: int): Token =
    ## Convert the integer token to the target kind and size. If the target kind
    ## is signed, the resulting token will be sign extended. An unsigned integer
@@ -195,6 +206,7 @@ proc convert(tok: Token, kind: TokenKind, size: int): Token =
    ## If the target size is smaller than the size of the integer, the value is
    ## truncated. If the target kind is real, the integer just gets converted via
    ## the GMP functions.
+   # TODO: Think about if it's worth warning about truncated values?
    result = tok
    case kind
    of TkUIntLit, TkAmbUIntLit:
@@ -846,8 +858,23 @@ proc evaluate_system_function_call_conversion(n: PNode, context: ExpressionConte
       result.size = 64
       result.base = Base2
       from_gmp_int(result, i)
+   of "bitstoreal":
+      if result.kind notin IntegerTokens - AmbiguousTokens:
+         raise new_evaluation_error("The argument must be an unambiguous integer value.")
+      # The argument is interpreted as an unsigned 64-bit value. We reevaluate
+      # the expression in that context and interpret the bitpattern as an IEEE
+      # 754 floating point number.
+      result = evaluate_constant_expression(n[arg_idx], context.ast_context, TkUIntLit, max(64, result.size))
+      let fnumber = cast[float64](via_gmp_uint(result))
+      init(result)
+      result.fnumber = fnumber
+      result.literal = $fnumber
+      result.size = -1
+      result.kind = TkRealLit
+      return
    else:
       raise new_evaluation_error("Unsupported conversion function '$1'.", id.identifier.s)
+   # FIXME: Unnecessary for 'to real' functions. Refactor into subprocs?
    result = convert(result, context.kind, context.size)
 
 
@@ -998,7 +1025,6 @@ proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext
    if id_idx < 0:
       raise new_evaluation_error("Invalid constant system function call.")
 
-   # FIXME: Implement other conversion functions: $rtoi, $itor, $realtobits and $bitstoreal.
    let function = n[id_idx].identifier.s
    case function
    of ConversionFunctions:
