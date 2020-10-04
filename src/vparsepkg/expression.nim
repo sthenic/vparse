@@ -660,7 +660,7 @@ proc evaluate_constant_infix(n: PNode, context: ExpressionContext): Token =
 
 proc evaluate_constant_function_call(n: PNode, context: ExpressionContext): Token =
    # FIXME: Implement
-   raise new_evaluation_error("Not implemented")
+   raise new_evaluation_error("Constant function calls are not supported.")
 
 
 proc evaluate_constant_identifier(n: PNode, context: ExpressionContext): Token =

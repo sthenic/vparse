@@ -880,6 +880,12 @@ run_test("Conversion functions, $itor, real argument (error)", "", "$itor(-32.0/
 
 run_test("Conversion functions, $itor, ambiguous argument (error)", "", "$itor(3'bx10)", Token(), true)
 
+run_test("Conversion functions, $itor -> $rtoi", "",
+   "$rtoi($itor(356))", new_inumber(TkIntLit, loc(0, 0, 0), 356, Base2, 32, "00000000000000000000000101100100"))
+
+run_test("Conversion functions, $rtoi -> $itor", "",
+   "$itor($rtoi(-34.9))", new_fnumber(TkRealLit, loc(0, 0, 0), -34.0, "-34.0"))
+
 run_test("Conversion functions, $realtobits (1)", "",
    "$realtobits(1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), 4607182418800017408, Base2, 64, "0011111111110000000000000000000000000000000000000000000000000000"))
 
@@ -920,6 +926,14 @@ run_test("Conversion functions, $bitstoreal, too few arguments (error)", "",
 
 run_test("Conversion functions, $bitstoreal, too many arguments (error)", "",
    "$bitstoreal(34, 23)", Token(), true)
+
+run_test("Conversion functions, $bitstoreal -> $realtobits", "",
+   "$realtobits($bitstoreal(64'h3FA1_6872_B020_C49C))",
+   new_inumber(TkUIntLit, loc(0, 0, 0), 4585060737430373532, Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
+
+run_test("Conversion functions, $realtobits -> $bitstoreal", "",
+   "$bitstoreal($realtobits(13.8829e9))",
+   new_fnumber(TkRealLit, loc(0, 0, 0), 13882900000.0, "13882900000.0"))
 
 # FIXME:
 # run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned -> nan (error)", "",
