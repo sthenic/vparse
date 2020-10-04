@@ -864,6 +864,22 @@ run_test("Conversion functions, $rtoi, in expression", "",
 
 run_test("Conversion functions, $rtoi, nonreal argument (error))", "", "$rtoi(-4)", Token(), true)
 
+run_test("Conversion functions, $itor (1)", "",
+   "$itor(4)", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+
+run_test("Conversion functions, $itor (2)", "",
+   "$itor(-32/4)", new_fnumber(TkRealLit, loc(0, 0, 0), -8.0, "-8.0"))
+
+run_test("Conversion functions, $itor (3)", "",
+   "$itor(2 ** 64 + 65'd1)", new_fnumber(TkRealLit, loc(0, 0, 0), 2.0 ^ 64 + 1.0, "1.844674407370955e+19"))
+
+run_test("Conversion functions, $itor, in expression", "",
+   "4 + $itor(4)", new_fnumber(TkRealLit, loc(0, 0, 0), 8.0, "8.0"))
+
+run_test("Conversion functions, $itor, real argument (error)", "", "$itor(-32.0/4)", Token(), true)
+
+run_test("Conversion functions, $itor, ambiguous argument (error)", "", "$itor(3'bx10)", Token(), true)
+
 run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
 
 run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)
