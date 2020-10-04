@@ -880,6 +880,20 @@ run_test("Conversion functions, $itor, real argument (error)", "", "$itor(-32.0/
 
 run_test("Conversion functions, $itor, ambiguous argument (error)", "", "$itor(3'bx10)", Token(), true)
 
+run_test("Conversion functions, $realtobits (1)", "",
+   "$realtobits(1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), 4607182418800017408, Base2, 64, "0011111111110000000000000000000000000000000000000000000000000000"))
+
+run_test("Conversion functions, $realtobits (2)", "",
+   "$realtobits(-1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), 0, Base2, 64, "1011111111110000000000000000000000000000000000000000000000000000"))
+
+run_test("Conversion functions, $realtobits (3)", "",
+   "$realtobits(34e-3)", new_inumber(TkUIntLit, loc(0, 0, 0), 4585060737430373532, Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
+
+run_test("Conversion functions, $realtobits (3)", "",
+   "3'b1 + $realtobits(2.0)", new_inumber(TkUIntLit, loc(0, 0, 0), 4611686018427387905, Base2, 64, "0100000000000000000000000000000000000000000000000000000000000001"))
+
+run_test("Conversion functions, $realtobits, nonreal argument (error))", "", "$realtobits(55)", Token(), true)
+
 run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
 
 run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)

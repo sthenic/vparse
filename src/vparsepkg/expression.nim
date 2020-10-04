@@ -18,7 +18,7 @@ type
 const
    INTEGER_BITS* = 32
 
-   ConversionFunctions = ["unsigned", "signed", "rtoi", "itor"]
+   ConversionFunctions = ["unsigned", "signed", "rtoi", "itor", "realtobits"]
 
    RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
                         "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
@@ -835,6 +835,17 @@ proc evaluate_system_function_call_conversion(n: PNode, context: ExpressionConte
       # is an unambiguous integer.
       if result.kind notin IntegerTokens - AmbiguousTokens:
          raise new_evaluation_error("The argument must be an unambiguous integer value.")
+   of "realtobits":
+      if result.kind != TkRealLit:
+         raise new_evaluation_error("The expression must yield a real value.")
+      # Since Nim uses IEEE 754 to represent floating point values we just cast
+      # the token's value to a 64-bit integer.
+      let i = new_int($to_hex(cast[uint64](result.fnumber)), base = 16)
+      init(result)
+      result.kind = TkUIntLit
+      result.size = 64
+      result.base = Base2
+      from_gmp_int(result, i)
    else:
       raise new_evaluation_error("Unsupported conversion function '$1'.", id.identifier.s)
    result = convert(result, context.kind, context.size)
@@ -1245,7 +1256,6 @@ proc determine_kind_and_size_system_function_call_conversion(n: PNode, context: 
    # The argument expression is self-determined.
    result = determine_kind_and_size(n[arg_idx], context)
 
-   # FIXME: Implement other conversion functions: $rtoi, $itor, $realtobits and $bitstoreal.
    let function = n[id_idx].identifier.s
    case function
    of "unsigned":
@@ -1253,10 +1263,11 @@ proc determine_kind_and_size_system_function_call_conversion(n: PNode, context: 
    of "signed":
       set_signed(result.kind)
    of "rtoi":
-      set_signed(result.kind)
-      result.size = INTEGER_BITS
-   of "itor":
+      result = (TkIntLit, INTEGER_BITS)
+   of "itor", "bitstoreal":
       result = (TkRealLit, -1)
+   of "realtobits":
+      result = (TkUIntLit, 64)
    else:
       raise new_evaluation_error("Unsupported conversion function '$1'.", function)
 
