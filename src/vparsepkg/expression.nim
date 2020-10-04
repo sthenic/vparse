@@ -18,6 +18,8 @@ type
 const
    INTEGER_BITS* = 32
 
+   ConversionFunctions = ["unsigned", "signed"]
+
    RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
                         "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
                         "acosh", "atanh"]
@@ -794,19 +796,27 @@ proc evaluate_constant_ranged_identifier(n: PNode, context: ExpressionContext): 
    result = convert(result, context.kind, context.size)
 
 
-proc evaluate_system_function_call_signed_unsigned(n: PNode, context: ExpressionContext, op: string): Token =
-   if is_nil(n):
-      raise new_evaluation_error("Expected an expression.")
+proc evaluate_system_function_call_conversion(n: PNode, context: ExpressionContext): Token =
+   let id_idx = find_first_index(n, NkIdentifier)
+   let arg_idx = find_first_index(n, ExpressionTypes, id_idx + 1)
+   if id_idx < 0 or arg_idx < 0:
+      raise new_evaluation_error("Invalid constant system function call.")
 
    # The argument expression is self-determined.
-   result = evaluate_constant_expression(n, context.ast_context)
-   if result.kind notin IntegerTokens:
-      raise new_evaluation_error("The expression must yield an integer.")
+   result = evaluate_constant_expression(n[arg_idx], context.ast_context)
 
-   if op == "unsigned":
+   let id = n[id_idx]
+   case id.identifier.s
+   of "unsigned":
+      if result.kind notin IntegerTokens:
+         raise new_evaluation_error("The expression must yield an integer.")
       set_unsigned(result.kind)
-   else:
+   of "signed":
+      if result.kind notin IntegerTokens:
+         raise new_evaluation_error("The expression must yield an integer.")
       set_signed(result.kind)
+   else:
+      raise new_evaluation_error("Unsupported conversion function '$1'.", id.identifier.s)
    result = convert(result, context.kind, context.size)
 
 
@@ -957,18 +967,17 @@ proc evaluate_constant_system_function_call(n: PNode, context: ExpressionContext
    if id_idx < 0:
       raise new_evaluation_error("Invalid constant system function call.")
 
-   let id = n[id_idx]
-   case id.identifier.s
-   of "unsigned", "signed":
-      # FIXME: Generalize to "conversion".
-      let arg = find_first(n, ExpressionTypes, id_idx + 1)
-      result = evaluate_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   # FIXME: Implement other conversion functions: $rtoi, $itor, $realtobits and $bitstoreal.
+   let function = n[id_idx].identifier.s
+   case function
+   of ConversionFunctions:
+      result = evaluate_system_function_call_conversion(n, context)
    of "clog2":
       result = evaluate_system_function_call_integer_math(n, context)
    of RealMathFunctions:
       result = evaluate_system_function_call_real_math(n, context)
    else:
-      raise new_evaluation_error("Unsupported system function '$1'.", id.identifier.s)
+      raise new_evaluation_error("Unsupported system function '$1'.", function)
 
 
 proc evaluate_constant_conditional_expression(n: PNode, context: ExpressionContext): Token =
@@ -1206,16 +1215,25 @@ proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext): t
    result.size = high - low + 1
 
 
-proc determine_kind_and_size_system_function_call_signed_unsigned(n: PNode, context: AstContext, op: string):
-                                                                  tuple[kind: TokenKind, size: int] =
-   if is_nil(n) or n.kind notin ExpressionTypes:
-      raise new_evaluation_error("Expected an expression.")
+proc determine_kind_and_size_system_function_call_conversion(n: PNode, context: AstContext):
+                                                             tuple[kind: TokenKind, size: int] =
+   let id_idx = find_first_index(n, NkIdentifier)
+   let arg_idx = find_first_index(n, ExpressionTypes, id_idx + 1)
+   if id_idx < 0 or arg_idx < 0:
+      raise new_evaluation_error("Invalid constant system function call.")
 
-   result = determine_kind_and_size(n, context)
-   if op == "unsigned":
+   # The argument expression is self-determined.
+   result = determine_kind_and_size(n[arg_idx], context)
+
+   # FIXME: Implement other conversion functions: $rtoi, $itor, $realtobits and $bitstoreal.
+   let function = n[id_idx].identifier.s
+   case function
+   of "unsigned":
       set_unsigned(result.kind)
-   else:
+   of "signed":
       set_signed(result.kind)
+   else:
+      raise new_evaluation_error("Unsupported conversion function '$1'.", function)
 
 
 proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
@@ -1223,12 +1241,10 @@ proc determine_kind_and_size_system_function_call(n: PNode, context: AstContext)
    if id_idx < 0:
       raise new_evaluation_error("Invalid constant system function call.")
 
-   # FIXME: Implement other conversion functions: $rtoi, $itor, $realtobits and $bitstoreal.
    let id = n[id_idx]
    case id.identifier.s
-   of "unsigned", "signed":
-      let arg = find_first(n, ExpressionTypes, id_idx + 1)
-      result = determine_kind_and_size_system_function_call_signed_unsigned(arg, context, id.identifier.s)
+   of ConversionFunctions:
+      result = determine_kind_and_size_system_function_call_conversion(n, context)
    of "clog2":
       result = (TkUIntLit, INTEGER_BITS)
    of RealMathFunctions:
