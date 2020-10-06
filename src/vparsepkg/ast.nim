@@ -157,7 +157,7 @@ type
       of NkStrLit, NkComment:
          s*: string
       of IntegerTypes:
-         inumber*: BiggestInt
+         inumber*: Int
          iraw*: string
          base*: NumericalBase
          size*: int
@@ -266,7 +266,7 @@ proc `%`*(n: PNode): JsonNode =
       result = %*{
          "kind": $n.kind,
          "loc": n.loc,
-         "number": n.inumber,
+         "number": format("\"$1\"", n.inumber),
          "raw": n.iraw,
          "base": to_int(n.base),
          "size": n.size
@@ -412,7 +412,7 @@ proc new_identifier_node*(kind: NodeKind, loc: Location,
    result.identifier = identifier
 
 
-proc new_inumber_node*(kind: NodeKind, loc: Location, inumber: BiggestInt,
+proc new_inumber_node*(kind: NodeKind, loc: Location, inumber: Int,
                        raw: string, base: NumericalBase, size: int): PNode =
    result = new_node(kind, loc)
    result.inumber = inumber

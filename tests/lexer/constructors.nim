@@ -11,6 +11,10 @@ proc loc*(file: int32, line: uint16, col: int16): Location =
    result = Location(file: file, line: line, col: col)
 
 
+template ni*(x: int): Int = new_int(x)
+template ni*(s: string, base: cint = 10): Int = new_int(s, base)
+
+
 proc new_token*(kind: TokenKind, loc: Location): Token =
    init(result, kind, loc)
 
@@ -32,7 +36,7 @@ proc new_fnumber*(kind: TokenKind, loc: Location, fnumber: float, literal: strin
    result.literal = literal
 
 
-proc new_inumber*(kind: TokenKind, loc: Location, inumber: BiggestInt,
+proc new_inumber*(kind: TokenKind, loc: Location, inumber: Int,
                   base: NumericalBase, size: int, literal: string): Token =
    init(result, kind, loc)
    result.inumber = inumber

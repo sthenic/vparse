@@ -32,6 +32,10 @@ proc li(line: uint16, col: int16): Location =
    result = Location(file: 1, line: line, col: col - 1)
 
 
+template ni*(x: int): Int = new_int(x)
+template ni*(s: string, base: cint = 10): Int = new_int(s, base)
+
+
 template new_identifier_node(kind: NodeKind, loc: Location, str: string): untyped =
    new_identifier_node(kind, loc, get_identifier(cache, str))
 
@@ -50,7 +54,7 @@ run_test("Single parameter", """#(
       new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkParamAssignment, li(2, 14), @[
             new_identifier_node(NkParameterIdentifier, li(2, 14), "MYPARAM"),
-            new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(2, 24), ni(0), "0", Base10, -1)
          ])
       ])
    ])
@@ -66,7 +70,7 @@ run_test("Single parameter, signed", """#(
             new_identifier_node(NkParameterIdentifier, li(2, 21), "FOO"),
             new_node(NkPrefix, li(2, 27), @[
                new_identifier_node(NkIdentifier, li(2, 27), "-"),
-               new_inumber_node(NkIntLit, li(2, 28), 1, "1", Base10, -1)
+               new_inumber_node(NkIntLit, li(2, 28), ni(1), "1", Base10, -1)
             ])
          ])
       ])
@@ -79,12 +83,12 @@ run_test("Single parameter, ranged", """#(
    new_node(NkModuleParameterPortList, li(1, 1), @[
       new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkRange, li(2, 14), @[
-            new_inumber_node(NkIntLit, li(2, 15), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(2, 17), 0, "0", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 15), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 17), ni(0), "0", Base10, -1),
          ]),
          new_node(NkParamAssignment, li(2, 20), @[
             new_identifier_node(NkParameterIdentifier, li(2, 20), "FOO"),
-            new_inumber_node(NkUIntLit, li(2, 26), 255, "FF", Base16, 8),
+            new_inumber_node(NkUIntLit, li(2, 26), ni(255), "FF", Base16, 8),
          ])
       ])
    ])
@@ -97,12 +101,12 @@ run_test("Single parameter, signed range", """#(
       new_node(NkParameterDecl, li(2, 4), @[
          new_identifier_node(NkType, li(2, 14), "signed"),
          new_node(NkRange, li(2, 21), @[
-            new_inumber_node(NkIntLit, li(2, 22), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 22), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 24), ni(0), "0", Base10, -1),
          ]),
          new_node(NkParamAssignment, li(2, 27), @[
             new_identifier_node(NkParameterIdentifier, li(2, 27), "FOO"),
-            new_inumber_node(NkUIntLit, li(2, 33), 255, "FF", Base16, 8),
+            new_inumber_node(NkUIntLit, li(2, 33), ni(255), "FF", Base16, 8),
          ])
       ])
    ])
@@ -119,7 +123,7 @@ run_test("Multiple parameters, different types", """#(
          new_identifier_node(NkType, li(2, 14), "integer"),
          new_node(NkParamAssignment, li(2, 22), @[
             new_identifier_node(NkParameterIdentifier, li(2, 22), "PAR_INT"),
-            new_inumber_node(NkIntLit, li(2, 32), 1, "1", Base10, -1)
+            new_inumber_node(NkIntLit, li(2, 32), ni(1), "1", Base10, -1)
          ])
       ]),
       new_node(NkParameterDecl, li(3, 4), @[
@@ -133,14 +137,14 @@ run_test("Multiple parameters, different types", """#(
          new_identifier_node(NkType, li(4, 14), "realtime"),
          new_node(NkParamAssignment, li(4, 23), @[
             new_identifier_node(NkParameterIdentifier, li(4, 23), "PAR_REALTIME"),
-            new_inumber_node(NkIntLit, li(4, 38), 2, "2", Base10, -1)
+            new_inumber_node(NkIntLit, li(4, 38), ni(2), "2", Base10, -1)
          ])
       ]),
       new_node(NkParameterDecl, li(5, 4), @[
          new_identifier_node(NkType, li(5, 14), "time"),
          new_node(NkParamAssignment, li(5, 19), @[
             new_identifier_node(NkParameterIdentifier, li(5, 19), "PAR_TIME"),
-            new_inumber_node(NkIntLit, li(5, 30), 3, "3", Base10, -1)
+            new_inumber_node(NkIntLit, li(5, 30), ni(3), "3", Base10, -1)
          ])
       ])
    ])
@@ -156,16 +160,16 @@ run_test("Multiple parameters, same type definition", """#(
       new_node(NkParameterDecl, li(2, 4), @[
          new_identifier_node(NkType, li(2, 14), "signed"),
          new_node(NkRange, li(2, 21), @[
-            new_inumber_node(NkIntLit, li(2, 22), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(2, 24), 0, "0", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 22), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 24), ni(0), "0", Base10, -1),
          ]),
          new_node(NkParamAssignment, li(2, 27), @[
             new_identifier_node(NkParameterIdentifier, li(2, 27), "PAR_SIGNED_8BIT0"),
-            new_inumber_node(NkIntLit, li(2, 46), 0, "0", Base10, -1),
+            new_inumber_node(NkIntLit, li(2, 46), ni(0), "0", Base10, -1),
          ]),
          new_node(NkParamAssignment, li(3, 27), @[
             new_identifier_node(NkParameterIdentifier, li(3, 27), "PAR_SIGNED_8BIT1"),
-            new_inumber_node(NkIntLit, li(3, 46), 1, "1", Base10, -1),
+            new_inumber_node(NkIntLit, li(3, 46), ni(1), "1", Base10, -1),
          ])
       ]),
       new_node(NkParameterDecl, li(4, 4), @[
@@ -190,7 +194,7 @@ run_test("Invalid syntax, missing comma between parameter declarations", """#(
       new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkParamAssignment, li(2, 14), @[
             new_identifier_node(NkParameterIdentifier, li(2, 14), "FOO"),
-            new_inumber_node(NkIntLit, li(2, 20), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(2, 20), ni(0), "0", Base10, -1)
          ])
       ]),
       new_node(NkExpectError, li(3, 4), @[
@@ -211,7 +215,7 @@ run_test("Invalid syntax, missing comma between parameter assignments", """#(
       new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkParamAssignment, li(2, 14), @[
             new_identifier_node(NkParameterIdentifier, li(2, 14), "FOO"),
-            new_inumber_node(NkIntLit, li(2, 20), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(2, 20), ni(0), "0", Base10, -1)
          ])
       ]),
       new_node(NkExpectError, li(3, 14), @[

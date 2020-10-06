@@ -49,6 +49,10 @@ proc li(line: uint16, col: int16): Location =
    result = Location(file: 1, line: line, col: col - 1)
 
 
+template ni*(x: int): Int = new_int(x)
+template ni*(s: string, base: cint = 10): Int = new_int(s, base)
+
+
 template new_identifier_node(kind: NodeKind, loc: Location, str: string): untyped =
    new_identifier_node(kind, loc, get_identifier(cache, str))
 
@@ -105,8 +109,8 @@ endmodule
          new_identifier_node(NkDirection, li(5, 4), "output"),
          new_identifier_node(NkNetType, li(5, 11), "reg"),
          new_node(NkRange, li(5, 15), @[
-            new_inumber_node(NkIntLit, li(5, 16), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(5, 18), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(5, 16), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(5, 18), ni(0), "0", Base10, -1)
          ]),
          new_identifier_node(NkPortIdentifier, li(5, 21), "data_o")
       ]),
@@ -160,8 +164,8 @@ endmodule
          new_identifier_node(NkDirection, li(7, 4), "output"),
          new_identifier_node(NkNetType, li(7, 11), "reg"),
          new_node(NkRange, li(7, 15), @[
-            new_inumber_node(NkIntLit, li(7, 16), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(7, 18), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(7, 16), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(7, 18), ni(0), "0", Base10, -1)
          ]),
          new_identifier_node(NkPortIdentifier, li(7, 21), "data_o")
       ]),
@@ -182,7 +186,7 @@ endmodule
       parameter: new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkParamAssignment, li(2, 14), @[
             new_identifier_node(NkParameterIdentifier, li(2, 14), "WIDTH"),
-            new_inumber_node(NkIntLit, li(2, 22), 32, "32", Base10, -1)
+            new_inumber_node(NkIntLit, li(2, 22), ni(32), "32", Base10, -1)
          ])
       ]),
       identifier: new_identifier_node(NkParameterIdentifier, li(2, 14), "WIDTH")
@@ -191,7 +195,7 @@ endmodule
       parameter: new_node(NkParameterDecl, li(3, 4), @[
          new_node(NkParamAssignment, li(3, 14), @[
             new_identifier_node(NkParameterIdentifier, li(3, 14), "ZERO"),
-            new_inumber_node(NkIntLit, li(3, 21), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(3, 21), ni(0), "0", Base10, -1)
          ])
       ]),
       identifier: new_identifier_node(NkParameterIdentifier, li(3, 14), "ZERO")
@@ -208,7 +212,7 @@ endmodule
       parameter: new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkParamAssignment, li(2, 14), @[
             new_identifier_node(NkParameterIdentifier, li(2, 14), "FOO"),
-            new_inumber_node(NkIntLit, li(2, 20), 3, "3", Base10, -1)
+            new_inumber_node(NkIntLit, li(2, 20), ni(3), "3", Base10, -1)
          ])
       ]),
       identifier: new_identifier_node(NkParameterIdentifier, li(2, 14), "FOO")
@@ -246,7 +250,7 @@ endmodule
             new_node(NkVariableLvalue, li(6, 11), @[
                new_identifier_node(NkIdentifier, li(6, 11), "first_driver")
             ]),
-            new_inumber_node(NkIntLit, li(6, 26), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(6, 26), ni(0), "0", Base10, -1)
          ])
       ]),
       identifier: new_identifier_node(NkIdentifier, li(6, 11), "first_driver")
@@ -316,7 +320,7 @@ endmodule
          new_node(NkVariableLvalue, li(10, 7), @[
             new_identifier_node(NkIdentifier, li(10, 7), "tmp0")
          ]),
-         new_inumber_node(NkIntLit, li(10, 15), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(10, 15), ni(0), "0", Base10, -1)
       ]),
       identifier: new_identifier_node(NkIdentifier, li(10, 7), "tmp0")
    ),
@@ -325,7 +329,7 @@ endmodule
          new_node(NkVariableLvalue, li(11, 7), @[
             new_identifier_node(NkIdentifier, li(11, 7), "tmp1")
          ]),
-         new_inumber_node(NkIntLit, li(11, 14), 1, "1", Base10, -1)
+         new_inumber_node(NkIntLit, li(11, 14), ni(1), "1", Base10, -1)
       ]),
       identifier: new_identifier_node(NkIdentifier, li(11, 7), "tmp1")
    )

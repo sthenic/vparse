@@ -3,11 +3,13 @@ import streams
 import strutils
 import hashes
 import macros
+import bignum
 
 import ./identifier
 import ./location
 export identifier
 export location
+export bignum
 
 type
    TokenKind* = enum
@@ -61,7 +63,7 @@ type
       kind*: TokenKind
       identifier*: PIdentifier # Identifier
       literal*: string # String literal, also comments
-      inumber*: BiggestInt # Integer literal
+      inumber*: Int # Integer literal, we use GNU GMP for this.
       fnumber*: BiggestFloat # Floating point literal
       base*: NumericalBase # The numerical base
       size*: int # The size field of number
@@ -264,7 +266,7 @@ proc init*(t: var Token) =
    t.kind = TkInvalid
    t.identifier = nil
    set_len(t.literal, 0)
-   t.inumber = 0
+   t.inumber = new_int(0)
    t.fnumber = 0.0
    t.base = Base10
    t.size = -1
@@ -646,9 +648,9 @@ proc handle_real_and_decimal(l: var Lexer, tok: var Token) =
       return
 
    try:
-      # Since the literal only consists of valid digit characters, the only way
-      # this parsing fails is if the value is too big.
-      tok.inumber = parse_biggest_int(tok.literal)
+      # Since the literal only consists of valid digit characters, the parsing
+      # is not likely to fail since we use GMP.
+      tok.inumber = new_int(tok.literal)
    except ValueError:
       discard
 
@@ -676,7 +678,7 @@ proc handle_binary(l: var Lexer, tok: var Token) =
       return
 
    if tok.kind in {TkIntLit, TkUIntLit}:
-      tok.inumber = parse_bin_int(tok.literal)
+      tok.inumber = new_int(tok.literal, base = 2)
 
 
 proc handle_octal(l: var Lexer, tok: var Token) =
@@ -702,7 +704,7 @@ proc handle_octal(l: var Lexer, tok: var Token) =
       return
 
    if tok.kind in {TkIntLit, TkUIntLit}:
-      tok.inumber = parse_oct_int(tok.literal)
+      tok.inumber = new_int(tok.literal, base = 8)
 
 
 proc handle_hex(l: var Lexer, tok: var Token) =
@@ -728,7 +730,7 @@ proc handle_hex(l: var Lexer, tok: var Token) =
       return
 
    if tok.kind in {TkIntLit, TkUIntLit}:
-      tok.inumber = parse_hex_int(tok.literal)
+      tok.inumber = new_int(tok.literal, base = 16)
 
 
 proc handle_number(l: var Lexer, tok: var Token) =

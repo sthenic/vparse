@@ -33,6 +33,10 @@ proc li(line: uint16, col: int16): Location =
    result = Location(file: 1, line: line, col: col - 1)
 
 
+template ni*(x: int): Int = new_int(x)
+template ni*(s: string, base: cint = 10): Int = new_int(s, base)
+
+
 template new_identifier_node(kind: NodeKind, loc: Location, str: string): untyped =
    new_identifier_node(kind, loc, get_identifier(cache, str))
 
@@ -45,48 +49,48 @@ Test suite: constant expression
 
 # Run tests
 run_test("Constant primary: numbers, decimal signed", "1234567890"):
-   new_inumber_node(NkIntLit, li(1, 1), 1234567890, "1234567890", Base10, -1)
+   new_inumber_node(NkIntLit, li(1, 1), ni(1234567890), "1234567890", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "32'd2617"):
-   new_inumber_node(NkUIntLit, li(1, 1), 2617, "2617", Base10, 32)
+   new_inumber_node(NkUIntLit, li(1, 1), ni(2617), "2617", Base10, 32)
 
 run_test("Constant primary: numbers, decimal number w/ base", "18'D32"):
-   new_inumber_node(NkUIntLit, li(1, 1), 32, "32", Base10, 18)
+   new_inumber_node(NkUIntLit, li(1, 1), ni(32), "32", Base10, 18)
 
 run_test("Constant primary: numbers, decimal number w/ base", "'d77"):
-   new_inumber_node(NkUIntLit, li(1, 1), 77, "77", Base10, -1)
+   new_inumber_node(NkUIntLit, li(1, 1), ni(77), "77", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "'sd90"):
-   new_inumber_node(NkIntLit, li(1, 1), 90, "90", Base10, -1)
+   new_inumber_node(NkIntLit, li(1, 1), ni(90), "90", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "'Sd100"):
-   new_inumber_node(NkIntLit, li(1, 1), 100, "100", Base10, -1)
+   new_inumber_node(NkIntLit, li(1, 1), ni(100), "100", Base10, -1)
 
 run_test("Constant primary: numbers, decimal number w/ base", "5'D 3"):
-   new_inumber_node(NkUIntLit, li(1, 1), 3, "3", Base10, 5)
+   new_inumber_node(NkUIntLit, li(1, 1), ni(3), "3", Base10, 5)
 
 run_test("Constant primary: numbers, underscore", "2617_123_"):
-   new_inumber_node(NkIntLit, li(1, 1), 2617123, "2617123", Base10, -1)
+   new_inumber_node(NkIntLit, li(1, 1), ni(2617123), "2617123", Base10, -1)
 
 run_test("Constant primary: numbers, decimal X-digit", "16'dX_"):
-   new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "x", Base10, 16)
+   new_inumber_node(NkAmbUIntLit, li(1, 1), ni(0), "x", Base10, 16)
 
 run_test("Constant primary: numbers, decimal Z-digit", "16'DZ_"):
-   new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "z", Base10, 16)
+   new_inumber_node(NkAmbUIntLit, li(1, 1), ni(0), "z", Base10, 16)
 
 run_test("Constant primary: numbers, decimal Z-digit", "2'd?"):
-   new_inumber_node(NkAmbUIntLit, li(1, 1), 0, "?", Base10, 2)
+   new_inumber_node(NkAmbUIntLit, li(1, 1), ni(0), "?", Base10, 2)
 
 run_test("Constant primary: numbers, decimal negative (unary)", "-13"):
    new_node(NkPrefix, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "-"),
-      new_inumber_node(NkIntLit, li(1, 2), 13, "13", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 2), ni(13), "13", Base10, -1)
    ])
 
 run_test("Constant primary: numbers, decimal positive (unary)", "+3"):
    new_node(NkPrefix, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "+"),
-      new_inumber_node(NkIntLit, li(1, 2), 3, "3", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 2), ni(3), "3", Base10, -1)
    ])
 
 run_test("Constant primary: numbers, invalid decimal", "'dAF"):
@@ -102,13 +106,13 @@ run_test("Constant primary: numbers, real (negative exponent)", "1e-2"):
    new_fnumber_node(NkRealLit, li(1, 1), 0.01, "1e-2")
 
 run_test("Constant primary: numbers, binary", "8'B10000110"):
-   new_inumber_node(NkUIntLit, li(1, 1), 134, "10000110", Base2, 8)
+   new_inumber_node(NkUIntLit, li(1, 1), ni(134), "10000110", Base2, 8)
 
 run_test("Constant primary: numbers, octal", "6'O6721"):
-   new_inumber_node(NkUIntLit, li(1, 1), 3537, "6721", Base8, 6)
+   new_inumber_node(NkUIntLit, li(1, 1), ni(3537), "6721", Base8, 6)
 
 run_test("Constant primary: numbers, hex", "32'hFFFF_FFFF"):
-   new_inumber_node(NkUIntLit, li(1, 1), (1 shl 32)-1, "FFFFFFFF", Base16, 32)
+   new_inumber_node(NkUIntLit, li(1, 1), ni((1 shl 32)-1), "FFFFFFFF", Base16, 32)
 
 run_test("Constant primary: identifier", "FOO"):
    new_identifier_node(NkIdentifier, li(1, 1), "FOO")
@@ -122,25 +126,25 @@ run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
             new_node(NkInfix, li(1, 10), @[
                new_identifier_node(NkIdentifier, li(1, 10), "-"),
                new_identifier_node(NkIdentifier, li(1, 5), "WIDTH"),
-               new_inumber_node(NkIntLit, li(1, 11), 1, "1", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 11), ni(1), "1", Base10, -1)
             ]),
-            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 13), ni(0), "0", Base10, -1)
          ]),
       ])
    ])
 
 run_test("Constant primary: concatenation", "{64, 32, foobar}"):
    new_node(NkConstantConcat, li(1, 1), @[
-      new_inumber_node(NkIntLit, li(1, 2), 64, "64", Base10, -1),
-      new_inumber_node(NkIntLit, li(1, 6), 32, "32", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 2), ni(64), "64", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 6), ni(32), "32", Base10, -1),
       new_identifier_node(NkIdentifier, li(1, 10), "foobar")
    ])
 
 run_test("Constant primary: multiple concatenation", "{32{2'b01}}"):
    new_node(NkConstantMultipleConcat, li(1, 1), @[
-      new_inumber_node(NkIntLit, li(1, 2), 32, "32", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 2), ni(32), "32", Base10, -1),
       new_node(NkConstantConcat, li(1, 4), @[
-         new_inumber_node(NkUIntLit, li(1, 5), 1, "01", Base2, 2),
+         new_inumber_node(NkUIntLit, li(1, 5), ni(1), "01", Base2, 2),
       ])
    ])
 
@@ -151,14 +155,14 @@ run_test("Constant primary: nested concatenation", "{{(WIDTH-1){1'b0}}, 1'b1}"):
             new_node(NkInfix, li(1, 9), @[
                new_identifier_node(NkIdentifier, li(1, 9), "-"),
                new_identifier_node(NkIdentifier, li(1, 4), "WIDTH"),
-               new_inumber_node(NkIntLit, li(1, 10), 1, "1", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 10), ni(1), "1", Base10, -1)
             ]),
          ]),
          new_node(NkConstantConcat, li(1, 12), @[
-            new_inumber_node(NkUIntLit, li(1, 13), 0, "0", Base2, 1),
+            new_inumber_node(NkUIntLit, li(1, 13), ni(0), "0", Base2, 1),
          ])
       ]),
-      new_inumber_node(NkUIntLit, li(1, 21), 1, "1", Base2, 1),
+      new_inumber_node(NkUIntLit, li(1, 21), ni(1), "1", Base2, 1),
    ])
 
 run_test("Constant primary: function call", "myfun (* attr = val *) (2, 3, MYCONST)"):
@@ -168,16 +172,16 @@ run_test("Constant primary: function call", "myfun (* attr = val *) (2, 3, MYCON
          new_identifier_node(NkAttributeName, li(1, 10), "attr"),
          new_identifier_node(NkIdentifier, li(1, 17), "val")
       ]),
-      new_inumber_node(NkIntLit, li(1, 25), 2, "2", Base10, -1),
-      new_inumber_node(NkIntLit, li(1, 28), 3, "3", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 25), ni(2), "2", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 28), ni(3), "3", Base10, -1),
       new_identifier_node(NkIdentifier, li(1, 31), "MYCONST")
    ])
 
 run_test("Constant primary: system function call", "$clog2(2, 3, MYCONST)"):
    new_node(NkConstantSystemFunctionCall, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "clog2"),
-      new_inumber_node(NkIntLit, li(1, 8), 2, "2", Base10, -1),
-      new_inumber_node(NkIntLit, li(1, 11), 3, "3", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 8), ni(2), "2", Base10, -1),
+      new_inumber_node(NkIntLit, li(1, 11), ni(3), "3", Base10, -1),
       new_identifier_node(NkIdentifier, li(1, 14), "MYCONST")
    ])
 
@@ -189,8 +193,8 @@ run_test("Constant primary: system function call, no arguments", "$times"):
 run_test("Constant primary: mintypmax", "(2'b00:8'd32:MYMAX)"):
    new_node(NkParenthesis, li(1, 1), @[
       new_node(NkConstantMinTypMaxExpression, li(1, 2), @[
-         new_inumber_node(NkUIntLit, li(1, 2), 0, "00", Base2, 2),
-         new_inumber_node(NkUIntLit, li(1, 8), 32, "32", Base10, 8),
+         new_inumber_node(NkUIntLit, li(1, 2), ni(0), "00", Base2, 2),
+         new_inumber_node(NkUIntLit, li(1, 8), ni(32), "32", Base10, 8),
          new_identifier_node(NkIdentifier, li(1, 14), "MYMAX")
       ])
    ])
@@ -230,7 +234,7 @@ run_test("Unary operator w/ attributes", """
       new_node(NkAttributeInst, li(1, 29), @[
          new_identifier_node(NkAttributeName, li(1, 32), "second_attr"),
       ]),
-      new_inumber_node(NkUIntLit, li(1, 47), 3, "3", Base10, 4)
+      new_inumber_node(NkUIntLit, li(1, 47), ni(3), "3", Base10, 4)
    ])
 
 # Binary operators (infix nodex)
@@ -273,29 +277,29 @@ run_test("Binary operator precedence: arithmetic", """
             new_identifier_node(NkIdentifier, li(1, 11), "-"),
             new_node(NkInfix, li(1, 3), @[
                new_identifier_node(NkIdentifier, li(1, 3), "*"),
-               new_inumber_node(NkIntLit, li(1, 1), 2, "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 1), ni(2), "2", Base10, -1),
                new_node(NkInfix, li(1, 6), @[
                   new_identifier_node(NkIdentifier, li(1, 6), "**"),
-                  new_inumber_node(NkIntLit, li(1, 5), 2, "2", Base10, -1),
-                  new_inumber_node(NkIntLit, li(1, 8), 32, "32", Base10, -1)
+                  new_inumber_node(NkIntLit, li(1, 5), ni(2), "2", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 8), ni(32), "32", Base10, -1)
                ])
             ]),
-            new_inumber_node(NkIntLit, li(1, 13), 1, "1", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 13), ni(1), "1", Base10, -1)
          ]),
          new_node(NkInfix, li(1, 19), @[
             new_identifier_node(NkIdentifier, li(1, 19), "/"),
-            new_inumber_node(NkIntLit, li(1, 17), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 17), ni(3), "3", Base10, -1),
             new_node(NkInfix, li(1, 22), @[
                new_identifier_node(NkIdentifier, li(1, 22), "**"),
-               new_inumber_node(NkIntLit, li(1, 21), 2, "2", Base10, -1),
-               new_inumber_node(NkIntLit, li(1, 24), 32, "32", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 21), ni(2), "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 24), ni(32), "32", Base10, -1)
             ])
          ])
       ]),
       new_node(NkInfix, li(1, 31), @[
          new_identifier_node(NkIdentifier, li(1, 31), "%"),
-         new_inumber_node(NkIntLit, li(1, 29), 3, "3", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 33), 5, "5", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 29), ni(3), "3", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 33), ni(5), "5", Base10, -1)
       ])
    ])
 
@@ -310,25 +314,25 @@ run_test("Binary operator precedence: shifts", """
             new_identifier_node(NkIdentifier, li(1, 7), "<<"),
             new_node(NkInfix, li(1, 3), @[
                new_identifier_node(NkIdentifier, li(1, 3), "+"),
-               new_inumber_node(NkIntLit, li(1, 1), 2, "2", Base10, -1),
-               new_inumber_node(NkIntLit, li(1, 5), 1, "1", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 1), ni(2), "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 5), ni(1), "1", Base10, -1)
             ]),
             new_node(NkInfix, li(1, 13), @[
                new_identifier_node(NkIdentifier, li(1, 13), "-"),
-               new_inumber_node(NkIntLit, li(1, 10), 32, "32", Base10, -1),
-               new_inumber_node(NkUIntLit, li(1, 15), 2, "10", Base2, 2)
+               new_inumber_node(NkIntLit, li(1, 10), ni(32), "32", Base10, -1),
+               new_inumber_node(NkUIntLit, li(1, 15), ni(2), "10", Base2, 2)
             ])
          ]),
-         new_inumber_node(NkIntLit, li(1, 24), 1, "1", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 24), ni(1), "1", Base10, -1)
       ]),
       new_node(NkInfix, li(1, 32), @[
          new_identifier_node(NkIdentifier, li(1, 32), "+"),
-         new_inumber_node(NkIntLit, li(1, 30), 1, "1", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 30), ni(1), "1", Base10, -1),
          new_node(NkParenthesis, li(1, 34), @[
             new_node(NkInfix, li(1, 42), @[
                new_identifier_node(NkIdentifier, li(1, 42), "<<<"),
-               new_inumber_node(NkUIntLit, li(1, 35), 2, "010", Base2, 3),
-               new_inumber_node(NkIntLit, li(1, 46), 1, "1", Base10, -1)
+               new_inumber_node(NkUIntLit, li(1, 35), ni(2), "010", Base2, 3),
+               new_inumber_node(NkIntLit, li(1, 46), ni(1), "1", Base10, -1)
             ])
          ])
       ])
@@ -345,14 +349,14 @@ run_test("Binary operator precedence: comparisons (1)", """
             new_identifier_node(NkIdentifier, li(1, 7), "<="),
             new_node(NkInfix, li(1, 3), @[
                new_identifier_node(NkIdentifier, li(1, 3), "<"),
-               new_inumber_node(NkIntLit, li(1, 1), 2, "2", Base10, -1),
-               new_inumber_node(NkIntLit, li(1, 5), 3, "3", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 1), ni(2), "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 5), ni(3), "3", Base10, -1)
             ]),
-            new_inumber_node(NkIntLit, li(1, 10), 4, "4", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 10), ni(4), "4", Base10, -1)
          ]),
-         new_inumber_node(NkIntLit, li(1, 15), 3, "3", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 15), ni(3), "3", Base10, -1)
       ]),
-      new_inumber_node(NkIntLit, li(1, 19), 2, "2", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 19), ni(2), "2", Base10, -1)
    ])
 
 run_test("Binary operator precedence: comparisons (2)", """
@@ -366,14 +370,14 @@ run_test("Binary operator precedence: comparisons (2)", """
             new_identifier_node(NkIdentifier, li(1, 8), "!="),
             new_node(NkInfix, li(1, 3), @[
                new_identifier_node(NkIdentifier, li(1, 3), "=="),
-               new_inumber_node(NkIntLit, li(1, 1), 2, "2", Base10, -1),
-               new_inumber_node(NkIntLit, li(1, 6), 3, "3", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 1), ni(2), "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 6), ni(3), "3", Base10, -1)
             ]),
-            new_inumber_node(NkIntLit, li(1, 11), 4, "4", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 11), ni(4), "4", Base10, -1)
          ]),
-         new_inumber_node(NkIntLit, li(1, 17), 3, "3", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 17), ni(3), "3", Base10, -1)
       ]),
-      new_inumber_node(NkIntLit, li(1, 23), 2, "2", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 23), ni(2), "2", Base10, -1)
    ])
 
 run_test("Binary operator precedence: comparisons (3)", """
@@ -383,14 +387,14 @@ run_test("Binary operator precedence: comparisons (3)", """
       new_identifier_node(NkIdentifier, li(1, 13), "!="),
       new_node(NkInfix, li(1, 3), @[
          new_identifier_node(NkIdentifier, li(1, 3), "=="),
-         new_inumber_node(NkIntLit, li(1, 1), 2, "2", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 1), ni(2), "2", Base10, -1),
          new_node(NkInfix, li(1, 8), @[
             new_identifier_node(NkIdentifier, li(1, 8), ">="),
-            new_inumber_node(NkIntLit, li(1, 6), 3, "3", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 11), 3, "3", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 6), ni(3), "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 11), ni(3), "3", Base10, -1)
          ])
       ]),
-      new_inumber_node(NkIntLit, li(1, 16), 4, "4", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 16), ni(4), "4", Base10, -1)
    ])
 
 run_test("Binary operator precedence: logical operations", """

@@ -33,6 +33,10 @@ proc li(line: uint16, col: int16): Location =
    result = Location(file: 1, line: line, col: col - 1)
 
 
+template ni*(x: int): Int = new_int(x)
+template ni*(s: string, base: cint = 10): Int = new_int(s, base)
+
+
 template new_identifier_node(kind: NodeKind, loc: Location, str: string): untyped =
    new_identifier_node(kind, loc, get_identifier(cache, str))
 
@@ -76,8 +80,8 @@ run_test("Ranged net declaration", "wire [31:0] mywire;"):
    new_node(NkNetDecl, li(1, 1), @[
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_node(NkRange, li(1, 6), @[
-         new_inumber_node(NkIntLit, li(1, 7), 31, "31", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 10), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 7), ni(31), "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 10), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(1, 13), "mywire"),
    ])
@@ -87,7 +91,7 @@ run_test("Net declaration with delay", "wire #3 mywire;"):
    new_node(NkNetDecl, li(1, 1), @[
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_node(NkDelay, li(1, 6), @[
-         new_inumber_node(NkIntLit, li(1, 7), 3, "3", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 7), ni(3), "3", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(1, 9), "mywire"),
    ])
@@ -100,9 +104,9 @@ run_test("Net declaration with delay (three typ expressions)",
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_node(NkDelay, li(1, 6), @[
          new_node(NkParenthesis, li(1, 7), @[
-            new_inumber_node(NkIntLit, li(1, 8), 3, "3", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 11), 4, "4", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 14), 5, "5", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 8), ni(3), "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 11), ni(4), "4", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 14), ni(5), "5", Base10, -1)
          ]),
       ]),
       new_identifier_node(NkIdentifier, li(1, 17), "mywire"),
@@ -116,15 +120,15 @@ run_test("Net declaration with delay (three min-typ-max expressions)",
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_node(NkDelay, li(1, 6), @[
          new_node(NkParenthesis, li(1, 7), @[
-            new_inumber_node(NkIntLit, li(1, 8), 0, "0", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 8), ni(0), "0", Base10, -1),
             new_node(NkParenthesis, li(1, 11), @[
                new_node(NkConstantMinTypMaxExpression, li(1, 12), @[
-                  new_inumber_node(NkIntLit, li(1, 12), 1, "1", Base10, -1),
-                  new_inumber_node(NkIntLit, li(1, 14), 2, "2", Base10, -1),
-                  new_inumber_node(NkIntLit, li(1, 16), 3, "3", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 12), ni(1), "1", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 14), ni(2), "2", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 16), ni(3), "3", Base10, -1),
                ]),
             ]),
-            new_inumber_node(NkIntLit, li(1, 20), 5, "5", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 20), ni(5), "5", Base10, -1)
          ]),
       ]),
       new_identifier_node(NkIdentifier, li(1, 23), "mywire"),
@@ -139,15 +143,15 @@ run_test("Signed net declaration with delay (three min-typ-max expressions)",
       new_identifier_node(NkType, li(1, 6), "signed"),
       new_node(NkDelay, li(1, 13), @[
          new_node(NkParenthesis, li(1, 14), @[
-            new_inumber_node(NkIntLit, li(1, 15), 0, "0", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 15), ni(0), "0", Base10, -1),
             new_node(NkParenthesis, li(1, 18), @[
                new_node(NkConstantMinTypMaxExpression, li(1, 19), @[
-                  new_inumber_node(NkIntLit, li(1, 19), 1, "1", Base10, -1),
-                  new_inumber_node(NkIntLit, li(1, 21), 2, "2", Base10, -1),
-                  new_inumber_node(NkIntLit, li(1, 23), 3, "3", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 19), ni(1), "1", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 21), ni(2), "2", Base10, -1),
+                  new_inumber_node(NkIntLit, li(1, 23), ni(3), "3", Base10, -1),
                ]),
             ]),
-            new_inumber_node(NkIntLit, li(1, 27), 5, "5", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 27), ni(5), "5", Base10, -1)
          ]),
       ]),
       new_identifier_node(NkIdentifier, li(1, 30), "mywire"),
@@ -173,15 +177,15 @@ run_test("Simple net declarations, list of assignments",
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_node(NkAssignment, li(1, 6), @[
          new_identifier_node(NkIdentifier, li(1, 6), "a"),
-         new_inumber_node(NkUIntLit, li(1, 10), 0, "0", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 10), ni(0), "0", Base2, 1),
       ]),
       new_node(NkAssignment, li(1, 16), @[
          new_identifier_node(NkIdentifier, li(1, 16), "b"),
-         new_inumber_node(NkUIntLit, li(1, 20), 1, "1", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 20), ni(1), "1", Base2, 1),
       ]),
       new_node(NkAssignment, li(1, 26), @[
          new_identifier_node(NkIdentifier, li(1, 26), "c"),
-         new_inumber_node(NkUIntLit, li(1, 30), 0, "0", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 30), ni(0), "0", Base2, 1),
       ]),
    ])
 
@@ -193,7 +197,7 @@ run_test("Simple net declarations, mixed list of assignments and identifiers (no
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_node(NkAssignment, li(1, 6), @[
          new_identifier_node(NkIdentifier, li(1, 6), "a"),
-         new_inumber_node(NkUIntLit, li(1, 10), 0, "0", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 10), ni(0), "0", Base2, 1),
       ]),
       new_node(NkExpectError, li(1, 17), @[
          new_error_node(NkTokenError, li(1, 17), "", ""),
@@ -202,7 +206,7 @@ run_test("Simple net declarations, mixed list of assignments and identifiers (no
       ]),
       new_node(NkAssignment, li(1, 16), @[
          new_identifier_node(NkIdentifier, li(1, 16), "b"),
-         new_inumber_node(NkUIntLit, li(1, 23), 0, "0", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 23), ni(0), "0", Base2, 1),
       ]),
    ])
 
@@ -214,8 +218,8 @@ run_test("Vectored net declaration",
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_identifier_node(NkType, li(1, 6), "vectored"),
       new_node(NkRange, li(1, 15), @[
-         new_inumber_node(NkIntLit, li(1, 16), 31, "31", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 19), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 16), ni(31), "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 19), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(1, 22), "my_vector_wire"),
    ])
@@ -228,8 +232,8 @@ run_test("Scalared net declaration",
       new_identifier_node(NkType, li(1, 1), "wire"),
       new_identifier_node(NkType, li(1, 6), "scalared"),
       new_node(NkRange, li(1, 15), @[
-         new_inumber_node(NkIntLit, li(1, 16), 31, "31", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 19), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 16), ni(31), "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 19), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(1, 22), "my_vector_wire"),
    ])
@@ -260,7 +264,7 @@ run_test("Net declaration with drive strength",
       ]),
       new_node(NkAssignment, li(1, 25), @[
          new_identifier_node(NkIdentifier, li(1, 25), "my_strong_wire"),
-         new_inumber_node(NkUIntLit, li(1, 42), 1, "1", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 42), ni(1), "1", Base2, 1),
       ]),
    ])
 
@@ -279,7 +283,7 @@ run_test("Net declaration with charge strength (error)",
       ]),
       new_node(NkAssignment, li(1, 14), @[
          new_identifier_node(NkIdentifier, li(1, 14), "my_strong_wire"),
-         new_inumber_node(NkUIntLit, li(1, 31), 1, "1", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 31), ni(1), "1", Base2, 1),
       ]),
    ])
 
@@ -297,8 +301,8 @@ run_test("Ranged trireg declaration", "trireg [23:0] foo;"):
    new_node(NkNetDecl, li(1, 1), @[
       new_identifier_node(NkType, li(1, 1), "trireg"),
       new_node(NkRange, li(1, 8), @[
-         new_inumber_node(NkIntLit, li(1, 9), 23, "23", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 12), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 9), ni(23), "23", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 12), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(1, 15), "foo"),
    ])
@@ -340,15 +344,15 @@ run_test("Trireg declaration with drive strength (list of assignments)",
       ]),
       new_node(NkAssignment, li(1, 25), @[
          new_identifier_node(NkIdentifier, li(1, 25), "foo"),
-         new_inumber_node(NkUIntLit, li(1, 31), 1, "1", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 31), ni(1), "1", Base2, 1),
       ]),
       new_node(NkAssignment, li(1, 37), @[
          new_identifier_node(NkIdentifier, li(1, 37), "bar"),
-         new_inumber_node(NkUIntLit, li(1, 43), 0, "0", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 43), ni(0), "0", Base2, 1),
       ]),
       new_node(NkAssignment, li(1, 49), @[
          new_identifier_node(NkIdentifier, li(1, 49), "baz"),
-         new_inumber_node(NkUIntLit, li(1, 55), 1, "1", Base2, 1),
+         new_inumber_node(NkUIntLit, li(1, 55), ni(1), "1", Base2, 1),
       ]),
    ])
 
@@ -365,23 +369,23 @@ run_test("Complex wire",
       new_identifier_node(NkType, li(1, 24), "vectored"),
       new_identifier_node(NkType, li(1, 33), "signed"),
       new_node(NkRange, li(1, 40), @[
-         new_inumber_node(NkIntLit, li(1, 41), 7, "7", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 43), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 41), ni(7), "7", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 43), ni(0), "0", Base10, -1)
       ]),
       new_node(NkDelay, li(1, 46), @[
          new_node(NkParenthesis, li(1, 47), @[
-            new_inumber_node(NkIntLit, li(1, 48), 1, "1", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 50), 2, "2", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 52), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 48), ni(1), "1", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 50), ni(2), "2", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 52), ni(3), "3", Base10, -1),
          ]),
       ]),
       new_node(NkAssignment, li(1, 55), @[
          new_identifier_node(NkIdentifier, li(1, 55), "first"),
-         new_inumber_node(NkUIntLit, li(1, 63), 0, "0", Base10, 8),
+         new_inumber_node(NkUIntLit, li(1, 63), ni(0), "0", Base10, 8),
       ]),
       new_node(NkAssignment, li(1, 69), @[
          new_identifier_node(NkIdentifier, li(1, 69), "second"),
-         new_inumber_node(NkUIntLit, li(1, 78), 35, "23", Base16, 8),
+         new_inumber_node(NkUIntLit, li(1, 78), ni(35), "23", Base16, 8),
       ]),
    ])
 
@@ -397,14 +401,14 @@ run_test("Complex trireg",
       new_identifier_node(NkType, li(1, 16), "scalared"),
       new_identifier_node(NkType, li(1, 25), "signed"),
       new_node(NkRange, li(1, 32), @[
-         new_inumber_node(NkIntLit, li(1, 33), 7, "7", Base10, -1),
-         new_inumber_node(NkIntLit, li(1, 37), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 33), ni(7), "7", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 37), ni(0), "0", Base10, -1)
       ]),
       new_node(NkDelay, li(1, 40), @[
          new_node(NkParenthesis, li(1, 41), @[
-            new_inumber_node(NkIntLit, li(1, 42), 1, "1", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 44), 2, "2", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 46), 3, "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 42), ni(1), "1", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 44), ni(2), "2", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 46), ni(3), "3", Base10, -1),
          ]),
       ]),
       new_identifier_node(NkIdentifier, li(1, 49), "first"),
@@ -420,8 +424,8 @@ wire [31:0] mywire;
       new_comment_node(li(1, 1), "This is a comment."),
       new_identifier_node(NkType, li(2, 1), "wire"),
       new_node(NkRange, li(2, 6), @[
-         new_inumber_node(NkIntLit, li(2, 7), 31, "31", Base10, -1),
-         new_inumber_node(NkIntLit, li(2, 10), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(2, 7), ni(31), "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(2, 10), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(2, 13), "mywire"),
    ])
@@ -439,8 +443,8 @@ wire [31:0] mywire;
    multiple lines"""),
       new_identifier_node(NkType, li(4, 1), "wire"),
       new_node(NkRange, li(4, 6), @[
-         new_inumber_node(NkIntLit, li(4, 7), 31, "31", Base10, -1),
-         new_inumber_node(NkIntLit, li(4, 10), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(4, 7), ni(31), "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(4, 10), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(4, 13), "mywire"),
    ])
@@ -455,8 +459,8 @@ wire [31:0] mywire;
       new_comment_node(li(2, 1), "Included line"),
       new_identifier_node(NkType, li(3, 1), "wire"),
       new_node(NkRange, li(3, 6), @[
-         new_inumber_node(NkIntLit, li(3, 7), 31, "31", Base10, -1),
-         new_inumber_node(NkIntLit, li(3, 10), 0, "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(3, 7), ni(31), "31", Base10, -1),
+         new_inumber_node(NkIntLit, li(3, 10), ni(0), "0", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(3, 13), "mywire"),
    ])

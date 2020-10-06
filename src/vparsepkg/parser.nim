@@ -117,7 +117,7 @@ proc new_identifier_node(p: Parser, kind: NodeKind): PNode =
    result.identifier = p.tok.identifier
 
 
-proc new_inumber_node(p: Parser, kind: NodeKind, inumber: BiggestInt,
+proc new_inumber_node(p: Parser, kind: NodeKind, inumber: Int,
                       raw: string, base: NumericalBase, size: int): PNode =
    result = new_node(p, kind)
    result.inumber = inumber

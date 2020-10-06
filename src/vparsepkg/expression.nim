@@ -122,13 +122,10 @@ proc set_inumber_from_literal(tok: var Token) =
 
    let signed_number = new_int(tok.literal, base = 2) and new_int('1' & repeat('0', tok.size - 1), base = 2)
    let unsigned_number = new_int(tok.literal, base = 2) and new_int('0' & repeat('1', tok.size - 1), base = 2)
-   let i = if tok.kind == TkIntLit:
+   tok.inumber = if tok.kind == TkIntLit:
       unsigned_number - signed_number
    else:
       unsigned_number + signed_number
-
-   if fits_int(i):
-      tok.inumber = to_int(i)
 
 
 proc extend_or_truncate(tok: var Token, kind: TokenKind, size: int) =
@@ -373,7 +370,10 @@ template unary_reduction(n: PNode, context: ExpressionContext, op: string): Toke
 proc evaluate_constant_prefix(n: PNode, context: ExpressionContext): Token =
    template invert(result: Token) =
       if result.kind == TkUIntLit:
-         result.inumber = 1 - ord(result.inumber == 1)
+         result.inumber = if is_zero(result.inumber):
+            new_int(1)
+         else:
+            new_int(0)
          result.literal = $result.inumber
 
    init(result)
@@ -605,16 +605,16 @@ template relational_operation(x, y: PNode, context: ExpressionContext, op: strin
 
    case kind
    of TkIntLit, TkUIntLit:
-      result.inumber = ord(make_infix(to_gmp_int(xtok), to_gmp_int(ytok), op))
+      result.inumber = new_int(ord(make_infix(xtok.inumber, ytok.inumber, op)))
       result.literal = $result.inumber
    of TkRealLit:
-      result.inumber = ord(make_infix(xtok.fnumber, ytok.fnumber, op))
+      result.inumber = new_int(ord(make_infix(xtok.fnumber, ytok.fnumber, op)))
       result.literal = $result.inumber
    of AmbiguousTokens:
       if allow_ambiguous:
          let xliteral = to_binary_literal(xtok)
          let yliteral = to_binary_literal(ytok)
-         result.inumber = ord(make_infix(xliteral, yliteral, op))
+         result.inumber = new_int(ord(make_infix(xliteral, yliteral, op)))
          result.literal = $result.inumber
       else:
          result.base = Base2

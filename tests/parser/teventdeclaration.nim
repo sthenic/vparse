@@ -32,6 +32,10 @@ proc li(line: uint16, col: int16): Location =
    result = Location(file: 1, line: line, col: col - 1)
 
 
+template ni*(x: int): Int = new_int(x)
+template ni*(s: string, base: cint = 10): Int = new_int(s, base)
+
+
 template new_identifier_node(kind: NodeKind, loc: Location, str: string): untyped =
    new_identifier_node(kind, loc, get_identifier(cache, str))
 
@@ -59,8 +63,8 @@ run_test("Event declaration, dimension", "event foo[7:0];"):
       new_node(NkArrayIdentifer, li(1, 7), @[
          new_identifier_node(NkIdentifier, li(1, 7), "foo"),
          new_node(NkRange, li(1, 10), @[
-            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 11), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), ni(0), "0", Base10, -1)
          ])
       ])
    ])
@@ -70,12 +74,12 @@ run_test("Event declaration, multiple dimensions", "event foo[7:0][3:0];"):
       new_node(NkArrayIdentifer, li(1, 7), @[
          new_identifier_node(NkIdentifier, li(1, 7), "foo"),
          new_node(NkRange, li(1, 10), @[
-            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 11), ni(7), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), ni(0), "0", Base10, -1)
          ]),
          new_node(NkRange, li(1, 15), @[
-            new_inumber_node(NkIntLit, li(1, 16), 3, "3", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 18), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 16), ni(3), "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 18), ni(0), "0", Base10, -1)
          ])
       ])
    ])
