@@ -157,7 +157,6 @@ type
       of NkStrLit, NkComment:
          s*: string
       of IntegerTypes:
-         inumber*: BiggestInt
          iraw*: string
          base*: NumericalBase
          size*: int
@@ -219,8 +218,7 @@ proc pretty*(n: PNode, indent: int = 0): string =
    of IdentifierTypes:
       add(result, ": " & $n.identifier.s & "\n")
    of IntegerTypes:
-      add(result, format(": $1 (raw: '$2', base: $3, size: $4)\n",
-                         n.inumber, n.iraw, n.base, n.size))
+      add(result, format(": '$1' (base: $2, size: $3)\n", n.iraw, n.base, n.size))
    of NkRealLit:
       add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
    of OperatorTypes:
@@ -266,7 +264,6 @@ proc `%`*(n: PNode): JsonNode =
       result = %*{
          "kind": $n.kind,
          "loc": n.loc,
-         "number": n.inumber,
          "raw": n.iraw,
          "base": to_int(n.base),
          "size": n.size
@@ -324,8 +321,7 @@ proc `==`*(x, y: PNode): bool =
    of IdentifierTypes:
       result = x.identifier.s == y.identifier.s
    of IntegerTypes:
-      result = x.inumber == y.inumber and x.iraw == y.iraw and
-               x.base == y.base and x.size == y.size
+      result = x.iraw == y.iraw and x.base == y.base and x.size == y.size
    of NkRealLit:
       result = x.fnumber == y.fnumber
    of OperatorTypes:
@@ -412,10 +408,9 @@ proc new_identifier_node*(kind: NodeKind, loc: Location,
    result.identifier = identifier
 
 
-proc new_inumber_node*(kind: NodeKind, loc: Location, inumber: BiggestInt,
-                       raw: string, base: NumericalBase, size: int): PNode =
+proc new_inumber_node*(kind: NodeKind, loc: Location, raw: string,
+                       base: NumericalBase, size: int): PNode =
    result = new_node(kind, loc)
-   result.inumber = inumber
    result.iraw = raw
    result.base = base
    result.size = size

@@ -48,7 +48,7 @@ run_test("Simple blocking assignment", "foo = 3"):
       new_node(NkVariableLvalue, li(1, 1), @[
          new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
-      new_inumber_node(NkIntLit, li(1, 7), 3, "3", Base10, -1)
+      new_inumber_node(NkIntLit, li(1, 7), "3", Base10, -1)
    ])
 
 run_test("Simple nonblocking assignment", "baar <= baz"):
@@ -91,7 +91,7 @@ run_test("Blocking assignment: delay control, integer", "foo = #2 FOO"):
          new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
       new_node(NkDelay, li(1, 7), @[
-         new_inumber_node(NkIntLit, li(1, 8), 2, "2", Base10, -1)
+         new_inumber_node(NkIntLit, li(1, 8), "2", Base10, -1)
       ]),
       new_identifier_node(NkIdentifier, li(1, 10), "FOO")
    ])
@@ -126,9 +126,9 @@ run_test("Blocking assignment: delay control, mintypmax", "foo = #(2:3:5) FOO"):
       new_node(NkDelay, li(1, 7), @[
          new_node(NkParenthesis, li(1, 8), @[
             new_node(NkConstantMinTypMaxExpression, li(1, 9), @[
-               new_inumber_node(NkIntLit, li(1, 9), 2, "2", Base10, -1),
-               new_inumber_node(NkIntLit, li(1, 11), 3, "3", Base10, -1),
-               new_inumber_node(NkIntLit, li(1, 13), 5, "5", Base10, -1)
+               new_inumber_node(NkIntLit, li(1, 9), "2", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 11), "3", Base10, -1),
+               new_inumber_node(NkIntLit, li(1, 13), "5", Base10, -1)
             ]),
          ]),
       ]),
@@ -237,7 +237,7 @@ run_test("Blocking assignment: event control, event expression, expression", "fo
                new_node(NkInfix, li(1, 18), @[
                   new_identifier_node(NkIdentifier, li(1, 18), "+"),
                   new_identifier_node(NkIdentifier, li(1, 9), "A_SYMBOL"),
-                  new_inumber_node(NkIntLit, li(1, 20), 3, "3", Base10, -1)
+                  new_inumber_node(NkIntLit, li(1, 20), "3", Base10, -1)
                ]),
             ]),
          ]),
@@ -305,7 +305,7 @@ run_test("Blocking assignment: event control, repeat", "foo = repeat (3) @(posed
          new_identifier_node(NkIdentifier, li(1, 1), "foo")
       ]),
       new_node(NkRepeat, li(1, 7), @[
-         new_inumber_node(NkIntLit, li(1, 15), 3, "3", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 15), "3", Base10, -1),
          new_node(NkEventControl, li(1, 18), @[
             new_node(NkParenthesis, li(1, 19), @[
                new_node(NkEventExpression, li(1, 20), @[

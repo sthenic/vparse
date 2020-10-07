@@ -117,10 +117,9 @@ proc new_identifier_node(p: Parser, kind: NodeKind): PNode =
    result.identifier = p.tok.identifier
 
 
-proc new_inumber_node(p: Parser, kind: NodeKind, inumber: BiggestInt,
-                      raw: string, base: NumericalBase, size: int): PNode =
+proc new_inumber_node(p: Parser, kind: NodeKind, raw: string,
+                      base: NumericalBase, size: int): PNode =
    result = new_node(p, kind)
-   result.inumber = inumber
    result.iraw = raw
    result.base = base
    result.size = size
@@ -330,13 +329,13 @@ proc parse_number(p: var Parser): PNode =
    let t = p.tok
    case t.kind
    of TkIntLit:
-      result = new_inumber_node(p, NkIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkIntLit, t.literal, t.base, t.size)
    of TkUIntLit:
-      result = new_inumber_node(p, NkUIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkUIntLit, t.literal, t.base, t.size)
    of TkAmbIntLit:
-      result = new_inumber_node(p, NkAmbIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkAmbIntLit, t.literal, t.base, t.size)
    of TkAmbUIntLit:
-      result = new_inumber_node(p, NkAmbUIntLit, t.inumber, t.literal, t.base, t.size)
+      result = new_inumber_node(p, NkAmbUIntLit, t.literal, t.base, t.size)
    of TkRealLit:
       result = new_fnumber_node(p, NkRealLit, t.fnumber, t.literal)
    else:

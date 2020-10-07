@@ -116,19 +116,19 @@ proc to_binary_literal(tok: Token): string =
       result = result[-delta..^1]
 
 
-proc set_inumber_from_literal(tok: var Token) =
-   if tok.kind notin IntegerTokens or tok.kind in AmbiguousTokens:
-      return
+# proc set_inumber_from_literal(tok: var Token) =
+#    if tok.kind notin IntegerTokens or tok.kind in AmbiguousTokens:
+#       return
 
-   let signed_number = new_int(tok.literal, base = 2) and new_int('1' & repeat('0', tok.size - 1), base = 2)
-   let unsigned_number = new_int(tok.literal, base = 2) and new_int('0' & repeat('1', tok.size - 1), base = 2)
-   let i = if tok.kind == TkIntLit:
-      unsigned_number - signed_number
-   else:
-      unsigned_number + signed_number
+#    let signed_number = new_int(tok.literal, base = 2) and new_int('1' & repeat('0', tok.size - 1), base = 2)
+#    let unsigned_number = new_int(tok.literal, base = 2) and new_int('0' & repeat('1', tok.size - 1), base = 2)
+#    let i = if tok.kind == TkIntLit:
+#       unsigned_number - signed_number
+#    else:
+#       unsigned_number + signed_number
 
-   if fits_int(i):
-      tok.inumber = to_int(i)
+#    if fits_int(i):
+#       tok.inumber = to_int(i)
 
 
 proc extend_or_truncate(tok: var Token, kind: TokenKind, size: int) =
@@ -154,7 +154,6 @@ proc extend_or_truncate(tok: var Token, kind: TokenKind, size: int) =
    tok.size = size
    tok.base = Base2
    tok.literal = literal
-   set_inumber_from_literal(tok)
 
 
 proc to_gmp_int(tok: Token): Int =
@@ -284,7 +283,6 @@ template unary_sign(n: PNode, context: ExpressionContext, op: string): Token =
       result.base = Base2
       when op == "+":
          result.literal = tok.literal
-         result.inumber = tok.inumber
       else:
          from_gmp_int(result, make_prefix(to_gmp_int(tok), op))
    of TkRealLit:
@@ -373,8 +371,10 @@ template unary_reduction(n: PNode, context: ExpressionContext, op: string): Toke
 proc evaluate_constant_prefix(n: PNode, context: ExpressionContext): Token =
    template invert(result: Token) =
       if result.kind == TkUIntLit:
-         result.inumber = 1 - ord(result.inumber == 1)
-         result.literal = $result.inumber
+         if result.literal[0] == '0':
+            result.literal = "1"
+         else:
+            result.literal = "0"
 
    init(result)
    let op_idx = find_first_index(n, NkIdentifier)
@@ -538,7 +538,7 @@ proc power(x, y: PNode, context: ExpressionContext): Token =
       elif xtok_int == 0:
          if ytok_int > 0:
             from_gmp_int(result, new_int(0))
-         elif ytok.inumber == 0:
+         elif ytok_int == 0:
             from_gmp_int(result, new_int(1))
          else:
             result.base = Base2
@@ -605,17 +605,14 @@ template relational_operation(x, y: PNode, context: ExpressionContext, op: strin
 
    case kind
    of TkIntLit, TkUIntLit:
-      result.inumber = ord(make_infix(to_gmp_int(xtok), to_gmp_int(ytok), op))
-      result.literal = $result.inumber
+      result.literal = $ord(make_infix(to_gmp_int(xtok), to_gmp_int(ytok), op))
    of TkRealLit:
-      result.inumber = ord(make_infix(xtok.fnumber, ytok.fnumber, op))
-      result.literal = $result.inumber
+      result.literal = $ord(make_infix(xtok.fnumber, ytok.fnumber, op))
    of AmbiguousTokens:
       if allow_ambiguous:
          let xliteral = to_binary_literal(xtok)
          let yliteral = to_binary_literal(ytok)
-         result.inumber = ord(make_infix(xliteral, yliteral, op))
-         result.literal = $result.inumber
+         result.literal = $ord(make_infix(xliteral, yliteral, op))
       else:
          result.base = Base2
          set_ambiguous(result)

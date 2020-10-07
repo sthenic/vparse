@@ -128,48 +128,48 @@ run_test("Range width operator", "+: -:", @[
 ])
 
 run_test("Decimal number: signed", "1234567890 231", @[
-   new_inumber(TkIntLit, loc(1, 1, 0), 1234567890, Base10, -1, "1234567890"),
-   new_inumber(TkIntLit, loc(1, 1, 11), 231, Base10, -1, "231")
+   new_inumber(TkIntLit, loc(1, 1, 0), Base10, -1, "1234567890"),
+   new_inumber(TkIntLit, loc(1, 1, 11), Base10, -1, "231")
 ])
 
 run_test("Decimal number: with base", "32'd2617 18'D32 'd77 'sd90 'Sd100 5'D 3", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 2617, Base10, 32, "2617"),
-   new_inumber(TkUIntLit, loc(1, 1, 9), 32, Base10, 18, "32"),
-   new_inumber(TkUIntLit, loc(1, 1, 16), 77, Base10, -1, "77"),
-   new_inumber(TkIntLit, loc(1, 1, 21), 90, Base10, -1, "90"),
-   new_inumber(TkIntLit, loc(1, 1, 27), 100, Base10, -1, "100"),
-   new_inumber(TkUIntLit, loc(1, 1, 34), 3, Base10, 5, "3"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base10, 32, "2617"),
+   new_inumber(TkUIntLit, loc(1, 1, 9), Base10, 18, "32"),
+   new_inumber(TkUIntLit, loc(1, 1, 16), Base10, -1, "77"),
+   new_inumber(TkIntLit, loc(1, 1, 21), Base10, -1, "90"),
+   new_inumber(TkIntLit, loc(1, 1, 27), Base10, -1, "100"),
+   new_inumber(TkUIntLit, loc(1, 1, 34), Base10, 5, "3"),
 ])
 
 run_test("Decimal number: underscore", "2617_123_", @[
-   new_inumber(TkIntLit, loc(1, 1, 0), 2617123, Base10, -1, "2617123")
+   new_inumber(TkIntLit, loc(1, 1, 0), Base10, -1, "2617123")
 ])
 
 run_test("Decimal number: X-digit", "8'dX 7'dx 16'dX_", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base10, 8, "x"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 5), 0, Base10, 7, "x"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 10), 0, Base10, 16, "x")
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base10, 8, "x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 5), Base10, 7, "x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 10), Base10, 16, "x")
 ])
 
 run_test("Decimal number: Z-digit", "8'dZ 7'dz 16'dZ_ 2'd?", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base10, 8, "z"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 5), 0, Base10, 7, "z"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 10), 0, Base10, 16, "z"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 17), 0, Base10, 2, "?")
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base10, 8, "z"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 5), Base10, 7, "z"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 10), Base10, 16, "z"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 17), Base10, 2, "?")
 ])
 
 run_test("Decimal number: negative (unary)", "-13", @[
    new_identifier(TkOperator, loc(1, 1, 0), "-"),
-   new_inumber(TkIntLit, loc(1, 1, 1), 13, Base10, -1, "13")
+   new_inumber(TkIntLit, loc(1, 1, 1), Base10, -1, "13")
 ])
 
 run_test("Decimal number: positive (unary)", "+2", @[
    new_identifier(TkOperator, loc(1, 1, 0), "+"),
-   new_inumber(TkIntLit, loc(1, 1, 1), 2, Base10, -1, "2")
+   new_inumber(TkIntLit, loc(1, 1, 1), Base10, -1, "2")
 ])
 
 run_test("Decimal number: invalid", "'dAF", @[
-   new_inumber(TkInvalid, loc(1, 1, 0), 0, Base10, -1, ""),
+   new_inumber(TkInvalid, loc(1, 1, 0), Base10, -1, ""),
    new_identifier(TkSymbol, loc(1, 1, 2), "AF")
 ])
 
@@ -209,108 +209,108 @@ run_test("Real number: invalid (malformed)", "3e++", @[
 ])
 
 run_test("Binary number: simple", "'b1010 'B0110 'Sb10 'sB11", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 10, Base2, -1, "1010"),
-   new_inumber(TkUIntLit, loc(1, 1, 7), 6, Base2, -1, "0110"),
-   new_inumber(TkIntLit, loc(1, 1, 14), 2, Base2, -1, "10"),
-   new_inumber(TkIntLit, loc(1, 1, 20), 3, Base2, -1, "11")
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base2, -1, "1010"),
+   new_inumber(TkUIntLit, loc(1, 1, 7), Base2, -1, "0110"),
+   new_inumber(TkIntLit, loc(1, 1, 14), Base2, -1, "10"),
+   new_inumber(TkIntLit, loc(1, 1, 20), Base2, -1, "11")
 ])
 
 run_test("Binary number: size", "4'b1100 8'B10000110", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 12, Base2, 4, "1100"),
-   new_inumber(TkUIntLit, loc(1, 1, 8), 134, Base2, 8, "10000110"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base2, 4, "1100"),
+   new_inumber(TkUIntLit, loc(1, 1, 8), Base2, 8, "10000110"),
 ])
 
 run_test("Binary number: underscore", "8'B1001_0110_", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 150, Base2, 8, "10010110"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base2, 8, "10010110"),
 ])
 
 run_test("Binary number: invalid", "8'B 8'b11", @[
-   new_inumber(TkInvalid, loc(1, 1, 0), 0, Base2, 8, ""),
-   new_inumber(TkUIntLit, loc(1, 1, 4), 3, Base2, 8, "11")
+   new_inumber(TkInvalid, loc(1, 1, 0), Base2, 8, ""),
+   new_inumber(TkUIntLit, loc(1, 1, 4), Base2, 8, "11")
 ])
 
 run_test("Binary number: Z-digit", "2'b0Z 2'bz1 2'b??", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base2, 2, "0z"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 6), 0, Base2, 2, "z1"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base2, 2, "??"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base2, 2, "0z"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 6), Base2, 2, "z1"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 12), Base2, 2, "??"),
 ])
 
 run_test("Binary number: X-digit", "2'b0X 2'bx1 2'b1_X", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base2, 2, "0x"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 6), 0, Base2, 2, "x1"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base2, 2, "1x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base2, 2, "0x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 6), Base2, 2, "x1"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 12), Base2, 2, "1x"),
 ])
 
 run_test("Octal number: simple", "'o072 'O0176 'so7 'SO4", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 58, Base8, -1, "072"),
-   new_inumber(TkUIntLit, loc(1, 1, 6), 126, Base8, -1, "0176"),
-   new_inumber(TkIntLit, loc(1, 1, 13), 7, Base8, -1, "7"),
-   new_inumber(TkIntLit, loc(1, 1, 18), 4, Base8, -1, "4")
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base8, -1, "072"),
+   new_inumber(TkUIntLit, loc(1, 1, 6), Base8, -1, "0176"),
+   new_inumber(TkIntLit, loc(1, 1, 13), Base8, -1, "7"),
+   new_inumber(TkIntLit, loc(1, 1, 18), Base8, -1, "4")
 ])
 
 run_test("Octal number: size", "2'o77 6'O6721", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 63, Base8, 2, "77"),
-   new_inumber(TkUIntLit, loc(1, 1, 6), 3537, Base8, 6, "6721"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base8, 2, "77"),
+   new_inumber(TkUIntLit, loc(1, 1, 6), Base8, 6, "6721"),
 ])
 
 run_test("Octal number: underscore", "8'O54_71_02_31_", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 11767961, Base8, 8, "54710231"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base8, 8, "54710231"),
 ])
 
 run_test("Octal number: invalid", "8'O", @[
-   new_inumber(TkInvalid, loc(1, 1, 0), 0, Base8, 8, "")
+   new_inumber(TkInvalid, loc(1, 1, 0), Base8, 8, "")
 ])
 
 run_test("Octal number: Z-digit", "2'o0Z 2'oz1 2'o??", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base8, 2, "0z"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 6), 0, Base8, 2, "z1"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base8, 2, "??"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base8, 2, "0z"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 6), Base8, 2, "z1"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 12), Base8, 2, "??"),
 ])
 
 run_test("Octal number: X-digit", "2'o0X 2'ox1 2'o1_X", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base8, 2, "0x"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 6), 0, Base8, 2, "x1"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base8, 2, "1x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base8, 2, "0x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 6), Base8, 2, "x1"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 12), Base8, 2, "1x"),
 ])
 
 run_test("Hex number: simple", "'hFF 'H64 'sH77 'ShAC 'h 837FF", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 255, Base16, -1, "FF"),
-   new_inumber(TkUIntLit, loc(1, 1, 5), 100, Base16, -1, "64"),
-   new_inumber(TkIntLit, loc(1, 1, 10), 119, Base16, -1, "77"),
-   new_inumber(TkIntLit, loc(1, 1, 16), 172, Base16, -1, "AC"),
-   new_inumber(TkUIntLit, loc(1, 1, 22), 538623, Base16, -1, "837FF"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base16, -1, "FF"),
+   new_inumber(TkUIntLit, loc(1, 1, 5), Base16, -1, "64"),
+   new_inumber(TkIntLit, loc(1, 1, 10), Base16, -1, "77"),
+   new_inumber(TkIntLit, loc(1, 1, 16), Base16, -1, "AC"),
+   new_inumber(TkUIntLit, loc(1, 1, 22), Base16, -1, "837FF"),
 ])
 
 run_test("Hex number: size", "2'hC8 4'H2301", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), 200, Base16, 2, "C8"),
-   new_inumber(TkUIntLit, loc(1, 1, 6), 8961, Base16, 4, "2301"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base16, 2, "C8"),
+   new_inumber(TkUIntLit, loc(1, 1, 6), Base16, 4, "2301"),
 ])
 
 run_test("Hex number: underscore", "32'hFFFF_FFFF", @[
-   new_inumber(TkUIntLit, loc(1, 1, 0), (1 shl 32)-1, Base16, 32, "FFFFFFFF"),
+   new_inumber(TkUIntLit, loc(1, 1, 0), Base16, 32, "FFFFFFFF"),
 ])
 
 run_test("Hex number: invalid", "8'H", @[
-   new_inumber(TkInvalid, loc(1, 1, 0), 0, Base16, 8, "")
+   new_inumber(TkInvalid, loc(1, 1, 0), Base16, 8, "")
 ])
 
 # This does not generate an invalid token. Instead it gets interpreted as a
 # signed decimal number and an identifier.
 run_test("Hex number: illegal", "4af", @[
-   new_inumber(TkIntLit, loc(1, 1, 0), 4, Base10, -1, "4"),
+   new_inumber(TkIntLit, loc(1, 1, 0), Base10, -1, "4"),
    new_identifier(TkSymbol, loc(1, 1, 1), "af")
 ])
 
 run_test("Hex number: Z-digit", "2'h0Z 2'hz1 2'h??", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base16, 2, "0z"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 6), 0, Base16, 2, "z1"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base16, 2, "??"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base16, 2, "0z"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 6), Base16, 2, "z1"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 12), Base16, 2, "??"),
 ])
 
 run_test("Hex number: X-digit", "2'h0X 2'hx1 2'h1_X", @[
-   new_inumber(TkAmbUIntLit, loc(1, 1, 0), 0, Base16, 2, "0x"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 6), 0, Base16, 2, "x1"),
-   new_inumber(TkAmbUIntLit, loc(1, 1, 12), 0, Base16, 2, "1x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 0), Base16, 2, "0x"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 6), Base16, 2, "x1"),
+   new_inumber(TkAmbUIntLit, loc(1, 1, 12), Base16, 2, "1x"),
 ])
 
 run_test("Huge numbers", """
@@ -319,10 +319,10 @@ run_test("Huge numbers", """
    66'o40_0000_0000_0000_0000_0000
    66'b10_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000
 """, @[
-   new_inumber(TkUIntLit, loc(1, 1, 3), 0, Base10, 64, "18446744073709551616"),
-   new_inumber(TkUIntLit, loc(1, 2, 3), 0, Base16, 66, "30000000000000000"),
-   new_inumber(TkUIntLit, loc(1, 3, 3), 0, Base8, 66, "4000000000000000000000"),
-   new_inumber(TkUIntLit, loc(1, 4, 3), 0, Base2, 66, "100000000000000000000000000000000000000000000000000000000000000000"),
+   new_inumber(TkUIntLit, loc(1, 1, 3), Base10, 64, "18446744073709551616"),
+   new_inumber(TkUIntLit, loc(1, 2, 3), Base16, 66, "30000000000000000"),
+   new_inumber(TkUIntLit, loc(1, 3, 3), Base8, 66, "4000000000000000000000"),
+   new_inumber(TkUIntLit, loc(1, 4, 3), Base2, 66, "100000000000000000000000000000000000000000000000000000000000000000"),
 ])
 
 run_test("String literal: pangram", """"The quick brown fox jumps over the lazy dog"""", @[
@@ -418,7 +418,7 @@ run_test("Compiler directive: macro definition", "`define MyMacro(x) x * 2", @[
    new_token(TkRparen, loc(1, 1, 17)),
    new_identifier(TkSymbol, loc(1, 1, 19), "x"),
    new_identifier(TkOperator, loc(1, 1, 21), "*"),
-   new_inumber(TkIntLit, loc(1, 1, 23), 2, Base10, -1, "2"),
+   new_inumber(TkIntLit, loc(1, 1, 23), Base10, -1, "2"),
 ])
 
 run_test("Compiler directive: macro definition, multiple lines",
@@ -434,7 +434,7 @@ run_test("Compiler directive: macro definition, multiple lines",
    new_token(TkBackslash, loc(1, 1, 22)),
    new_identifier(TkSymbol, loc(1, 2, 6), "x"),
    new_identifier(TkOperator, loc(1, 2, 8), "&"),
-   new_inumber(TkUIntLit, loc(1, 2, 10), 127, Base16, 8, "7F"),
+   new_inumber(TkUIntLit, loc(1, 2, 10), Base16, 8, "7F"),
    new_identifier(TkOperator, loc(1, 2, 16), "+"),
    new_identifier(TkSymbol, loc(1, 2, 18), "y"),
 ])
@@ -454,14 +454,14 @@ run_test("Compiler directive: macro usage (with arguments)",
    new_token(TkLbracket, loc(1, 1, 4)),
    new_identifier(TkDirective, loc(1, 1, 5), "REGISTER_PAGE"),
    new_token(TkLparen, loc(1, 1, 19)),
-   new_inumber(TkIntLit, loc(1, 1, 20), 1, Base10, -1, "1"),
+   new_inumber(TkIntLit, loc(1, 1, 20), Base10, -1, "1"),
    new_token(TkComma, loc(1, 1, 21)),
-   new_inumber(TkIntLit, loc(1, 1, 23), 2, Base10, -1, "2"),
+   new_inumber(TkIntLit, loc(1, 1, 23), Base10, -1, "2"),
    new_token(TkRparen, loc(1, 1, 24)),
    new_identifier(TkOperator, loc(1, 1, 25), "-"),
-   new_inumber(TkIntLit, loc(1, 1, 26), 1, Base10, -1, "1"),
+   new_inumber(TkIntLit, loc(1, 1, 26), Base10, -1, "1"),
    new_identifier(TkColon, loc(1, 1, 27), ":"),
-   new_inumber(TkIntLit, loc(1, 1, 28), 0, Base10, -1, "0"),
+   new_inumber(TkIntLit, loc(1, 1, 28), Base10, -1, "0"),
    new_token(TkRbracket, loc(1, 1, 29)),
    new_identifier(TkSymbol, loc(1, 1, 31), "bar"),
    new_token(TkSemicolon, loc(1, 1, 34)),
@@ -474,17 +474,17 @@ run_test("Compiler directive: macro usage (with arguments, nested parentheses)",
    new_identifier(TkDirective, loc(1, 1, 5), "REGISTER_PAGE"),
    new_token(TkLparen, loc(1, 1, 21)),
    new_token(TkLparen, loc(1, 1, 22)),
-   new_inumber(TkIntLit, loc(1, 1, 23), 1, Base10, -1, "1"),
+   new_inumber(TkIntLit, loc(1, 1, 23), Base10, -1, "1"),
    new_identifier(TkOperator, loc(1, 1, 24), "*"),
    new_identifier(TkDirective, loc(1, 1, 25), "FOO"),
    new_token(TkRparen, loc(1, 1, 29)),
    new_token(TkComma, loc(1, 1, 30)),
-   new_inumber(TkIntLit, loc(1, 1, 32), 2, Base10, -1, "2"),
+   new_inumber(TkIntLit, loc(1, 1, 32), Base10, -1, "2"),
    new_token(TkRparen, loc(1, 1, 33)),
    new_identifier(TkOperator, loc(1, 1, 34), "-"),
-   new_inumber(TkIntLit, loc(1, 1, 35), 1, Base10, -1, "1"),
+   new_inumber(TkIntLit, loc(1, 1, 35), Base10, -1, "1"),
    new_identifier(TkColon, loc(1, 1, 36), ":"),
-   new_inumber(TkIntLit, loc(1, 1, 37), 0, Base10, -1, "0"),
+   new_inumber(TkIntLit, loc(1, 1, 37), Base10, -1, "0"),
    new_token(TkRbracket, loc(1, 1, 38)),
    new_identifier(TkSymbol, loc(1, 1, 40), "bar"),
    new_token(TkSemicolon, loc(1, 1, 43)),
@@ -518,14 +518,14 @@ run_test("Assign statement", "localparam foo = 123;", @[
    new_identifier(TkLocalparam, loc(1, 1, 0), "localparam"),
    new_identifier(TkSymbol, loc(1, 1, 11), "foo"),
    new_token(TkEquals, loc(1, 1, 15)),
-   new_inumber(TkIntLit, loc(1, 1, 17), 123, Base10, -1, "123"),
+   new_inumber(TkIntLit, loc(1, 1, 17), Base10, -1, "123"),
    new_token(TkSemicolon, loc(1, 1, 20)),
 ])
 
 run_test("Compact expression w/ integers and reals", "3+4-4.3e-3", @[
-   new_inumber(TkIntLit, loc(1, 1, 0), 3, Base10, -1, "3"),
+   new_inumber(TkIntLit, loc(1, 1, 0), Base10, -1, "3"),
    new_identifier(TkOperator, loc(1, 1, 1), "+"),
-   new_inumber(TkIntLit, loc(1, 1, 2), 4, Base10, -1, "4"),
+   new_inumber(TkIntLit, loc(1, 1, 2), Base10, -1, "4"),
    new_identifier(TkOperator, loc(1, 1, 3), "-"),
    new_fnumber(TkRealLit, loc(1, 1, 4), 0.0043, "4.3e-3")
 ])

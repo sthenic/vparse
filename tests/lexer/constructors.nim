@@ -32,10 +32,9 @@ proc new_fnumber*(kind: TokenKind, loc: Location, fnumber: float, literal: strin
    result.literal = literal
 
 
-proc new_inumber*(kind: TokenKind, loc: Location, inumber: BiggestInt,
-                  base: NumericalBase, size: int, literal: string): Token =
+proc new_inumber*(kind: TokenKind, loc: Location, base: NumericalBase,
+                  size: int, literal: string): Token =
    init(result, kind, loc)
-   result.inumber = inumber
    result.base = base
    result.size = size
    result.literal = literal

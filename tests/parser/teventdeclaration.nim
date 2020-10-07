@@ -59,8 +59,8 @@ run_test("Event declaration, dimension", "event foo[7:0];"):
       new_node(NkArrayIdentifer, li(1, 7), @[
          new_identifier_node(NkIdentifier, li(1, 7), "foo"),
          new_node(NkRange, li(1, 10), @[
-            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 11), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), "0", Base10, -1)
          ])
       ])
    ])
@@ -70,12 +70,12 @@ run_test("Event declaration, multiple dimensions", "event foo[7:0][3:0];"):
       new_node(NkArrayIdentifer, li(1, 7), @[
          new_identifier_node(NkIdentifier, li(1, 7), "foo"),
          new_node(NkRange, li(1, 10), @[
-            new_inumber_node(NkIntLit, li(1, 11), 7, "7", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 13), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 11), "7", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 13), "0", Base10, -1)
          ]),
          new_node(NkRange, li(1, 15), @[
-            new_inumber_node(NkIntLit, li(1, 16), 3, "3", Base10, -1),
-            new_inumber_node(NkIntLit, li(1, 18), 0, "0", Base10, -1)
+            new_inumber_node(NkIntLit, li(1, 16), "3", Base10, -1),
+            new_inumber_node(NkIntLit, li(1, 18), "0", Base10, -1)
          ])
       ])
    ])
