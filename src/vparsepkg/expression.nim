@@ -2,10 +2,10 @@ import strutils
 import math
 import bignum
 import macros
-import dynlib
 
 import ./ast
 import ./lexer
+export lexer, ast
 
 type
    ExpressionContext* = object
@@ -24,18 +24,6 @@ const
    RealMathFunctions = ["ln", "log10", "exp", "sqrt", "pow", "floor", "ceil", "sin", "cos", "tan",
                         "asin", "acos", "atan", "atan2", "hypot", "sinh", "cosh", "tanh", "asinh",
                         "acosh", "atanh"]
-
-
-proc is_evaluation_supported*(): bool =
-   ## Test if expression evaluation is supported on the platform. Effectively,
-   ## this checks that `libgmp` can be loaded.
-   const libgmp = when defined(windows):
-      "libgmp.dll"
-   elif defined(macosx):
-      "libgmp.dylib"
-   else:
-      "libgmp.so"
-   result = not is_nil(load_lib(libgmp))
 
 
 proc init(context: var ExpressionContext) =
@@ -114,21 +102,6 @@ proc to_binary_literal(tok: Token): string =
       result = repeat('0', delta) & result
    else:
       result = result[-delta..^1]
-
-
-# proc set_inumber_from_literal(tok: var Token) =
-#    if tok.kind notin IntegerTokens or tok.kind in AmbiguousTokens:
-#       return
-
-#    let signed_number = new_int(tok.literal, base = 2) and new_int('1' & repeat('0', tok.size - 1), base = 2)
-#    let unsigned_number = new_int(tok.literal, base = 2) and new_int('0' & repeat('1', tok.size - 1), base = 2)
-#    let i = if tok.kind == TkIntLit:
-#       unsigned_number - signed_number
-#    else:
-#       unsigned_number + signed_number
-
-#    if fits_int(i):
-#       tok.inumber = to_int(i)
 
 
 proc extend_or_truncate(tok: var Token, kind: TokenKind, size: int) =

@@ -3,6 +3,7 @@ import strformat
 import math
 
 import ../../src/vparsepkg/parser
+import ../../src/vparsepkg/expression
 import ../lexer/constructors
 
 var nof_passed = 0
@@ -40,12 +41,6 @@ proc run_test(title, context, stimuli: string, reference: Token, expect_error: b
 
 template run_test(title, context, stimuli: string, reference: Token, expect_error: bool = false) =
    run_test(title, context, stimuli, reference, expect_error, nof_passed, nof_failed)
-
-
-# Make sure that expression evaluation is supported on the system.
-if not is_evaluation_supported():
-   echo "Expression evaluation is not supported on the system. Install libgmp."
-   quit(-1)
 
 
 # Arithmetic '+'

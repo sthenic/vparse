@@ -3,9 +3,8 @@ import strutils
 
 import ./preprocessor
 import ./ast
-import ./expression
 
-export ast, preprocessor, expression
+export ast, preprocessor
 
 type
    CommentState = enum

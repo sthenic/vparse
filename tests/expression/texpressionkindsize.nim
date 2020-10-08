@@ -3,6 +3,7 @@ import strutils
 import strformat
 
 import ../../src/vparsepkg/parser
+import ../../src/vparsepkg/expression
 
 var
    nof_passed = 0
