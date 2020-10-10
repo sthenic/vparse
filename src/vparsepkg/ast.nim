@@ -113,8 +113,7 @@ const
    IdentifierTypes* =
       {NkIdentifier, NkAttributeName, NkModuleIdentifier, NkPortIdentifier,
        NkParameterIdentifier, NkSpecparamIdentifier, NkType,
-       NkFunctionIdentifier, NkGenvarIdentifier, NkDirection, NkNetType,
-       NkAttributeName}
+       NkFunctionIdentifier, NkGenvarIdentifier, NkDirection, NkNetType}
 
    IntegerTypes* =
       {NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit}
