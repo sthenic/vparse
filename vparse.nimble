@@ -50,6 +50,7 @@ task parsertests, "Run the parser test suite":
       exec("nim c --hints:off -r tblockingnonblockingassignment")
       exec("nim c --hints:off -r tnetdeclaration")
       exec("nim c --hints:off -r tdirective")
+      exec("nim c --hints:off -r thierarchicalidentifier")
 
 
 task asttests, "Run the AST test suite":

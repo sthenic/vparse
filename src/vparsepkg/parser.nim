@@ -1187,6 +1187,48 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
    add_attributes(result, attributes)
 
 
+proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
+   result = new_node(p, NkBracketExpression)
+   get_token(p)
+   add(result, head)
+   add(result, parse_constant_expression(p))
+   expect_token(p, result, TkRbracket)
+   get_token(p)
+
+
+proc parse_hierarchical_identifier_dot(p: var Parser, head: PNode): PNode =
+   result = new_node(p, NkDotExpression)
+   get_token(p)
+   add(result, head)
+   expect_token(p, result, TkSymbol)
+   add(result, new_identifier_node(p, NkIdentifier))
+   get_token(p)
+
+
+proc parse_hierarchical_identifier(p: var Parser): PNode =
+   result = new_node(p, NkHierarchicalIdentifier)
+   # A hierarchical identifier can look like 'a[0].b.c[FOO].d' or just 'a'. We
+   # begin by using the look-ahead buffer to determine what syntax to expect. If
+   # we find a dot token or a bracket token, the entire identifier chain will be
+   # parsed by logic that will ensure that the final identifier is not followed
+   # by a bracket expression. Basically, the assumption is that we're looking at
+   # a chain of dot expressions.
+   if look_ahead(p, TkSymbol, {TkDot, TkLbracket}):
+      var head = new_identifier_node(p, NkIdentifier)
+      get_token(p)
+      while true:
+         if p.tok.kind == TkLbracket:
+            head = parse_hierarchical_identifier_bracket(p, head)
+         head = parse_hierarchical_identifier_dot(p, head)
+         if p.tok.kind notin {TkDot, TkLbracket}:
+            break
+      add(result, head)
+   else:
+      expect_token(p, result, TkSymbol)
+      add(result, new_identifier_node(p, NkIdentifier))
+      get_token(p)
+
+
 proc parse_variable_lvalue(p: var Parser): PNode =
    case p.tok.kind
    of TkSymbol:
@@ -2385,6 +2427,8 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
       parse_proc = parse_task_or_function_declaration
    of NkBlockingAssignment, NkNonblockingAssignment:
       parse_proc = parse_blocking_or_nonblocking_assignment
+   of NkHierarchicalIdentifier:
+      parse_proc = parse_hierarchical_identifier
    else:
       parse_proc = nil
 

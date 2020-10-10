@@ -93,6 +93,7 @@ type
       # Expressions A.8.3
       NkConstantExpression, NkConstantMinTypMaxExpression,
       NkConstantConditionalExpression, NkConstantRangeExpression,
+      NkBracketExpression, NkDotExpression,
       # Primaries A.8.4
       NkConstantPrimary,
       # Expression left-side values A.8.5
@@ -104,7 +105,7 @@ type
       NkAttributeInst, NkAttributeSpec, NkAttributeName,
       # Identifiers A.9.3
       NkParameterIdentifier, NkSpecparamIdentifier, NkFunctionIdentifier,
-      NkGenvarIdentifier,
+      NkGenvarIdentifier, NkHierarchicalIdentifier
 
    NodeKinds* = set[NodeKind]
 
@@ -207,6 +208,10 @@ proc len*(n: PNode): int {.inline.} =
       result = 0
    else:
       result = len(n.sons)
+
+
+proc add*(n, son: PNode) =
+   add(n.sons, son)
 
 
 proc pretty*(n: PNode, indent: int = 0): string =
