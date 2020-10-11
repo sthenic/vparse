@@ -114,7 +114,7 @@ run_test("Constant primary: identifier", "FOO"):
    new_identifier_node(NkIdentifier, li(1, 1), "FOO")
 
 run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
-   new_node(NkBracketExpression, li(1, 4), @[
+   new_node(NkBracketExpression, li(1, 1), @[
       new_identifier_node(NkIdentifier, li(1, 1), "bar"),
       new_node(NkInfix, li(1, 12), @[
          new_identifier_node(NkIdentifier, li(1, 12), ":"),

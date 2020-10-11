@@ -49,19 +49,16 @@ run_test("Simple identifier", false, """
 run_test("Simple identifier w/ constant (allowed)", true, """
    foo[5])
 """):
-   new_node(NkBracketExpression, li(1, 7), @[
+   new_node(NkBracketExpression, li(1, 4), @[
       new_identifier_node(NkIdentifier, li(1, 4), "foo"),
       new_inumber_node(NkIntLit, li(1, 8), "5", Base10, -1),
-      new_node(NkExpectError, li(2, 1), @[
-         new_error_node(NkTokenError, li(2, 1), "", "Expected token Symbol, got '[EOF]'")
-      ])
    ])
 
 
 run_test("Simple identifier w/ range (not allowed)", false, """
    foo[5:0]
 """):
-   new_node(NkBracketExpression, li(1, 7), @[
+   new_node(NkBracketExpression, li(1, 4), @[
       new_identifier_node(NkIdentifier, li(1, 4), "foo"),
       new_node(NkInfix, li(1, 9), @[
          new_identifier_node(NkIdentifier, li(1, 9), ":"),
@@ -77,7 +74,7 @@ run_test("Simple identifier w/ range (not allowed)", false, """
 run_test("Simple identifier w/ range (allowed)", true, """
    foo[5:0]
 """):
-   new_node(NkBracketExpression, li(1, 7), @[
+   new_node(NkBracketExpression, li(1, 4), @[
       new_identifier_node(NkIdentifier, li(1, 4), "foo"),
       new_node(NkInfix, li(1, 9), @[
          new_identifier_node(NkIdentifier, li(1, 9), ":"),
@@ -90,8 +87,8 @@ run_test("Simple identifier w/ range (allowed)", true, """
 run_test("Dot expressions", false, """
    global.local0.local1
 """):
-   new_node(NkDotExpression, li(1, 17), @[
-      new_node(NkDotExpression, li(1, 10), @[
+   new_node(NkDotExpression, li(1, 4), @[
+      new_node(NkDotExpression, li(1, 4), @[
          new_identifier_node(NkIdentifier, li(1, 4), "global"),
          new_identifier_node(NkIdentifier, li(1, 11), "local0"),
       ]),
@@ -102,11 +99,11 @@ run_test("Dot expressions", false, """
 run_test("Complex identifier", false, """
    a[0].b.c[FOO].d
 """):
-   new_node(NkDotExpression, li(1, 17), @[
-      new_node(NkBracketExpression, li(1, 12), @[
-         new_node(NkDotExpression, li(1, 10), @[
-            new_node(NkDotExpression, li(1, 8), @[
-               new_node(NkBracketExpression, li(1, 5), @[
+   new_node(NkDotExpression, li(1, 4), @[
+      new_node(NkBracketExpression, li(1, 4), @[
+         new_node(NkDotExpression, li(1, 4), @[
+            new_node(NkDotExpression, li(1, 4), @[
+               new_node(NkBracketExpression, li(1, 4), @[
                   new_identifier_node(NkIdentifier, li(1, 4), "a"),
                   new_inumber_node(NkIntLit, li(1, 6), "0", Base10, -1)
                ]),
@@ -123,11 +120,11 @@ run_test("Complex identifier", false, """
 run_test("Complex identifier, ends w/ bracket expression (not allowed)", false, """
    a.b[80].c.d[FOO]
 """):
-   new_node(NkBracketExpression, li(1, 15), @[
-      new_node(NkDotExpression, li(1, 13), @[
-         new_node(NkDotExpression, li(1, 11), @[
-            new_node(NkBracketExpression, li(1, 7), @[
-               new_node(NkDotExpression, li(1, 5), @[
+   new_node(NkBracketExpression, li(1, 4), @[
+      new_node(NkDotExpression, li(1, 4), @[
+         new_node(NkDotExpression, li(1, 4), @[
+            new_node(NkBracketExpression, li(1, 4), @[
+               new_node(NkDotExpression, li(1, 4), @[
                   new_identifier_node(NkIdentifier, li(1, 4), "a"),
                   new_identifier_node(NkIdentifier, li(1, 6), "b"),
                ]),
@@ -147,14 +144,14 @@ run_test("Complex identifier, ends w/ bracket expression (not allowed)", false, 
 run_test("Complex identifier, ends w/ bracket expression (allowed)", true, """
    a.b[80].c.d[FOO][4][3][1+:16]
 """):
-   new_node(NkBracketExpression, li(1, 26), @[
-      new_node(NkBracketExpression, li(1, 23), @[
-         new_node(NkBracketExpression, li(1, 20), @[
-            new_node(NkBracketExpression, li(1, 15), @[
-               new_node(NkDotExpression, li(1, 13), @[
-                  new_node(NkDotExpression, li(1, 11), @[
-                     new_node(NkBracketExpression, li(1, 7), @[
-                        new_node(NkDotExpression, li(1, 5), @[
+   new_node(NkBracketExpression, li(1, 4), @[
+      new_node(NkBracketExpression, li(1, 4), @[
+         new_node(NkBracketExpression, li(1, 4), @[
+            new_node(NkBracketExpression, li(1, 4), @[
+               new_node(NkDotExpression, li(1, 4), @[
+                  new_node(NkDotExpression, li(1, 4), @[
+                     new_node(NkBracketExpression, li(1, 4), @[
+                        new_node(NkDotExpression, li(1, 4), @[
                            new_identifier_node(NkIdentifier, li(1, 4), "a"),
                            new_identifier_node(NkIdentifier, li(1, 6), "b"),
                         ]),

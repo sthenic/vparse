@@ -28,7 +28,6 @@ type
       NkWildcard, # Symbolizes a '*' in an event expression.
       NkComment,
       # Custom node types
-      NkArrayIdentifer, # FIXME: Do away with this when we have NkBracketExpression
       NkAssignment,
       # Modules A.1.3
       NkSourceText,
@@ -96,7 +95,6 @@ type
       # Primaries A.8.4
       NkConstantPrimary,
       # Expression left-side values A.8.5
-      NkVariableLvalue,
       NkVariableLvalueConcat,
       # Operators A.8.6
       NkUnaryOperator, NkBinaryOperator,
@@ -114,6 +112,10 @@ const
       {NkIdentifier, NkAttributeName, NkModuleIdentifier, NkPortIdentifier,
        NkParameterIdentifier, NkSpecparamIdentifier, NkType,
        NkFunctionIdentifier, NkGenvarIdentifier, NkDirection, NkNetType}
+
+   HierarchicalIdentifierTypes* = {NkIdentifier, NkBracketExpression, NkDotExpression}
+
+   LvalueTypes* = HierarchicalIdentifierTypes + {NkVariableLvalueConcat}
 
    IntegerTypes* =
       {NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit}
@@ -663,7 +665,13 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
       for s in n.sons:
          case s.kind
-         of NkArrayIdentifer, NkAssignment:
+         of NkBracketExpression:
+            var id = s
+            while id.kind == NkBracketExpression and len(id) > 0:
+               id = id[0]
+            if id.kind == NkIdentifier and id.identifier.s == identifier.s:
+               return (n, id, nil)
+         of NkAssignment:
             let id = find_first(s, NkIdentifier)
             if not is_nil(id) and id.identifier.s == identifier.s:
                return (n, id, find_first(s, ExpressionTypes))
@@ -762,7 +770,13 @@ proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declar
    of NkRegDecl, NkIntegerDecl, NkRealDecl, NkRealtimeDecl, NkTimeDecl, NkNetDecl, NkEventDecl:
       for s in n.sons:
          case s.kind
-         of NkArrayIdentifer, NkAssignment:
+         of NkBracketExpression:
+            var id = s
+            while id.kind == NkBracketExpression and len(id) > 0:
+               id = id[0]
+            if id.kind == NkIdentifier:
+               add(result, (n, id))
+         of NkAssignment:
             let id = find_first(s, NkIdentifier)
             add(result, (n, id))
          of NkIdentifier:
@@ -848,11 +862,10 @@ proc find_all_lvalues*(n: PNode): seq[PNode] =
       return
 
    case n.kind
-   of NkVariableLvalue:
-      let id = find_first(n, NkIdentifier)
-      add(result, id)
+   of NkIdentifier, NkBracketExpression, NkDotExpression:
+      add(result, n)
    of NkVariableLvalueConcat:
-      for s in walk_sons(n, {NkVariableLvalue, NkVariableLvalueConcat}):
+      for s in walk_sons(n, LvalueTypes):
          add(result, find_all_lvalues(s))
    else:
       discard
@@ -871,12 +884,12 @@ proc find_all_drivers*(n: PNode, recursive: bool = false): seq[tuple[driver, ide
 
    of NkContinuousAssignment:
       for assignment in walk_sons(n, NkAssignment):
-         let lvalue_node = find_first(assignment, {NkVariableLvalue, NkVariableLvalueConcat})
+         let lvalue_node = find_first(assignment, LvalueTypes)
          for lvalue in find_all_lvalues(lvalue_node):
             add(result, (n, lvalue))
 
    of NkProceduralContinuousAssignment, NkBlockingAssignment, NkNonblockingAssignment:
-      let lvalue_node = find_first(n, {NkVariableLvalue, NkVariableLvalueConcat})
+      let lvalue_node = find_first(n, LvalueTypes)
       for lvalue in find_all_lvalues(lvalue_node):
          add(result, (n, lvalue))
 
@@ -954,6 +967,11 @@ proc `$`*(n: PNode): string =
       add(result, $n[1])
       add(result, ']')
 
+   of NkDotExpression:
+      add(result, $n[0])
+      add(result, '.')
+      add(result, $n[1])
+
    of NkConstantRangeExpression:
       add(result, '[')
       add(result, $n[0])
@@ -994,9 +1012,14 @@ proc `$`*(n: PNode): string =
       add(result, $n[1])
       add(result, ']')
 
-   of NkAssignment, NkParamAssignment:
+   of NkAssignment, NkParamAssignment, NkBlockingAssignment, NkProceduralContinuousAssignment:
       add(result, $n[0])
       add(result, " = ")
+      add(result, $n[1])
+
+   of NkNonblockingAssignment:
+      add(result, $n[0])
+      add(result, " <= ")
       add(result, $n[1])
 
    of NkAttributeInst:

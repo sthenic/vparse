@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
   expression node if the declaration involves an assignment. Otherwise, this
   field is set to `nil`.
 - Ranged expressions with ':' is now an infix node.
+- Removed AST nodes `NkVariableLvalue` and `NkArrayIdentifier`.
 
 ### Added
 

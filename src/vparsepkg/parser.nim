@@ -232,7 +232,7 @@ proc add_attributes(n: var PNode, attributes: seq[PNode]) =
 
 # Forward declarations
 proc parse_constant_expression(p: var Parser): PNode
-proc parse_constant_range_expression(p: var Parser): PNode
+
 
 proc parse_attribute_instance(p: var Parser): PNode =
    result = new_node(p, NkAttributeInst)
@@ -270,6 +270,26 @@ proc parse_range(p: var Parser): PNode =
    expect_token(p, result, TkColon)
    get_token(p)
    add(result.sons, parse_constant_expression(p))
+   expect_token(p, result, TkRbracket)
+   get_token(p)
+
+
+proc parse_dimension(p: var Parser, head: PNode): PNode =
+   # Parse a dimension, requiring two constant expressions separated by the
+   # infix operator ``:``.
+   result = new_node(p, NkBracketExpression)
+   result.loc = head.loc
+   add(result, head)
+   expect_token(p, result, TkLbracket)
+   get_token(p)
+   let first = parse_constant_expression(p)
+   let infix = new_node(p, NkInfix)
+   expect_token(p, result, TkColon)
+   add(infix, new_identifier_node(p, NkIdentifier))
+   get_token(p)
+   add(infix, first)
+   add(infix, parse_constant_expression(p))
+   add(result, infix)
    expect_token(p, result, TkRbracket)
    get_token(p)
 
@@ -345,6 +365,7 @@ proc parse_number(p: var Parser): PNode =
 
 proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
    result = new_node(p, NkBracketExpression)
+   result.loc = head.loc
    get_token(p)
    add(result, head)
    let first = parse_constant_expression(p)
@@ -363,6 +384,7 @@ proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
 
 proc parse_hierarchical_identifier_dot(p: var Parser, head: PNode): PNode =
    result = new_node(p, NkDotExpression)
+   result.loc = head.loc
    get_token(p)
    add(result, head)
    expect_token(p, result, TkSymbol)
@@ -812,11 +834,13 @@ proc parse_constant_range_expression(p: var Parser): PNode =
 proc parse_port_reference(p: var Parser): PNode =
    result = new_node(p, NkPortReference)
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NkPortIdentifier))
+   let id = new_identifier_node(p, NkPortIdentifier)
    get_token(p)
 
    if p.tok.kind == TkLbracket:
-      add(result.sons, parse_constant_range_expression(p))
+      add(result, parse_hierarchical_identifier_bracket(p, id))
+   else:
+      add(result, id)
 
 
 proc parse_port_reference_concat(p: var Parser): PNode =
@@ -899,20 +923,18 @@ proc parse_list_of_ports_or_port_declarations(p: var Parser): PNode =
       result = parse_list_of_ports(p)
 
 
-proc parse_array_identifier(p: var Parser, identifier: PNode): PNode =
-   result = new_node(p, NkArrayIdentifer)
-   result.loc = identifier.loc
-   add(result.sons, identifier)
-   # Handle any number of dimension specifiers (array).
+proc parse_identifier_with_dimension(p: var Parser, identifier: PNode): PNode =
+   result = identifier
+   # Handle any number of dimension specifiers.
    while true:
       if p.tok.kind != TkLbracket:
          break
-      add(result.sons, parse_range(p))
+      result = parse_dimension(p, result)
 
 
 proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
    # Expect at least one variable identifier. Unless we see an equals sign
-   # (assignment) or a left bracket (array), the AST node is a regular
+   # (assignment) or a left bracket (dimension), the AST node is a regular
    # identifier.
    while true:
       expect_token(p, result, TkSymbol)
@@ -921,7 +943,7 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
 
       case p.tok.kind
       of TkLbracket:
-         add(result, parse_array_identifier(p, identifier))
+         add(result, parse_identifier_with_dimension(p, identifier))
       of TkEquals:
          let n = new_node(p, NkAssignment)
          n.loc = identifier.loc
@@ -937,14 +959,14 @@ proc parse_list_of_variable_identifiers(p: var Parser): seq[PNode] =
       get_token(p)
 
 
-proc parse_list_of_array_identifiers(p: var Parser): seq[PNode] =
+proc parse_list_of_identifiers_with_dimension(p: var Parser): seq[PNode] =
    while true:
       expect_token(p, result, TkSymbol)
       let identifier = new_identifier_node(p, NkIdentifier)
       get_token(p)
 
       if p.tok.kind == TkLbracket:
-         add(result, parse_array_identifier(p, identifier))
+         add(result, parse_identifier_with_dimension(p, identifier))
       else:
          add(result, identifier)
 
@@ -989,15 +1011,16 @@ proc parse_list_of_net_identifiers_or_declaration_assignments(p: var Parser): se
          get_token(p)
          add(result, parse_list_of_assignments(p))
    else:
-      # We're parsing a list of net identifiers. These may be arrays.
+      # We're parsing a list of net identifiers. These may have trailing
+      # dimension expressions.
       if p.tok.kind == TkLbracket:
-         add(result, parse_array_identifier(p, first))
+         add(result, parse_identifier_with_dimension(p, first))
       else:
          add(result, first)
 
       if p.tok.kind == TkComma:
          get_token(p)
-         add(result, parse_list_of_array_identifiers(p))
+         add(result, parse_list_of_identifiers_with_dimension(p))
 
 
 proc parse_delay(p: var Parser, nof_expressions: int): PNode =
@@ -1141,10 +1164,9 @@ proc parse_net_declaration(p: var Parser): PNode =
       of DriveStrength:
          add(result.sons, parse_list_of_assignments(p))
       of ChargeStrength:
-         add(result.sons, parse_list_of_array_identifiers(p))
+         add(result.sons, parse_list_of_identifiers_with_dimension(p))
       of None:
-         add(result.sons,
-             parse_list_of_net_identifiers_or_declaration_assignments(p))
+         add(result.sons, parse_list_of_net_identifiers_or_declaration_assignments(p))
    else:
       unexpected_token(p, result)
 
@@ -1155,7 +1177,7 @@ proc parse_net_declaration(p: var Parser): PNode =
 proc parse_event_declaration(p: var Parser): PNode =
    result = new_node(p, NkEventDecl)
    get_token(p)
-   add(result.sons, parse_list_of_array_identifiers(p))
+   add(result.sons, parse_list_of_identifiers_with_dimension(p))
    expect_token(p, result, TkSemicolon)
    get_token(p)
 
@@ -1241,20 +1263,7 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
 proc parse_variable_lvalue(p: var Parser): PNode =
    case p.tok.kind
    of TkSymbol:
-      result = new_node(p, NkVariableLvalue)
-      add(result.sons, new_identifier_node(p, NkIdentifier))
-      get_token(p)
-
-      # The identifier may be followed by any number of bracketed expressions.
-      # However, it's only the last one that's allowed to be a range expression.
-      # TODO: Fix this parsing since we're allowing everything to be a range
-      #       expression. We should probably have NkBrackets like we do for
-      #       parentheses.
-      while true:
-         if p.tok.kind != TkLbracket:
-            break
-         add(result.sons, parse_constant_range_expression(p))
-
+      result = parse_hierarchical_identifier(p, allow_bracket_tail = true)
    of TkLbrace:
       # Concatenation of lvalues, expecting at least one.
       result = new_node(p, NkVariableLvalueConcat)

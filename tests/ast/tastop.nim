@@ -41,6 +41,7 @@ template run_test_drivers(title, stimuli: string, reference: untyped) =
                       fgWhite, "Test '",  title, "'")
       nof_failed += 1
       for i in 0..<len(response):
+         echo "\n### Entry ", i, " ###\n"
          detailed_compare(response[i][0], reference[i][0])
          detailed_compare(response[i][1], reference[i][1])
 
@@ -225,9 +226,10 @@ module port_finder (
    assign first_driver = 0;
 
    always @(posedge clk_i) begin
-      assign {foo, {bar, baz}} = breaking_net;
-      tmp0 <= 0;
-      tmp1 = 1;
+      assign {foo.bar[FOO-1:0], {bar, baz}} = breaking_net;
+      tmp0[0] <= 0;
+      tmp1.foo = 1;
+      tmp2 = 32;
    end
 
 endmodule
@@ -243,9 +245,7 @@ endmodule
    (
       driver: new_node(NkContinuousAssignment, li(6, 4), @[
          new_node(NkAssignment, li(6, 11), @[
-            new_node(NkVariableLvalue, li(6, 11), @[
-               new_identifier_node(NkIdentifier, li(6, 11), "first_driver")
-            ]),
+            new_identifier_node(NkIdentifier, li(6, 11), "first_driver"),
             new_inumber_node(NkIntLit, li(6, 26), "0", Base10, -1)
          ])
       ]),
@@ -255,79 +255,132 @@ endmodule
       driver: new_node(NkProceduralContinuousAssignment, li(9, 7), @[
          new_identifier_node(NkType, li(9, 7), "assign"),
          new_node(NkVariableLvalueConcat, li(9, 14), @[
-            new_node(NkVariableLvalue, li(9, 15), @[
-               new_identifier_node(NkIdentifier, li(9, 15), "foo")
+            new_node(NkBracketExpression, li(9, 15), @[
+               new_node(NkDotExpression, li(9, 15), @[
+                  new_identifier_node(NkIdentifier, li(9, 15), "foo"),
+                  new_identifier_node(NkIdentifier, li(9, 19), "bar"),
+               ]),
+               new_node(NkInfix, li(9, 28), @[
+                  new_identifier_node(NkIdentifier, li(9, 28), ":"),
+                  new_node(NkInfix, li(9, 26), @[
+                     new_identifier_node(NkIdentifier, li(9, 26), "-"),
+                     new_identifier_node(NkIdentifier, li(9, 23), "FOO"),
+                     new_inumber_node(NkIntLit, li(9, 27), "1", Base10, -1)
+                  ]),
+                  new_inumber_node(NkIntLit, li(9, 29), "0", Base10, -1)
+               ]),
             ]),
-            new_node(NkVariableLvalueConcat, li(9, 20), @[
-               new_node(NkVariableLvalue, li(9, 21), @[
-                  new_identifier_node(NkIdentifier, li(9, 21), "bar")
-               ]),
-               new_node(NkVariableLvalue, li(9, 26), @[
-                  new_identifier_node(NkIdentifier, li(9, 26), "baz")
-               ]),
+            new_node(NkVariableLvalueConcat, li(9, 33), @[
+               new_identifier_node(NkIdentifier, li(9, 34), "bar"),
+               new_identifier_node(NkIdentifier, li(9, 39), "baz"),
             ]),
          ]),
-         new_identifier_node(NkIdentifier, li(9, 34), "breaking_net")
+         new_identifier_node(NkIdentifier, li(9, 47), "breaking_net")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(9, 15), "foo")
+      identifier:  new_node(NkBracketExpression, li(9, 15), @[
+         new_node(NkDotExpression, li(9, 15), @[
+            new_identifier_node(NkIdentifier, li(9, 15), "foo"),
+            new_identifier_node(NkIdentifier, li(9, 19), "bar"),
+         ]),
+         new_node(NkInfix, li(9, 28), @[
+            new_identifier_node(NkIdentifier, li(9, 28), ":"),
+            new_node(NkInfix, li(9, 26), @[
+               new_identifier_node(NkIdentifier, li(9, 26), "-"),
+               new_identifier_node(NkIdentifier, li(9, 23), "FOO"),
+               new_inumber_node(NkIntLit, li(9, 27), "1", Base10, -1)
+            ]),
+            new_inumber_node(NkIntLit, li(9, 29), "0", Base10, -1)
+         ]),
+      ]),
    ),
    (
       driver: new_node(NkProceduralContinuousAssignment, li(9, 7), @[
          new_identifier_node(NkType, li(9, 7), "assign"),
          new_node(NkVariableLvalueConcat, li(9, 14), @[
-            new_node(NkVariableLvalue, li(9, 15), @[
-               new_identifier_node(NkIdentifier, li(9, 15), "foo")
+            new_node(NkBracketExpression, li(9, 15), @[
+               new_node(NkDotExpression, li(9, 15), @[
+                  new_identifier_node(NkIdentifier, li(9, 15), "foo"),
+                  new_identifier_node(NkIdentifier, li(9, 19), "bar"),
+               ]),
+               new_node(NkInfix, li(9, 28), @[
+                  new_identifier_node(NkIdentifier, li(9, 28), ":"),
+                  new_node(NkInfix, li(9, 26), @[
+                     new_identifier_node(NkIdentifier, li(9, 26), "-"),
+                     new_identifier_node(NkIdentifier, li(9, 23), "FOO"),
+                     new_inumber_node(NkIntLit, li(9, 27), "1", Base10, -1)
+                  ]),
+                  new_inumber_node(NkIntLit, li(9, 29), "0", Base10, -1)
+               ]),
             ]),
-            new_node(NkVariableLvalueConcat, li(9, 20), @[
-               new_node(NkVariableLvalue, li(9, 21), @[
-                  new_identifier_node(NkIdentifier, li(9, 21), "bar")
-               ]),
-               new_node(NkVariableLvalue, li(9, 26), @[
-                  new_identifier_node(NkIdentifier, li(9, 26), "baz")
-               ]),
+            new_node(NkVariableLvalueConcat, li(9, 33), @[
+               new_identifier_node(NkIdentifier, li(9, 34), "bar"),
+               new_identifier_node(NkIdentifier, li(9, 39), "baz"),
             ]),
          ]),
-         new_identifier_node(NkIdentifier, li(9, 34), "breaking_net")
+         new_identifier_node(NkIdentifier, li(9, 47), "breaking_net")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(9, 21), "bar")
+      identifier: new_identifier_node(NkIdentifier, li(9, 34), "bar")
    ),
    (
       driver: new_node(NkProceduralContinuousAssignment, li(9, 7), @[
          new_identifier_node(NkType, li(9, 7), "assign"),
          new_node(NkVariableLvalueConcat, li(9, 14), @[
-            new_node(NkVariableLvalue, li(9, 15), @[
-               new_identifier_node(NkIdentifier, li(9, 15), "foo")
+            new_node(NkBracketExpression, li(9, 15), @[
+               new_node(NkDotExpression, li(9, 15), @[
+                  new_identifier_node(NkIdentifier, li(9, 15), "foo"),
+                  new_identifier_node(NkIdentifier, li(9, 19), "bar"),
+               ]),
+               new_node(NkInfix, li(9, 28), @[
+                  new_identifier_node(NkIdentifier, li(9, 28), ":"),
+                  new_node(NkInfix, li(9, 26), @[
+                     new_identifier_node(NkIdentifier, li(9, 26), "-"),
+                     new_identifier_node(NkIdentifier, li(9, 23), "FOO"),
+                     new_inumber_node(NkIntLit, li(9, 27), "1", Base10, -1)
+                  ]),
+                  new_inumber_node(NkIntLit, li(9, 29), "0", Base10, -1)
+               ]),
             ]),
-            new_node(NkVariableLvalueConcat, li(9, 20), @[
-               new_node(NkVariableLvalue, li(9, 21), @[
-                  new_identifier_node(NkIdentifier, li(9, 21), "bar")
-               ]),
-               new_node(NkVariableLvalue, li(9, 26), @[
-                  new_identifier_node(NkIdentifier, li(9, 26), "baz")
-               ]),
+            new_node(NkVariableLvalueConcat, li(9, 33), @[
+               new_identifier_node(NkIdentifier, li(9, 34), "bar"),
+               new_identifier_node(NkIdentifier, li(9, 39), "baz"),
             ]),
          ]),
-         new_identifier_node(NkIdentifier, li(9, 34), "breaking_net")
+         new_identifier_node(NkIdentifier, li(9, 47), "breaking_net")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(9, 26), "baz")
+      identifier: new_identifier_node(NkIdentifier, li(9, 39), "baz")
    ),
    (
       driver: new_node(NkNonblockingAssignment, li(10, 7), @[
-         new_node(NkVariableLvalue, li(10, 7), @[
-            new_identifier_node(NkIdentifier, li(10, 7), "tmp0")
+         new_node(NkBracketExpression, li(10, 7), @[
+            new_identifier_node(NkIdentifier, li(10, 7), "tmp0"),
+            new_inumber_node(NkIntLit, li(10, 12), "0", Base10, -1)
          ]),
-         new_inumber_node(NkIntLit, li(10, 15), "0", Base10, -1)
+         new_inumber_node(NkIntLit, li(10, 18), "0", Base10, -1)
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(10, 7), "tmp0")
+      identifier: new_node(NkBracketExpression, li(10, 7), @[
+         new_identifier_node(NkIdentifier, li(10, 7), "tmp0"),
+         new_inumber_node(NkIntLit, li(10, 12), "0", Base10, -1)
+      ]),
    ),
    (
       driver: new_node(NkBlockingAssignment, li(11, 7), @[
-         new_node(NkVariableLvalue, li(11, 7), @[
-            new_identifier_node(NkIdentifier, li(11, 7), "tmp1")
+         new_node(NkDotExpression, li(11, 7), @[
+            new_identifier_node(NkIdentifier, li(11, 7), "tmp1"),
+            new_identifier_node(NkIdentifier, li(11, 12), "foo"),
          ]),
-         new_inumber_node(NkIntLit, li(11, 14), "1", Base10, -1)
+         new_inumber_node(NkIntLit, li(11, 18), "1", Base10, -1)
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(11, 7), "tmp1")
+      identifier: new_node(NkDotExpression, li(11, 7), @[
+         new_identifier_node(NkIdentifier, li(11, 7), "tmp1"),
+         new_identifier_node(NkIdentifier, li(11, 12), "foo"),
+      ]),
+   ),
+   (
+      driver: new_node(NkBlockingAssignment, li(12, 7), @[
+         new_identifier_node(NkIdentifier, li(12, 7), "tmp2"),
+         new_inumber_node(NkIntLit, li(12, 14), "32", Base10, -1)
+      ]),
+      identifier: new_identifier_node(NkIdentifier, li(12, 7), "tmp2")
    )
 ])
 
