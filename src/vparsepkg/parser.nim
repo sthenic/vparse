@@ -363,7 +363,7 @@ proc parse_number(p: var Parser): PNode =
    get_token(p)
 
 
-proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
+proc parse_constant_range_expression(p: var Parser, head: PNode): PNode =
    result = new_node(p, NkBracketExpression)
    result.loc = head.loc
    get_token(p)
@@ -382,7 +382,7 @@ proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
    get_token(p)
 
 
-proc parse_hierarchical_identifier_dot(p: var Parser, head: PNode): PNode =
+proc parse_dot_expression(p: var Parser, head: PNode): PNode =
    result = new_node(p, NkDotExpression)
    result.loc = head.loc
    get_token(p)
@@ -392,11 +392,11 @@ proc parse_hierarchical_identifier_dot(p: var Parser, head: PNode): PNode =
    get_token(p)
 
 
-proc parse_hierarchical_identifier*(p: var Parser, allow_bracket_tail: bool = false): PNode =
+proc parse_hierarchical_identifier*(p: var Parser, allow_trailing_brackets: bool = false): PNode =
    ## Entry point to parse the hierarchical identifier syntax. However, the
    ## syntax is ambiguous without information about the context in the form of
-   ## ``allow_bracket_tail``. If set to ``true``, the expression is allowed to
-   ## end with any number of bracket expressions like:
+   ## ``allow_trailing_brackets``. If set to ``true``, the expression is allowed
+   ## to end with any number of bracket expressions like:
    ## ``a[0].b[FOO].c.d[2][3][4:0]``, the last of which may be a range. If set to
    ## ``false``, only ``a[0].b[FOO].c.d`` would be allowed.
    if look_ahead(p, TkSymbol, {TkDot, TkLbracket}):
@@ -408,23 +408,23 @@ proc parse_hierarchical_identifier*(p: var Parser, allow_bracket_tail: bool = fa
          # expression (infix node) or the next token is neither a '[' nor a '.',
          # we know immediately to quit.
          if p.tok.kind == TkLbracket:
-            result = parse_hierarchical_identifier_bracket(p, result)
-            if allow_bracket_tail and (result[^1].kind == NkInfix or p.tok.kind notin {TkDot, TkLbracket}):
+            result = parse_constant_range_expression(p, result)
+            if allow_trailing_brackets and (result[^1].kind == NkInfix or p.tok.kind notin {TkDot, TkLbracket}):
                break
 
          # If the brackets continue, we enter the tail parse, exiting on the
          # first non-bracket token or if the last node added was a range
          # expression (infix node).
-         if p.tok.kind == TkLbracket and allow_bracket_tail:
+         if p.tok.kind == TkLbracket and allow_trailing_brackets:
             while true:
-               result = parse_hierarchical_identifier_bracket(p, result)
+               result = parse_constant_range_expression(p, result)
                if p.tok.kind != TkLbracket or result[^1].kind == NkInfix:
                   break
             break
 
          # Expect a dot expression.
          expect_token(p, result, TkDot)
-         result = parse_hierarchical_identifier_dot(p, result)
+         result = parse_dot_expression(p, result)
          if p.tok.kind notin {TkDot, TkLbracket}:
             break
    else:
@@ -460,7 +460,7 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
             break
    else:
       # Expect a hierarchical identifier.
-      result = parse_hierarchical_identifier(p, allow_bracket_tail = true)
+      result = parse_hierarchical_identifier(p, allow_trailing_brackets = true)
 
 
 proc parse_mintypmax_expression(p: var Parser): PNode =
@@ -838,7 +838,7 @@ proc parse_port_reference(p: var Parser): PNode =
    get_token(p)
 
    if p.tok.kind == TkLbracket:
-      add(result, parse_hierarchical_identifier_bracket(p, id))
+      add(result, parse_constant_range_expression(p, id))
    else:
       add(result, id)
 
@@ -1263,7 +1263,7 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
 proc parse_variable_lvalue(p: var Parser): PNode =
    case p.tok.kind
    of TkSymbol:
-      result = parse_hierarchical_identifier(p, allow_bracket_tail = true)
+      result = parse_hierarchical_identifier(p, allow_trailing_brackets = true)
    of TkLbrace:
       # Concatenation of lvalues, expecting at least one.
       result = new_node(p, NkVariableLvalueConcat)
