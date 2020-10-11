@@ -762,28 +762,29 @@ proc parse_range_infix(n: PNode, context: AstContext): tuple[low, high: int] =
 
 proc parse_range(n: PNode, context: AstContext): tuple[low, high: int] =
    # We expect either an infix node or a regular expression node.
-   let expression = find_first(n, ExpressionTypes)
-   if is_nil(expression):
-      raise new_evaluation_error("Invalid range.")
-   elif expression.kind == NkInfix:
-      result = parse_range_infix(expression, context)
-   else:
+   case n.kind
+   of NkInfix:
+      result = parse_range_infix(n, context)
+   of ExpressionTypes - {NkInfix}:
       let tok = evaluate_constant_expression(n, context)
       result.low = via_gmp_int(tok)
       result.high = result.low
+   else:
+      raise new_evaluation_error("Invalid range.")
 
 
-proc evaluate_constant_ranged_identifier(n: PNode, context: ExpressionContext): Token =
-   let id = find_first(n, NkIdentifier)
-   let range = find_first(n, NkConstantRangeExpression)
-   if is_nil(id) or is_nil(range):
+proc evaluate_constant_bracket_expression(n: PNode, context: ExpressionContext): Token =
+   let id_idx = find_first_index(n, NkIdentifier)
+   let range_idx = find_first_index(n, ExpressionTypes, id_idx + 1)
+   if id_idx < 0 or range_idx < 0:
       raise new_evaluation_error("Invalid ranged identifier node.")
 
    # Evaluating a constant ranged identifier consists of finding the constant
    # value of the identifier, then extracting the bits between the start and
    # stop indexes.
+   let id = n[id_idx]
    result = evaluate_constant_expression(id, context.ast_context)
-   let (low, high) = parse_range(range, context.ast_context)
+   let (low, high) = parse_range(n[range_idx], context.ast_context)
    if low < 0 or low >= result.size:
       raise new_evaluation_error("Low index '$1' out of range for identifier '$2'.", low, id.identifier.s)
    elif high < 0 or high >= result.size:
@@ -1104,8 +1105,8 @@ proc evaluate_constant_expression(n: PNode, context: ExpressionContext): Token =
       result = evaluate_constant_multiple_concat(n, context)
    of NkConstantConcat:
       result = evaluate_constant_concat(n, context)
-   of NkRangedIdentifier:
-      result = evaluate_constant_ranged_identifier(n, context)
+   of NkBracketExpression:
+      result = evaluate_constant_bracket_expression(n, context)
    of NkConstantSystemFunctionCall:
       result = evaluate_constant_system_function_call(n, context)
    of NkParenthesis:
@@ -1264,14 +1265,15 @@ proc determine_kind_and_size_multiple_concat(n: PNode, context: AstContext): tup
    result.kind = kind
 
 
-proc determine_kind_and_size_ranged_identifier(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
-   let id = find_first(n, NkIdentifier)
-   let range = find_first(n, NkConstantRangeExpression)
-   if is_nil(id) or is_nil(range):
+proc determine_kind_and_size_bracket_expression(n: PNode, context: AstContext): tuple[kind: TokenKind, size: int] =
+   let id_idx = find_first_index(n, NkIdentifier)
+   let range_idx = find_first_index(n, NkInfix, id_idx + 1)
+   if id_idx < 0 or range_idx < 0:
       raise new_evaluation_error("Invalid ranged identifier node.")
 
+   let id = n[id_idx]
    let tok = evaluate_constant_expression(id, context)
-   let (low, high) = parse_range(range, context)
+   let (low, high) = parse_range(n[range_idx], context)
    if low < 0 or low > tok.size:
       raise new_evaluation_error("Low index '$1' out of range for identifier '$2'.", low, id.identifier.s)
    elif high < 0 or high > tok.size:
@@ -1357,8 +1359,8 @@ proc determine_kind_and_size*(n: PNode, context: AstContext): tuple[kind: TokenK
       result = determine_kind_and_size_multiple_concat(n, context)
    of NkConstantConcat:
       result = determine_kind_and_size_concat(n, context)
-   of NkRangedIdentifier:
-      result = determine_kind_and_size_ranged_identifier(n, context)
+   of NkBracketExpression:
+      result = determine_kind_and_size_bracket_expression(n, context)
    of NkConstantSystemFunctionCall:
       result = determine_kind_and_size_system_function_call(n, context)
    of NkParenthesis:

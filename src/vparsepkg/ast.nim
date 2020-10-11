@@ -28,8 +28,7 @@ type
       NkWildcard, # Symbolizes a '*' in an event expression.
       NkComment,
       # Custom node types
-      NkRangedIdentifier, # FIXME: Still useful? Same as NkArrayIdentifier?
-      NkArrayIdentifer,
+      NkArrayIdentifer, # FIXME: Do away with this when we have NkBracketExpression
       NkAssignment,
       # Modules A.1.3
       NkSourceText,
@@ -140,9 +139,10 @@ const
       {NkConstantConcat, NkConstantMultipleConcat, NkPortReferenceConcat,
        NkVariableLvalueConcat}
 
+   # FIXME: Add NkDotExpression?
    ExpressionTypes* =
       IntegerTypes + {NkRealLit, NkPrefix, NkInfix, NkConstantFunctionCall,
-      NkIdentifier, NkRangedIdentifier, NkConstantMultipleConcat,
+      NkIdentifier, NkBracketExpression, NkConstantMultipleConcat,
       NkConstantConcat, NkConstantSystemFunctionCall, NkParenthesis,
       NkStrLit, NkConstantConditionalExpression}
 
@@ -948,9 +948,11 @@ proc `$`*(n: PNode): string =
    of IdentifierTypes:
       result = n.identifier.s
 
-   of NkRangedIdentifier:
-      for i, s in n.sons:
-         add(result, $s)
+   of NkBracketExpression:
+      add(result, $n[0])
+      add(result, '[')
+      add(result, $n[1])
+      add(result, ']')
 
    of NkConstantRangeExpression:
       add(result, '[')

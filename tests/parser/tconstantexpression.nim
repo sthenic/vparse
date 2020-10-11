@@ -114,19 +114,17 @@ run_test("Constant primary: identifier", "FOO"):
    new_identifier_node(NkIdentifier, li(1, 1), "FOO")
 
 run_test("Constant primary: identifier w/ range", "bar[WIDTH-1:0]"):
-   new_node(NkRangedIdentifier, li(1, 1), @[
+   new_node(NkBracketExpression, li(1, 4), @[
       new_identifier_node(NkIdentifier, li(1, 1), "bar"),
-      new_node(NkConstantRangeExpression, li(1, 4), @[
-         new_node(NkInfix, li(1, 12), @[
-            new_identifier_node(NkIdentifier, li(1, 12), ":"),
-            new_node(NkInfix, li(1, 10), @[
-               new_identifier_node(NkIdentifier, li(1, 10), "-"),
-               new_identifier_node(NkIdentifier, li(1, 5), "WIDTH"),
-               new_inumber_node(NkIntLit, li(1, 11), "1", Base10, -1)
-            ]),
-            new_inumber_node(NkIntLit, li(1, 13), "0", Base10, -1)
+      new_node(NkInfix, li(1, 12), @[
+         new_identifier_node(NkIdentifier, li(1, 12), ":"),
+         new_node(NkInfix, li(1, 10), @[
+            new_identifier_node(NkIdentifier, li(1, 10), "-"),
+            new_identifier_node(NkIdentifier, li(1, 5), "WIDTH"),
+            new_inumber_node(NkIntLit, li(1, 11), "1", Base10, -1)
          ]),
-      ])
+         new_inumber_node(NkIntLit, li(1, 13), "0", Base10, -1)
+      ]),
    ])
 
 run_test("Constant primary: concatenation", "{64, 32, foobar}"):

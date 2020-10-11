@@ -9,9 +9,9 @@ var
    cache: IdentifierCache
 
 
-template run_test(title, stimuli: string, reference: PNode) =
+template run_test(title: string, allow_bracket_tail: bool, stimuli: string, reference: PNode) =
    cache = new_ident_cache()
-   let response = parse_specific_grammar(stimuli, cache, NkHierarchicalIdentifier)
+   let response = parse_specific_grammar(stimuli, cache, NkHierarchicalIdentifier, allow_bracket_tail)
 
    if response == reference:
       styledWriteLine(stdout, styleBright, fgGreen, "[✓] ",
@@ -40,78 +40,142 @@ Test suite: hierarchical identifier
 -----------------------------------""")
 
 # Run tests
-run_test("Simple identifier", """
+run_test("Simple identifier", false, """
    an_identifier
 """):
-   new_node(NkHierarchicalIdentifier, li(1, 4), @[
-      new_identifier_node(NkIdentifier, li(1, 4), "an_identifier"),
+   new_identifier_node(NkIdentifier, li(1, 4), "an_identifier")
+
+
+run_test("Simple identifier w/ constant (allowed)", true, """
+   foo[5])
+"""):
+   new_node(NkBracketExpression, li(1, 7), @[
+      new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+      new_inumber_node(NkIntLit, li(1, 8), "5", Base10, -1),
+      new_node(NkExpectError, li(2, 1), @[
+         new_error_node(NkTokenError, li(2, 1), "", "Expected token Symbol, got '[EOF]'")
+      ])
    ])
 
 
-run_test("Dot expressions", """
+run_test("Simple identifier w/ range (not allowed)", false, """
+   foo[5:0]
+"""):
+   new_node(NkBracketExpression, li(1, 7), @[
+      new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+      new_node(NkInfix, li(1, 9), @[
+         new_identifier_node(NkIdentifier, li(1, 9), ":"),
+         new_inumber_node(NkIntLit, li(1, 8), "5", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 10), "0", Base10, -1)
+      ]),
+      new_node(NkExpectError, li(2, 1), @[
+         new_error_node(NkTokenError, li(2, 1), "", "Expected token Symbol, got '[EOF]'")
+      ])
+   ])
+
+
+run_test("Simple identifier w/ range (allowed)", true, """
+   foo[5:0]
+"""):
+   new_node(NkBracketExpression, li(1, 7), @[
+      new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+      new_node(NkInfix, li(1, 9), @[
+         new_identifier_node(NkIdentifier, li(1, 9), ":"),
+         new_inumber_node(NkIntLit, li(1, 8), "5", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 10), "0", Base10, -1)
+      ])
+   ])
+
+
+run_test("Dot expressions", false, """
    global.local0.local1
 """):
-   new_node(NkHierarchicalIdentifier, li(1, 4), @[
-      new_node(NkDotExpression, li(1, 17), @[
-         new_node(NkDotExpression, li(1, 10), @[
-            new_identifier_node(NkIdentifier, li(1, 4), "global"),
-            new_identifier_node(NkIdentifier, li(1, 11), "local0"),
-         ]),
-         new_identifier_node(NkIdentifier, li(1, 18), "local1"),
-      ])
+   new_node(NkDotExpression, li(1, 17), @[
+      new_node(NkDotExpression, li(1, 10), @[
+         new_identifier_node(NkIdentifier, li(1, 4), "global"),
+         new_identifier_node(NkIdentifier, li(1, 11), "local0"),
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 18), "local1"),
    ])
 
 
-run_test("Complex identifier", """
+run_test("Complex identifier", false, """
    a[0].b.c[FOO].d
 """):
-   new_node(NkHierarchicalIdentifier, li(1, 4), @[
-      new_node(NkDotExpression, li(1, 17), @[
-         new_node(NkBracketExpression, li(1, 12), @[
-            new_node(NkDotExpression, li(1, 10), @[
-               new_node(NkDotExpression, li(1, 8), @[
-                  new_node(NkBracketExpression, li(1, 5), @[
-                     new_identifier_node(NkIdentifier, li(1, 4), "a"),
-                     new_inumber_node(NkIntLit, li(1, 6), "0", Base10, -1)
-                  ]),
-                  new_identifier_node(NkIdentifier, li(1, 9), "b"),
+   new_node(NkDotExpression, li(1, 17), @[
+      new_node(NkBracketExpression, li(1, 12), @[
+         new_node(NkDotExpression, li(1, 10), @[
+            new_node(NkDotExpression, li(1, 8), @[
+               new_node(NkBracketExpression, li(1, 5), @[
+                  new_identifier_node(NkIdentifier, li(1, 4), "a"),
+                  new_inumber_node(NkIntLit, li(1, 6), "0", Base10, -1)
                ]),
-               new_identifier_node(NkIdentifier, li(1, 11), "c"),
+               new_identifier_node(NkIdentifier, li(1, 9), "b"),
             ]),
-            new_identifier_node(NkIdentifier, li(1, 13), "FOO"),
+            new_identifier_node(NkIdentifier, li(1, 11), "c"),
          ]),
-         new_identifier_node(NkIdentifier, li(1, 18), "d"),
-      ])
+         new_identifier_node(NkIdentifier, li(1, 13), "FOO"),
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 18), "d"),
    ])
 
 
-run_test("Complex identifier, ends w/ bracket expression (error)", """
+run_test("Complex identifier, ends w/ bracket expression (not allowed)", false, """
    a.b[80].c.d[FOO]
 """):
-   new_node(NkHierarchicalIdentifier, li(1, 4), @[
-      new_node(NkDotExpression, li(2, 1), @[
-         new_node(NkBracketExpression, li(1, 15), @[
-            new_node(NkDotExpression, li(1, 13), @[
-               new_node(NkDotExpression, li(1, 11), @[
-                  new_node(NkBracketExpression, li(1, 7), @[
-                     new_node(NkDotExpression, li(1, 5), @[
-                        new_identifier_node(NkIdentifier, li(1, 4), "a"),
-                        new_identifier_node(NkIdentifier, li(1, 6), "b"),
-                     ]),
-                     new_inumber_node(NkIntLit, li(1, 8), "80", Base10, -1)
-                  ]),
-                  new_identifier_node(NkIdentifier, li(1, 12), "c"),
+   new_node(NkBracketExpression, li(1, 15), @[
+      new_node(NkDotExpression, li(1, 13), @[
+         new_node(NkDotExpression, li(1, 11), @[
+            new_node(NkBracketExpression, li(1, 7), @[
+               new_node(NkDotExpression, li(1, 5), @[
+                  new_identifier_node(NkIdentifier, li(1, 4), "a"),
+                  new_identifier_node(NkIdentifier, li(1, 6), "b"),
                ]),
-               new_identifier_node(NkIdentifier, li(1, 14), "d"),
+               new_inumber_node(NkIntLit, li(1, 8), "80", Base10, -1)
             ]),
-            new_identifier_node(NkIdentifier, li(1, 16), "FOO"),
+            new_identifier_node(NkIdentifier, li(1, 12), "c"),
          ]),
-         new_node(NkExpectError, li(2, 1), @[
-            new_error_node(NkTokenError, li(2, 1), "", "Expected token Symbol, got '[EOF]'")
-         ])
+         new_identifier_node(NkIdentifier, li(1, 14), "d"),
+      ]),
+      new_identifier_node(NkIdentifier, li(1, 16), "FOO"),
+      new_node(NkExpectError, li(2, 1), @[
+         new_error_node(NkTokenError, li(2, 1), "", "Expected token Symbol, got '[EOF]'")
       ])
    ])
 
+
+run_test("Complex identifier, ends w/ bracket expression (allowed)", true, """
+   a.b[80].c.d[FOO][4][3][1+:16]
+"""):
+   new_node(NkBracketExpression, li(1, 26), @[
+      new_node(NkBracketExpression, li(1, 23), @[
+         new_node(NkBracketExpression, li(1, 20), @[
+            new_node(NkBracketExpression, li(1, 15), @[
+               new_node(NkDotExpression, li(1, 13), @[
+                  new_node(NkDotExpression, li(1, 11), @[
+                     new_node(NkBracketExpression, li(1, 7), @[
+                        new_node(NkDotExpression, li(1, 5), @[
+                           new_identifier_node(NkIdentifier, li(1, 4), "a"),
+                           new_identifier_node(NkIdentifier, li(1, 6), "b"),
+                        ]),
+                        new_inumber_node(NkIntLit, li(1, 8), "80", Base10, -1)
+                     ]),
+                     new_identifier_node(NkIdentifier, li(1, 12), "c"),
+                  ]),
+                  new_identifier_node(NkIdentifier, li(1, 14), "d"),
+               ]),
+               new_identifier_node(NkIdentifier, li(1, 16), "FOO"),
+            ]),
+            new_inumber_node(NkIntLit, li(1, 21), "4", Base10, -1),
+         ]),
+         new_inumber_node(NkIntLit, li(1, 24), "3", Base10, -1),
+      ]),
+      new_node(NkInfix, li(1, 28), @[
+         new_identifier_node(NkIdentifier, li(1, 28), "+:"),
+         new_inumber_node(NkIntLit, li(1, 27), "1", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 30), "16", Base10, -1)
+      ])
+   ])
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")

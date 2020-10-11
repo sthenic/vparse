@@ -33,6 +33,9 @@ All notable changes to this project will be documented in this file.
   omitted.
 - Fix an issue where the lexer would throw an exception when parsing a decimal
   constant larger than 64 bits.
+- Hierarchical identifiers are now supported `foo.bar[1].baz[3:0]`. Previously,
+  only ranged identifiers was allowed and the scoping syntax with `.` didn't
+  work.
 
 ## [v0.2.2] - 2020-08-31
 

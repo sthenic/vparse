@@ -343,14 +343,80 @@ proc parse_number(p: var Parser): PNode =
    get_token(p)
 
 
+proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
+   result = new_node(p, NkBracketExpression)
+   get_token(p)
+   add(result, head)
+   let first = parse_constant_expression(p)
+   if p.tok.kind in {TkColon, TkPlusColon, TkMinusColon}:
+      let infix = new_node(p, NkInfix)
+      add(infix, new_identifier_node(p, NkIdentifier))
+      add(infix, first)
+      get_token(p)
+      add(infix, parse_constant_expression(p))
+      add(result, infix)
+   else:
+      add(result, first)
+   expect_token(p, result, TkRbracket)
+   get_token(p)
+
+
+proc parse_hierarchical_identifier_dot(p: var Parser, head: PNode): PNode =
+   result = new_node(p, NkDotExpression)
+   get_token(p)
+   add(result, head)
+   expect_token(p, result, TkSymbol)
+   add(result, new_identifier_node(p, NkIdentifier))
+   get_token(p)
+
+
+proc parse_hierarchical_identifier*(p: var Parser, allow_bracket_tail: bool = false): PNode =
+   ## Entry point to parse the hierarchical identifier syntax. However, the
+   ## syntax is ambiguous without information about the context in the form of
+   ## ``allow_bracket_tail``. If set to ``true``, the expression is allowed to
+   ## end with any number of bracket expressions like:
+   ## ``a[0].b[FOO].c.d[2][3][4:0]``, the last of which may be a range. If set to
+   ## ``false``, only ``a[0].b[FOO].c.d`` would be allowed.
+   if look_ahead(p, TkSymbol, {TkDot, TkLbracket}):
+      result = new_identifier_node(p, NkIdentifier)
+      get_token(p)
+      while true:
+         # The dot syntax allows an optional bracket expression. However, if we
+         # allow a tail of bracket expressions and the one we added was a range
+         # expression (infix node) or the next token is neither a '[' nor a '.',
+         # we know immediately to quit.
+         if p.tok.kind == TkLbracket:
+            result = parse_hierarchical_identifier_bracket(p, result)
+            if allow_bracket_tail and (result[^1].kind == NkInfix or p.tok.kind notin {TkDot, TkLbracket}):
+               break
+
+         # If the brackets continue, we enter the tail parse, exiting on the
+         # first non-bracket token or if the last node added was a range
+         # expression (infix node).
+         if p.tok.kind == TkLbracket and allow_bracket_tail:
+            while true:
+               result = parse_hierarchical_identifier_bracket(p, result)
+               if p.tok.kind != TkLbracket or result[^1].kind == NkInfix:
+                  break
+            break
+
+         # Expect a dot expression.
+         expect_token(p, result, TkDot)
+         result = parse_hierarchical_identifier_dot(p, result)
+         if p.tok.kind notin {TkDot, TkLbracket}:
+            break
+   else:
+      expect_token(p, result, TkSymbol)
+      result = new_identifier_node(p, NkIdentifier)
+      get_token(p)
+
+
 proc parse_constant_primary_identifier(p: var Parser): PNode =
    expect_token(p, TkSymbol)
-   let identifier = new_identifier_node(p, NkIdentifier)
-
-   get_token(p)
-   case p.tok.kind
-   of TkLparenStar, TkLparen:
+   if look_ahead(p, TkSymbol, {TkLparenStar, TkLparen}):
       # Parsing a constant function call.
+      let identifier = new_identifier_node(p, NkIdentifier)
+      get_token(p)
       result = new_node(p, NkConstantFunctionCall)
       result.loc = identifier.loc
       add(result.sons, identifier)
@@ -371,23 +437,8 @@ proc parse_constant_primary_identifier(p: var Parser): PNode =
          else:
             break
    else:
-      # We've parsed a simple identifier.
-      if p.tok.kind == TkLbracket:
-         result = new_node(p, NkRangedIdentifier)
-         result.loc = identifier.loc
-         add(result.sons, identifier)
-         # The identifier may be followed by any number of bracketed expressions.
-         # However, it's only the last one that's allowed to be a range expression.
-         # TODO: Fix this parsing since we're allowing everything to be a range
-         #       expression. We should probably have NkBrackets like we do for
-         #       parentheses.
-         # FIXME: Add test case for this [3][5][6:0]
-         while true:
-            if p.tok.kind != TkLbracket:
-               break
-            add(result.sons, parse_constant_range_expression(p))
-      else:
-         result = identifier
+      # Expect a hierarchical identifier.
+      result = parse_hierarchical_identifier(p, allow_bracket_tail = true)
 
 
 proc parse_mintypmax_expression(p: var Parser): PNode =
@@ -1185,48 +1236,6 @@ proc parse_block_item_declaration(p: var Parser, attributes: seq[PNode]): PNode 
       return
 
    add_attributes(result, attributes)
-
-
-proc parse_hierarchical_identifier_bracket(p: var Parser, head: PNode): PNode =
-   result = new_node(p, NkBracketExpression)
-   get_token(p)
-   add(result, head)
-   add(result, parse_constant_expression(p))
-   expect_token(p, result, TkRbracket)
-   get_token(p)
-
-
-proc parse_hierarchical_identifier_dot(p: var Parser, head: PNode): PNode =
-   result = new_node(p, NkDotExpression)
-   get_token(p)
-   add(result, head)
-   expect_token(p, result, TkSymbol)
-   add(result, new_identifier_node(p, NkIdentifier))
-   get_token(p)
-
-
-proc parse_hierarchical_identifier(p: var Parser): PNode =
-   result = new_node(p, NkHierarchicalIdentifier)
-   # A hierarchical identifier can look like 'a[0].b.c[FOO].d' or just 'a'. We
-   # begin by using the look-ahead buffer to determine what syntax to expect. If
-   # we find a dot token or a bracket token, the entire identifier chain will be
-   # parsed by logic that will ensure that the final identifier is not followed
-   # by a bracket expression. Basically, the assumption is that we're looking at
-   # a chain of dot expressions.
-   if look_ahead(p, TkSymbol, {TkDot, TkLbracket}):
-      var head = new_identifier_node(p, NkIdentifier)
-      get_token(p)
-      while true:
-         if p.tok.kind == TkLbracket:
-            head = parse_hierarchical_identifier_bracket(p, head)
-         head = parse_hierarchical_identifier_dot(p, head)
-         if p.tok.kind notin {TkDot, TkLbracket}:
-            break
-      add(result, head)
-   else:
-      expect_token(p, result, TkSymbol)
-      add(result, new_identifier_node(p, NkIdentifier))
-      get_token(p)
 
 
 proc parse_variable_lvalue(p: var Parser): PNode =
@@ -2398,7 +2407,7 @@ proc parse_string*(s: string, cache: IdentifierCache): PNode =
 
 
 # Procedure used by the test framework to parse subsets of the grammar.
-proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind): PNode =
+proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind, b: bool = false): PNode =
    var p: Parser
    var ss = new_string_stream(s)
    var locations: PLocations
@@ -2406,6 +2415,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
    open_parser(p, cache, ss, "", locations, [], [])
 
    var parse_proc: proc (p: var Parser): PNode
+   var parse_proc_bool: proc (p: var Parser, b: bool): PNode
    case kind
    of NkListOfPorts, NkListOfPortDeclarations:
       parse_proc = parse_list_of_ports_or_port_declarations
@@ -2428,7 +2438,7 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
    of NkBlockingAssignment, NkNonblockingAssignment:
       parse_proc = parse_blocking_or_nonblocking_assignment
    of NkHierarchicalIdentifier:
-      parse_proc = parse_hierarchical_identifier
+      parse_proc_bool = parse_hierarchical_identifier
    else:
       parse_proc = nil
 
@@ -2436,6 +2446,9 @@ proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind):
       # Expect only one top-level statement per call.
       get_token(p)
       result = parse_proc(p)
+   elif not is_nil(parse_proc_bool):
+      get_token(p)
+      result = parse_proc_bool(p, b)
    else:
       result = new_error_node(p, NkCritical, GrammarNotSupported, $kind)
 
