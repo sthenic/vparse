@@ -587,6 +587,18 @@ proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
          result = nil
    of PrimitiveTypes - IdentifierTypes:
       result = nil
+   of NkDotExpression:
+      # TODO: Lookup of hierarchical identifiers are currently not supported.
+      # However, identifiers contained in bracket expressions (could be one of
+      # the sons) should still be included. We skip any identifier nodes that
+      # are directly in the list of sons to this dot expression node.
+      for i, s in n.sons:
+         if s.kind notin IdentifierTypes:
+            add(context, i, n)
+            result = find_identifier(s, loc, context, added_length)
+            if not is_nil(result):
+               return
+            discard pop(context)
    else:
       # TODO: Perhaps we can improve the search here? Skipping entire subtrees
       #       depending on the location of the first node within?
