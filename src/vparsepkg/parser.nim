@@ -392,6 +392,13 @@ proc parse_dot_expression(p: var Parser, head: PNode): PNode =
    get_token(p)
 
 
+proc is_range_expression(n: PNode): bool =
+   ## Test if ``n`` is a range expression, i.e. an infix node with one of the
+   ## operators ``:``, ``+:`` or ``-:``.
+   result = n.kind == NkInfix and len(n) > 0 and
+            n[0].identifier.s in [$TkColon, $TkPlusColon, $TkMinusColon]
+
+
 proc parse_hierarchical_identifier*(p: var Parser, allow_trailing_brackets: bool = false): PNode =
    ## Entry point to parse the hierarchical identifier syntax. However, the
    ## syntax is ambiguous without information about the context in the form of
@@ -405,20 +412,25 @@ proc parse_hierarchical_identifier*(p: var Parser, allow_trailing_brackets: bool
       while true:
          # The dot syntax allows an optional bracket expression. However, if we
          # allow a tail of bracket expressions and the one we added was a range
-         # expression (infix node) or the next token is neither a '[' nor a '.',
-         # we know immediately to quit.
+         # expression or the next token is neither a '[' nor a '.', we know
+         # immediately to quit.
          if p.tok.kind == TkLbracket:
             result = parse_constant_range_expression(p, result)
-            if allow_trailing_brackets and (result[^1].kind == NkInfix or p.tok.kind notin {TkDot, TkLbracket}):
-               break
+            if allow_trailing_brackets:
+               if len(result) > 0 and is_range_expression(result[^1]):
+                  break
+               elif p.tok.kind notin {TkDot, TkLbracket}:
+                  break
 
          # If the brackets continue, we enter the tail parse, exiting on the
          # first non-bracket token or if the last node added was a range
-         # expression (infix node).
+         # expression.
          if p.tok.kind == TkLbracket and allow_trailing_brackets:
             while true:
                result = parse_constant_range_expression(p, result)
-               if p.tok.kind != TkLbracket or result[^1].kind == NkInfix:
+               if len(result) > 0 and is_range_expression(result[^1]):
+                  break
+               elif p.tok.kind != TkLbracket:
                   break
             break
 

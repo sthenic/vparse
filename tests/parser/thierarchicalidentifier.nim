@@ -84,6 +84,26 @@ run_test("Simple identifier w/ range (allowed)", true, """
    ])
 
 
+run_test("Simple identifier w/ range (allowed)", true, """
+   foo[FOO-1][5:0]
+"""):
+   new_node(NkBracketExpression, li(1, 4), @[
+      new_node(NkBracketExpression, li(1, 4), @[
+         new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+         new_node(NkInfix, li(1, 11), @[
+            new_identifier_node(NkIdentifier, li(1, 11), "-"),
+            new_identifier_node(NkIdentifier, li(1, 8), "FOO"),
+            new_inumber_node(NkIntLit, li(1, 12), "1", Base10, -1)
+         ]),
+      ]),
+      new_node(NkInfix, li(1, 16), @[
+         new_identifier_node(NkIdentifier, li(1, 16), ":"),
+         new_inumber_node(NkIntLit, li(1, 15), "5", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 17), "0", Base10, -1)
+      ])
+   ])
+
+
 run_test("Dot expressions", false, """
    global.local0.local1
 """):
