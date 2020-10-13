@@ -395,8 +395,7 @@ proc parse_dot_expression(p: var Parser, head: PNode): PNode =
 proc is_range_expression(n: PNode): bool =
    ## Test if ``n`` is a range expression, i.e. an infix node with one of the
    ## operators ``:``, ``+:`` or ``-:``.
-   result = n.kind == NkInfix and len(n) > 0 and
-            n[0].identifier.s in [$TkColon, $TkPlusColon, $TkMinusColon]
+   result = n.kind == NkInfix and len(n) > 0 and n[0].identifier.s in [":", "+:", "-:"]
 
 
 proc parse_hierarchical_identifier*(p: var Parser, allow_trailing_brackets: bool = false): PNode =

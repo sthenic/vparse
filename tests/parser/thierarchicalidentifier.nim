@@ -84,7 +84,7 @@ run_test("Simple identifier w/ range (allowed)", true, """
    ])
 
 
-run_test("Simple identifier w/ range (allowed)", true, """
+run_test("Simple identifier w/ range, two infix nodes", true, """
    foo[FOO-1][5:0]
 """):
    new_node(NkBracketExpression, li(1, 4), @[
@@ -100,6 +100,59 @@ run_test("Simple identifier w/ range (allowed)", true, """
          new_identifier_node(NkIdentifier, li(1, 16), ":"),
          new_inumber_node(NkIntLit, li(1, 15), "5", Base10, -1),
          new_inumber_node(NkIntLit, li(1, 17), "0", Base10, -1)
+      ])
+   ])
+
+
+run_test("Simple identifier w/ range, two ranges (stops at first)", true, """
+   foo[3:0][5:0]
+"""):
+   new_node(NkBracketExpression, li(1, 4), @[
+      new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+      new_node(NkInfix, li(1, 9), @[
+         new_identifier_node(NkIdentifier, li(1, 9), ":"),
+         new_inumber_node(NkIntLit, li(1, 8), "3", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 10), "0", Base10, -1)
+      ])
+   ])
+
+
+run_test("Simple identifier w/ range '+:'", true, """
+   foo[FOO-1][0 +: 3][4]
+"""):
+   new_node(NkBracketExpression, li(1, 4), @[
+      new_node(NkBracketExpression, li(1, 4), @[
+         new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+         new_node(NkInfix, li(1, 11), @[
+            new_identifier_node(NkIdentifier, li(1, 11), "-"),
+            new_identifier_node(NkIdentifier, li(1, 8), "FOO"),
+            new_inumber_node(NkIntLit, li(1, 12), "1", Base10, -1)
+         ]),
+      ]),
+      new_node(NkInfix, li(1, 17), @[
+         new_identifier_node(NkIdentifier, li(1, 17), "+:"),
+         new_inumber_node(NkIntLit, li(1, 15), "0", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 20), "3", Base10, -1)
+      ])
+   ])
+
+
+run_test("Simple identifier w/ range '+:'", true, """
+   foo[FOO-1][15 -: 8][4]
+"""):
+   new_node(NkBracketExpression, li(1, 4), @[
+      new_node(NkBracketExpression, li(1, 4), @[
+         new_identifier_node(NkIdentifier, li(1, 4), "foo"),
+         new_node(NkInfix, li(1, 11), @[
+            new_identifier_node(NkIdentifier, li(1, 11), "-"),
+            new_identifier_node(NkIdentifier, li(1, 8), "FOO"),
+            new_inumber_node(NkIntLit, li(1, 12), "1", Base10, -1)
+         ]),
+      ]),
+      new_node(NkInfix, li(1, 18), @[
+         new_identifier_node(NkIdentifier, li(1, 18), "-:"),
+         new_inumber_node(NkIntLit, li(1, 15), "15", Base10, -1),
+         new_inumber_node(NkIntLit, li(1, 21), "8", Base10, -1)
       ])
    ])
 
