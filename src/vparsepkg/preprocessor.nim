@@ -454,7 +454,6 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
    ## Fewer arguments is an error. This proc expects the opening parenthesis
    ## as the first token in the stream.
    let nof_arguments = len(def.parameters)
-   result = init_table[string, seq[Token]](right_size(nof_arguments))
 
    # Expect an opening parenthesis.
    var tok: Token
