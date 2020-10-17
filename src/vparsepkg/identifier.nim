@@ -3,6 +3,8 @@ import strutils
 import hashes
 import ./special_words
 
+export special_words
+
 type
    PIdentifier* = ref TIdentifier
    TIdentifier* = object of RootObj

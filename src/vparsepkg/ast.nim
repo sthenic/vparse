@@ -566,6 +566,40 @@ iterator walk_nodes_starting_with*(nodes: openarray[PNode], prefix: string): PNo
          yield n
 
 
+proc find_all_identifiers*(n: PNode, context: var AstContext, recursive: bool = false): seq[tuple[id: PNode, context: AstContext]] =
+   ## Find all the identifiers in ``n``, returning a tuple of each identifier
+   ## node and its context.
+   case n.kind
+   of IdentifierTypes:
+      if n.identifier.s in SpecialWords:
+         return
+      add(result, (n, context))
+   of PrimitiveTypes - IdentifierTypes:
+      discard
+   of NkDotExpression:
+      # add(result, (n, context))
+      for i, s in n.sons:
+         if s.kind notin IdentifierTypes:
+            add(context, i, n)
+            add(result, find_all_identifiers(s, context, recursive))
+            discard pop(context)
+   else:
+      if not recursive:
+         return
+      for i, s in n.sons:
+         add(context, i, n)
+         add(result, find_all_identifiers(s, context, recursive))
+         discard pop(context)
+
+
+iterator walk_identifiers*(n: PNode, recursive: bool = false): tuple[id: PNode, context: AstContext] {.inline.} =
+   ## Walk all identifiers in ``n`` (depth first) returning a tuple of the
+   ## identifier node and its context.
+   var context: AstContext
+   for (n, c) in find_all_identifiers(n, context, recursive):
+      yield (n, c)
+
+
 proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
                       added_length: int = 0): PNode =
    ## Descend into ``n``, searching for the identifier at the target location
