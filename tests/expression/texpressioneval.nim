@@ -810,224 +810,224 @@ run_test("Constant replication, zero allowed (other operand w/ positive size)", 
    localparam a = 32'hAAAA_BBBB;
 """, "{ {32-P{1'b1}}, a[P-1:0] }", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "10101010101010101011101110111011"))
 
-# run_test("Constant replication, used in expression (unsigned)", "",
-#    "4'd3 + {(2+1){1'b1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 4, "1010"))
+run_test("Constant replication, used in expression (unsigned)", "",
+   "4'd3 + {(2+1){1'b1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 4, "1010"))
 
-# run_test("Constant replication, used in expression (signed)", "",
-#    "4'sd3 + {(2+1){1'sb1}}",  new_inumber(TkIntLit, loc(0, 0, 0), Base2, 4, "0010"))
+run_test("Constant replication, used in expression (signed)", "",
+   "4'sd3 + {(2+1){1'sb1}}",  new_inumber(TkIntLit, loc(0, 0, 0), Base2, 4, "0010"))
 
-# run_test("Constant replication, used in expression (unsigned due to range select)", """
-#    localparam BAR = 6'sd3;
-# """,
-#    "BAR[3:0] + {(2+1){1'sb1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 4, "1010"))
+run_test("Constant replication, used in expression (unsigned due to range select)", """
+   localparam BAR = 6'sd3;
+""",
+   "BAR[3:0] + {(2+1){1'sb1}}",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 4, "1010"))
 
-# run_test("Conversion functions, $unsigned, no argument (error)", "",
-#    "$unsigned()",  Token(), true)
+run_test("Conversion functions, $unsigned, no argument (error)", "",
+   "$unsigned()",  Token(), true)
 
-# run_test("Conversion functions, $unsigned, noninteger argument (error)", "",
-#    "$unsigned(3.14)",  Token(), true)
+run_test("Conversion functions, $unsigned, noninteger argument (error)", "",
+   "$unsigned(3.14)",  Token(), true)
 
-# run_test("Conversion functions, $unsigned (1)", "",
-#    "$unsigned(-4)",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "11111111111111111111111111111100"))
+run_test("Conversion functions, $unsigned (1)", "",
+   "$unsigned(-4)",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "11111111111111111111111111111100"))
 
-# run_test("Conversion functions, $unsigned (2)", "",
-#    "0 + $unsigned(-4'sd4)",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000001100"))
+run_test("Conversion functions, $unsigned (2)", "",
+   "0 + $unsigned(-4'sd4)",  new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000001100"))
 
-# run_test("Conversion functions, $unsigned, ambiguous", "",
-#    "$unsigned(-4'sb11xZ)",  new_inumber(TkAmbUIntLit, loc(0, 0, 0), Base2, 4, "xxxx"))
+run_test("Conversion functions, $unsigned, ambiguous", "",
+   "$unsigned(-4'sb11xZ)",  new_inumber(TkAmbUIntLit, loc(0, 0, 0), Base2, 4, "xxxx"))
 
-# run_test("Conversion functions, $unsigned w/ real", "",
-#    "0.1 + $unsigned(-2)",  new_fnumber(TkRealLit, loc(0, 0, 0), 4294967294.1, "4294967294.1"))
+run_test("Conversion functions, $unsigned w/ real", "",
+   "0.1 + $unsigned(-2)",  new_fnumber(TkRealLit, loc(0, 0, 0), 4294967294.1, "4294967294.1"))
 
-# run_test("Conversion functions, $signed (1)", "",
-#    "$signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), Base2, 4, "1100"))
+run_test("Conversion functions, $signed (1)", "",
+   "$signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), Base2, 4, "1100"))
 
-# run_test("Conversion functions, $signed (2)", "",
-#    "0 + $signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "11111111111111111111111111111100"))
+run_test("Conversion functions, $signed (2)", "",
+   "0 + $signed(4'b1100)",  new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "11111111111111111111111111111100"))
 
-# run_test("Conversion functions, $signed, ambiguous", "",
-#    "$signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), Base2, 3, "x?1"))
+run_test("Conversion functions, $signed, ambiguous", "",
+   "$signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), Base2, 3, "x?1"))
 
-# run_test("Conversion functions, $signed, ambiguous", "",
-#    "6'sd0 + $signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), Base2, 6, "xxxxxx"))
+run_test("Conversion functions, $signed, ambiguous", "",
+   "6'sd0 + $signed(3'bx?1)",  new_inumber(TkAmbIntLit, loc(0, 0, 0), Base2, 6, "xxxxxx"))
 
-# run_test("Conversion functions, $rtoi (1)", "",
-#    "$rtoi(33.22)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000100001"))
+run_test("Conversion functions, $rtoi (1)", "",
+   "$rtoi(33.22)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000100001"))
 
-# run_test("Conversion functions, $rtoi (2)", "",
-#    "$rtoi(-123.45E7)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "10110110011010110000011001100000"))
+run_test("Conversion functions, $rtoi (2)", "",
+   "$rtoi(-123.45E7)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "10110110011010110000011001100000"))
 
-# run_test("Conversion functions, $rtoi, out of range (32 bits)", "",
-#    "$rtoi(123.45E8)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "11011111110100011100000001000000"))
+run_test("Conversion functions, $rtoi, out of range (32 bits)", "",
+   "$rtoi(123.45E8)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "11011111110100011100000001000000"))
 
-# run_test("Conversion functions, $rtoi, in expression", "",
-#    "33'sd4 + $rtoi(-4.1)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 33, "000000000000000000000000000000000"))
+run_test("Conversion functions, $rtoi, in expression", "",
+   "33'sd4 + $rtoi(-4.1)", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 33, "000000000000000000000000000000000"))
 
-# run_test("Conversion functions, $rtoi, nonreal argument (error))", "", "$rtoi(-4)", Token(), true)
+run_test("Conversion functions, $rtoi, nonreal argument (error))", "", "$rtoi(-4)", Token(), true)
 
-# run_test("Conversion functions, $itor (1)", "",
-#    "$itor(4)", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+run_test("Conversion functions, $itor (1)", "",
+   "$itor(4)", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
 
-# run_test("Conversion functions, $itor (2)", "",
-#    "$itor(-32/4)", new_fnumber(TkRealLit, loc(0, 0, 0), -8.0, "-8.0"))
+run_test("Conversion functions, $itor (2)", "",
+   "$itor(-32/4)", new_fnumber(TkRealLit, loc(0, 0, 0), -8.0, "-8.0"))
 
-# run_test("Conversion functions, $itor (3)", "",
-#    "$itor(2 ** 64 + 65'd1)", new_fnumber(TkRealLit, loc(0, 0, 0), 2.0 ^ 64 + 1.0, "1.844674407370955e+19"))
+run_test("Conversion functions, $itor (3)", "",
+   "$itor(2 ** 64 + 65'd1)", new_fnumber(TkRealLit, loc(0, 0, 0), 2.0 ^ 64 + 1.0, "1.844674407370955e+19"))
 
-# run_test("Conversion functions, $itor, in expression", "",
-#    "4 + $itor(4)", new_fnumber(TkRealLit, loc(0, 0, 0), 8.0, "8.0"))
+run_test("Conversion functions, $itor, in expression", "",
+   "4 + $itor(4)", new_fnumber(TkRealLit, loc(0, 0, 0), 8.0, "8.0"))
 
-# run_test("Conversion functions, $itor, real argument (error)", "", "$itor(-32.0/4)", Token(), true)
+run_test("Conversion functions, $itor, real argument (error)", "", "$itor(-32.0/4)", Token(), true)
 
-# run_test("Conversion functions, $itor, ambiguous argument (error)", "", "$itor(3'bx10)", Token(), true)
+run_test("Conversion functions, $itor, ambiguous argument (error)", "", "$itor(3'bx10)", Token(), true)
 
-# run_test("Conversion functions, $itor -> $rtoi", "",
-#    "$rtoi($itor(356))", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000101100100"))
+run_test("Conversion functions, $itor -> $rtoi", "",
+   "$rtoi($itor(356))", new_inumber(TkIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000101100100"))
 
-# run_test("Conversion functions, $rtoi -> $itor", "",
-#    "$itor($rtoi(-34.9))", new_fnumber(TkRealLit, loc(0, 0, 0), -34.0, "-34.0"))
+run_test("Conversion functions, $rtoi -> $itor", "",
+   "$itor($rtoi(-34.9))", new_fnumber(TkRealLit, loc(0, 0, 0), -34.0, "-34.0"))
 
-# run_test("Conversion functions, $realtobits (1)", "",
-#    "$realtobits(1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "0011111111110000000000000000000000000000000000000000000000000000"))
+run_test("Conversion functions, $realtobits (1)", "",
+   "$realtobits(1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "0011111111110000000000000000000000000000000000000000000000000000"))
 
-# run_test("Conversion functions, $realtobits (2)", "",
-#    "$realtobits(-1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "1011111111110000000000000000000000000000000000000000000000000000"))
+run_test("Conversion functions, $realtobits (2)", "",
+   "$realtobits(-1.0)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "1011111111110000000000000000000000000000000000000000000000000000"))
 
-# run_test("Conversion functions, $realtobits (3)", "",
-#    "$realtobits(34e-3)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
+run_test("Conversion functions, $realtobits (3)", "",
+   "$realtobits(34e-3)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
 
-# run_test("Conversion functions, $realtobits (3)", "",
-#    "65'b1 + $realtobits(2.0)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 65, "00100000000000000000000000000000000000000000000000000000000000001"))
+run_test("Conversion functions, $realtobits (3)", "",
+   "65'b1 + $realtobits(2.0)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 65, "00100000000000000000000000000000000000000000000000000000000000001"))
 
-# run_test("Conversion functions, $realtobits, nonreal argument (error))", "", "$realtobits(55)", Token(), true)
+run_test("Conversion functions, $realtobits, nonreal argument (error))", "", "$realtobits(55)", Token(), true)
 
-# run_test("Conversion functions, $bitstoreal (1)", "",
-#    "$bitstoreal(64'h3FF0_0000_0000_0000)", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+run_test("Conversion functions, $bitstoreal (1)", "",
+   "$bitstoreal(64'h3FF0_0000_0000_0000)", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
 
-# run_test("Conversion functions, $bitstoreal (2)", "",
-#    "$bitstoreal(64'hBFF0_0000_0000_0000)", new_fnumber(TkRealLit, loc(0, 0, 0), -1.0, "-1.0"))
+run_test("Conversion functions, $bitstoreal (2)", "",
+   "$bitstoreal(64'hBFF0_0000_0000_0000)", new_fnumber(TkRealLit, loc(0, 0, 0), -1.0, "-1.0"))
 
-# run_test("Conversion functions, $bitstoreal (3)", "",
-#    "$bitstoreal(64'h3FA1_6872_B020_C49C)", new_fnumber(TkRealLit, loc(0, 0, 0), 0.034, "0.034"))
+run_test("Conversion functions, $bitstoreal (3)", "",
+   "$bitstoreal(64'h3FA1_6872_B020_C49C)", new_fnumber(TkRealLit, loc(0, 0, 0), 0.034, "0.034"))
 
-# run_test("Conversion functions, $bitstoreal in expression", "",
-#    "3 + $bitstoreal(64'h3FA1_6872_B020_C49C)", new_fnumber(TkRealLit, loc(0, 0, 0), 3.034, "3.034"))
+run_test("Conversion functions, $bitstoreal in expression", "",
+   "3 + $bitstoreal(64'h3FA1_6872_B020_C49C)", new_fnumber(TkRealLit, loc(0, 0, 0), 3.034, "3.034"))
 
-# run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned", "",
-#    "$bitstoreal(-64'd4616189618054758400)", new_fnumber(TkRealLit, loc(0, 0, 0), -1.0, "-1.0"))
+run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned", "",
+   "$bitstoreal(-64'd4616189618054758400)", new_fnumber(TkRealLit, loc(0, 0, 0), -1.0, "-1.0"))
 
-# run_test("Conversion functions, $bitstoreal, argument too big (error)", "",
-#    "$bitstoreal(65'h1BFF0_0000_0000_0000)", Token(), true)
+run_test("Conversion functions, $bitstoreal, argument too big (error)", "",
+   "$bitstoreal(65'h1BFF0_0000_0000_0000)", Token(), true)
 
-# run_test("Conversion functions, $bitstoreal, noninteger argument (error)", "",
-#    "$bitstoreal(3.0)", Token(), true)
+run_test("Conversion functions, $bitstoreal, noninteger argument (error)", "",
+   "$bitstoreal(3.0)", Token(), true)
 
-# run_test("Conversion functions, $bitstoreal, too few arguments (error)", "",
-#    "$bitstoreal()", Token(), true)
+run_test("Conversion functions, $bitstoreal, too few arguments (error)", "",
+   "$bitstoreal()", Token(), true)
 
-# run_test("Conversion functions, $bitstoreal, too many arguments (error)", "",
-#    "$bitstoreal(34, 23)", Token(), true)
+run_test("Conversion functions, $bitstoreal, too many arguments (error)", "",
+   "$bitstoreal(34, 23)", Token(), true)
 
-# run_test("Conversion functions, $bitstoreal -> $realtobits", "",
-#    "$realtobits($bitstoreal(64'h3FA1_6872_B020_C49C))",
-#    new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
+run_test("Conversion functions, $bitstoreal -> $realtobits", "",
+   "$realtobits($bitstoreal(64'h3FA1_6872_B020_C49C))",
+   new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 64, "0011111110100001011010000111001010110000001000001100010010011100"))
 
-# run_test("Conversion functions, $realtobits -> $bitstoreal", "",
-#    "$bitstoreal($realtobits(13.8829e9))",
-#    new_fnumber(TkRealLit, loc(0, 0, 0), 13882900000.0, "13882900000.0"))
+run_test("Conversion functions, $realtobits -> $bitstoreal", "",
+   "$bitstoreal($realtobits(13.8829e9))",
+   new_fnumber(TkRealLit, loc(0, 0, 0), 13882900000.0, "13882900000.0"))
 
-# # FIXME:
-# # run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned -> nan (error)", "",
-# #    "$bitstoreal(-2)", Token(), true)
+# FIXME:
+# run_test("Conversion functions, $bitstoreal, negative argument, interpreted as unsigned -> nan (error)", "",
+#    "$bitstoreal(-2)", Token(), true)
 
-# run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
+run_test("Math functions, too few arguments (1)", "", "$ln()", Token(), true)
 
-# run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)
+run_test("Math functions, too few arguments (2)", "", "$hypot(2.0)", Token(), true)
 
-# run_test("Math functions, too many arguments (1)", "", "$ln(2.0, 2.0)", Token(), true)
+run_test("Math functions, too many arguments (1)", "", "$ln(2.0, 2.0)", Token(), true)
 
-# run_test("Math functions, too many arguments (2)", "", "$hypot(2.0, 0.0, 0.0)", Token(), true)
+run_test("Math functions, too many arguments (2)", "", "$hypot(2.0, 0.0, 0.0)", Token(), true)
 
-# run_test("Math functions, argument is not a real number", "", "$hypot(2.0, 0)", Token(), true)
+run_test("Math functions, argument is not a real number", "", "$hypot(2.0, 0)", Token(), true)
 
-# run_test("Math functions, $ln", "",
-#    "$ln(1.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+run_test("Math functions, $ln", "",
+   "$ln(1.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
 
-# run_test("Math functions, $log10", "",
-#    "$log10(100.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 2.0, "2.0"))
+run_test("Math functions, $log10", "",
+   "$log10(100.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 2.0, "2.0"))
 
-# run_test("Math functions, $exp", "",
-#    "$exp($ln(2.3))", new_fnumber(TkRealLit, loc(0, 0, 0), 2.3, "2.3"))
+run_test("Math functions, $exp", "",
+   "$exp($ln(2.3))", new_fnumber(TkRealLit, loc(0, 0, 0), 2.3, "2.3"))
 
-# run_test("Math functions, $sqrt", "",
-#    "$sqrt(144.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 12.0, "12.0"))
+run_test("Math functions, $sqrt", "",
+   "$sqrt(144.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 12.0, "12.0"))
 
-# run_test("Math functions, $pow", "",
-#    "$pow(2.0, 5.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 32.0, "32.0"))
+run_test("Math functions, $pow", "",
+   "$pow(2.0, 5.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 32.0, "32.0"))
 
-# run_test("Math functions, $floor", "",
-#    "$floor(4.99)", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
+run_test("Math functions, $floor", "",
+   "$floor(4.99)", new_fnumber(TkRealLit, loc(0, 0, 0), 4.0, "4.0"))
 
-# run_test("Math functions, $ceil", "",
-#    "$ceil(4.01)", new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
+run_test("Math functions, $ceil", "",
+   "$ceil(4.01)", new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
 
-# run_test("Math functions, $sin", "",
-#    "$ceil($sin(3.14159 / 2))", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+run_test("Math functions, $sin", "",
+   "$ceil($sin(3.14159 / 2))", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
 
-# run_test("Math functions, $cos", "",
-#    "$floor($cos(3.14159 / 2))", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
+run_test("Math functions, $cos", "",
+   "$floor($cos(3.14159 / 2))", new_fnumber(TkRealLit, loc(0, 0, 0), 0.0, "0.0"))
 
-# run_test("Math functions, $tan", "",
-#    "$ceil($tan(3.14159 / 4))", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
+run_test("Math functions, $tan", "",
+   "$ceil($tan(3.14159 / 4))", new_fnumber(TkRealLit, loc(0, 0, 0), 1.0, "1.0"))
 
-# run_test("Math functions, $asin", "",
-#    "$floor($asin(1.0) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $asin", "",
+   "$floor($asin(1.0) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $acos", "",
-#    "$floor($acos(0.0) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $acos", "",
+   "$floor($acos(0.0) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $atan", "",
-#    "$floor($atan(1.0) * 400)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $atan", "",
+   "$floor($atan(1.0) * 400)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $atan2", "",
-#    "$floor($atan2(2.0, 2.0) * 400)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $atan2", "",
+   "$floor($atan2(2.0, 2.0) * 400)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $hypot", "",
-#    "$hypot(3.0, 4.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
+run_test("Math functions, $hypot", "",
+   "$hypot(3.0, 4.0)", new_fnumber(TkRealLit, loc(0, 0, 0), 5.0, "5.0"))
 
-# run_test("Math functions, $sinh", "",
-#    "$floor($sinh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 117.0, "117.0"))
+run_test("Math functions, $sinh", "",
+   "$floor($sinh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 117.0, "117.0"))
 
-# run_test("Math functions, $cosh", "",
-#    "$floor($cosh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 154.0, "154.0"))
+run_test("Math functions, $cosh", "",
+   "$floor($cosh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 154.0, "154.0"))
 
-# run_test("Math functions, $tanh", "",
-#    "$floor($tanh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 76.0, "76.0"))
+run_test("Math functions, $tanh", "",
+   "$floor($tanh(1.0) * 100)", new_fnumber(TkRealLit, loc(0, 0, 0), 76.0, "76.0"))
 
-# run_test("Math functions, $asinh", "",
-#    "$floor($asinh(2.301298902307295) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $asinh", "",
+   "$floor($asinh(2.301298902307295) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $acosh", "",
-#    "$floor($acosh(2.509178478658057) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $acosh", "",
+   "$floor($acosh(2.509178478658057) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $atanh", "",
-#    "$floor($atanh(0.9171523356672744) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
+run_test("Math functions, $atanh", "",
+   "$floor($atanh(0.9171523356672744) * 200)", new_fnumber(TkRealLit, loc(0, 0, 0), 314.0, "314.0"))
 
-# run_test("Math functions, $clog2, unsized number, positive", "",
-#    "$clog2(33)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000000110"))
+run_test("Math functions, $clog2, unsized number, positive", "",
+   "$clog2(33)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000000110"))
 
-# run_test("Math functions, $clog2, unsized number, negative (interpreted as unsigned)", "",
-#    "$clog2(-4)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000100000"))
+run_test("Math functions, $clog2, unsized number, negative (interpreted as unsigned)", "",
+   "$clog2(-4)", new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000100000"))
 
-# run_test("Math functions, $clog2, sized number", "",
-#    "$clog2(-3'b110) // '-6' in 3 bits -> truncated to 2",
-#    new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000000001"))
+run_test("Math functions, $clog2, sized number", "",
+   "$clog2(-3'b110) // '-6' in 3 bits -> truncated to 2",
+   new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000000001"))
 
-# run_test("Math functions, $clog2, sized number", """
-#    localparam FOO = $clog2(23)
-# """,
-#    "FOO-1",
-#    new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000000100"))
+run_test("Math functions, $clog2, sized number", """
+   localparam FOO = $clog2(23)
+""",
+   "FOO-1",
+   new_inumber(TkUIntLit, loc(0, 0, 0), Base2, 32, "00000000000000000000000000000100"))
 
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
