@@ -50,7 +50,7 @@ endmodule
 """):
    new_node(NkSourceText, li(2, 1), @[
       new_node(NkModuleDecl, li(2, 1), @[
-         new_identifier_node(NkModuleIdentifier, li(2, 8), "a"),
+         new_identifier_node(NkIdentifier, li(2, 8), "a"),
          new_node(NkListOfPortDeclarations, li(2, 9), @[]),
       ])
    ])

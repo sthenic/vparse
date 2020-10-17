@@ -13,7 +13,6 @@ var
 
 
 template run_test(title, stimuli: string, reference: PNode) =
-   # var response: PNode
    cache = new_ident_cache()
    let response = parse_specific_grammar(stimuli, cache, NkListOfPorts)
 
@@ -49,7 +48,7 @@ run_test("Port w/o connection", """(
 )"""):
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
-         new_identifier_node(NkPortIdentifier, li(2, 5), "clk_i"),
+         new_identifier_node(NkIdentifier, li(2, 5), "clk_i"),
       ])
    ])
 
@@ -59,9 +58,9 @@ run_test("Port w/ connection", """(
 )"""):
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
-         new_identifier_node(NkPortIdentifier, li(2, 5), "clk_i"),
+         new_identifier_node(NkIdentifier, li(2, 5), "clk_i"),
          new_node(NkPortReference, li(2, 11), @[
-            new_identifier_node(NkPortIdentifier, li(2, 11), "s_axis_aclk"),
+            new_identifier_node(NkIdentifier, li(2, 11), "s_axis_aclk"),
          ])
       ])
    ])
@@ -74,21 +73,21 @@ run_test("Multiple ports", """(
 )"""):
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
-         new_identifier_node(NkPortIdentifier, li(2, 5), "clk_i"),
+         new_identifier_node(NkIdentifier, li(2, 5), "clk_i"),
          new_node(NkPortReference, li(2, 11), @[
-            new_identifier_node(NkPortIdentifier, li(2, 11), "s_axis_aclk"),
+            new_identifier_node(NkIdentifier, li(2, 11), "s_axis_aclk"),
          ])
       ]),
       new_node(NkPort, li(3, 4), @[
-         new_identifier_node(NkPortIdentifier, li(3, 5), "rst_ni"),
+         new_identifier_node(NkIdentifier, li(3, 5), "rst_ni"),
          new_node(NkPortReference, li(3, 12), @[
-            new_identifier_node(NkPortIdentifier, li(3, 12), "s_axis_aresetn"),
+            new_identifier_node(NkIdentifier, li(3, 12), "s_axis_aresetn"),
          ])
       ]),
       new_node(NkPort, li(4, 4), @[
-         new_identifier_node(NkPortIdentifier, li(4, 5), "data_o"),
+         new_identifier_node(NkIdentifier, li(4, 5), "data_o"),
          new_node(NkPortReference, li(4, 12), @[
-            new_identifier_node(NkPortIdentifier, li(4, 12), "m_axis_adata"),
+            new_identifier_node(NkIdentifier, li(4, 12), "m_axis_adata"),
          ])
       ])
    ])
@@ -101,16 +100,16 @@ run_test("Multiple ports, one empty", """(
 )"""):
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
-         new_identifier_node(NkPortIdentifier, li(2, 5), "clk_i"),
+         new_identifier_node(NkIdentifier, li(2, 5), "clk_i"),
          new_node(NkPortReference, li(2, 11), @[
-            new_identifier_node(NkPortIdentifier, li(2, 11), "s_axis_aclk"),
+            new_identifier_node(NkIdentifier, li(2, 11), "s_axis_aclk"),
          ])
       ]),
       new_node(NkPort, li(3, 4)),
       new_node(NkPort, li(4, 4), @[
-         new_identifier_node(NkPortIdentifier, li(4, 5), "data_o"),
+         new_identifier_node(NkIdentifier, li(4, 5), "data_o"),
          new_node(NkPortReference, li(4, 12), @[
-            new_identifier_node(NkPortIdentifier, li(4, 12), "m_axis_adata"),
+            new_identifier_node(NkIdentifier, li(4, 12), "m_axis_adata"),
          ])
       ])
    ])
@@ -124,19 +123,19 @@ run_test("Port reference w/ range expressions", """(
 )"""):
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
-         new_identifier_node(NkPortIdentifier, li(2, 5), "a_i"),
+         new_identifier_node(NkIdentifier, li(2, 5), "a_i"),
          new_node(NkPortReference, li(2, 9), @[
             new_node(NkBracketExpression, li(2, 9), @[
-               new_identifier_node(NkPortIdentifier, li(2, 9), "a"),
+               new_identifier_node(NkIdentifier, li(2, 9), "a"),
                new_inumber_node(NkIntLit, li(2, 11), "64", Base10, -1)
             ])
          ])
       ]),
       new_node(NkPort, li(3, 4), @[
-         new_identifier_node(NkPortIdentifier, li(3, 5), "b_i"),
+         new_identifier_node(NkIdentifier, li(3, 5), "b_i"),
          new_node(NkPortReference, li(3, 9), @[
             new_node(NkBracketExpression, li(3, 9), @[
-               new_identifier_node(NkPortIdentifier, li(3, 9), "b"),
+               new_identifier_node(NkIdentifier, li(3, 9), "b"),
                new_node(NkInfix, li(3, 12), @[
                   new_identifier_node(NkIdentifier, li(3, 12), ":"),
                   new_inumber_node(NkIntLit, li(3, 11), "7", Base10, -1),
@@ -146,10 +145,10 @@ run_test("Port reference w/ range expressions", """(
          ])
       ]),
       new_node(NkPort, li(4, 4), @[
-         new_identifier_node(NkPortIdentifier, li(4, 5), "c_i"),
+         new_identifier_node(NkIdentifier, li(4, 5), "c_i"),
          new_node(NkPortReference, li(4, 9), @[
             new_node(NkBracketExpression, li(4, 9), @[
-               new_identifier_node(NkPortIdentifier, li(4, 9), "c"),
+               new_identifier_node(NkIdentifier, li(4, 9), "c"),
                new_node(NkInfix, li(4, 21), @[
                   new_identifier_node(NkIdentifier, li(4, 21), "+:"),
                   new_node(NkInfix, li(4, 17), @[
@@ -163,10 +162,10 @@ run_test("Port reference w/ range expressions", """(
          ])
       ]),
       new_node(NkPort, li(5, 4), @[
-         new_identifier_node(NkPortIdentifier, li(5, 5), "d_i"),
+         new_identifier_node(NkIdentifier, li(5, 5), "d_i"),
          new_node(NkPortReference, li(5, 9), @[
             new_node(NkBracketExpression, li(5, 9), @[
-               new_identifier_node(NkPortIdentifier, li(5, 9), "d"),
+               new_identifier_node(NkIdentifier, li(5, 9), "d"),
                new_node(NkInfix, li(5, 18), @[
                   new_identifier_node(NkIdentifier, li(5, 18), "-:"),
                   new_node(NkInfix, li(5, 15), @[
@@ -187,19 +186,19 @@ run_test("Port reference, concatenation", """(
 )"""):
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
-         new_identifier_node(NkPortIdentifier, li(2, 5), "port"),
+         new_identifier_node(NkIdentifier, li(2, 5), "port"),
          new_node(NkPortReferenceConcat, li(2, 10), @[
             new_node(NkPortReference, li(2, 11), @[
-               new_identifier_node(NkPortIdentifier, li(2, 11), "a"),
+               new_identifier_node(NkIdentifier, li(2, 11), "a"),
             ]),
             new_node(NkPortReference, li(2, 14), @[
                new_node(NkBracketExpression, li(2, 14), @[
-                  new_identifier_node(NkPortIdentifier, li(2, 14), "b"),
+                  new_identifier_node(NkIdentifier, li(2, 14), "b"),
                   new_inumber_node(NkIntLit, li(2, 16), "5", Base10, -1)
                ])
             ]),
             new_node(NkPortReference, li(2, 20), @[
-               new_identifier_node(NkPortIdentifier, li(2, 20), "last"),
+               new_identifier_node(NkIdentifier, li(2, 20), "last"),
             ])
          ])
       ])
@@ -214,17 +213,17 @@ run_test("Multiple ports, anonymous", """(
    new_node(NkListOfPorts, li(1, 1), @[
       new_node(NkPort, li(2, 4), @[
          new_node(NkPortReference, li(2, 4), @[
-            new_identifier_node(NkPortIdentifier, li(2, 4), "s_axis_aclk"),
+            new_identifier_node(NkIdentifier, li(2, 4), "s_axis_aclk"),
          ])
       ]),
       new_node(NkPort, li(3, 4), @[
          new_node(NkPortReference, li(3, 4), @[
-            new_identifier_node(NkPortIdentifier, li(3, 4), "s_axis_aresetn"),
+            new_identifier_node(NkIdentifier, li(3, 4), "s_axis_aresetn"),
          ])
       ]),
       new_node(NkPort, li(4, 4), @[
          new_node(NkPortReference, li(4, 4), @[
-            new_identifier_node(NkPortIdentifier, li(4, 4), "m_axis_adata"),
+            new_identifier_node(NkIdentifier, li(4, 4), "m_axis_adata"),
          ])
       ])
    ])
@@ -237,7 +236,7 @@ run_test("Anonymous port w/ range", """(
       new_node(NkPort, li(2, 4), @[
          new_node(NkPortReference, li(2, 4), @[
             new_node(NkBracketExpression, li(2, 4), @[
-               new_identifier_node(NkPortIdentifier, li(2, 4), "addr"),
+               new_identifier_node(NkIdentifier, li(2, 4), "addr"),
                new_node(NkInfix, li(2, 16), @[
                   new_identifier_node(NkIdentifier, li(2, 16), ":"),
                   new_node(NkInfix, li(2, 14), @[
@@ -260,14 +259,14 @@ run_test("Anonymous port concatenation", """(
       new_node(NkPort, li(2, 4), @[
          new_node(NkPortReferenceConcat, li(2, 4), @[
             new_node(NkPortReference, li(2, 5), @[
-               new_identifier_node(NkPortIdentifier, li(2, 5), "a"),
+               new_identifier_node(NkIdentifier, li(2, 5), "a"),
             ]),
             new_node(NkPortReference, li(2, 8), @[
-               new_identifier_node(NkPortIdentifier, li(2, 8), "b"),
+               new_identifier_node(NkIdentifier, li(2, 8), "b"),
             ]),
             new_node(NkPortReference, li(2, 11), @[
                new_node(NkBracketExpression, li(2, 11), @[
-                  new_identifier_node(NkPortIdentifier, li(2, 11), "addr"),
+                  new_identifier_node(NkIdentifier, li(2, 11), "addr"),
                   new_node(NkInfix, li(2, 23), @[
                      new_identifier_node(NkIdentifier, li(2, 23), ":"),
                      new_node(NkInfix, li(2, 21), @[
@@ -280,7 +279,7 @@ run_test("Anonymous port concatenation", """(
                ])
             ]),
             new_node(NkPortReference, li(2, 28), @[
-               new_identifier_node(NkPortIdentifier, li(2, 28), "last"),
+               new_identifier_node(NkIdentifier, li(2, 28), "last"),
             ])
          ])
       ])

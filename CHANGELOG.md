@@ -10,7 +10,6 @@ All notable changes to this project will be documented in this file.
   expression node if the declaration involves an assignment. Otherwise, this
   field is set to `nil`.
 - Ranged expressions with ':' is now an infix node.
-- Removed AST nodes `NkVariableLvalue` and `NkArrayIdentifier`.
 
 ### Added
 
@@ -37,6 +36,12 @@ All notable changes to this project will be documented in this file.
 - Hierarchical identifiers are now supported `foo.bar[1].baz[3:0]`. Previously,
   only ranged identifiers was allowed and the scoping syntax with `.` didn't
   work.
+
+## Removed
+
+- Removed AST nodes `NkVariableLvalue` and `NkArrayIdentifier`.
+- Removed special identifier node types like `NkPortIdentifier` and
+  `NkModuleIdentifier` in favor of the generic `NkIdentifier`.
 
 ## [v0.2.2] - 2020-08-31
 

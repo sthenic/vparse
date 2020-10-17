@@ -608,7 +608,7 @@ proc parse_parameter_assignment(p: var Parser): PNode =
    result = new_node(p, NkParamAssignment)
 
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NkParameterIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
 
    expect_token(p, result, TkEquals)
@@ -702,7 +702,7 @@ proc parse_inout_or_input_port_declaration(p: var Parser,
    # Parse a list of port identifiers, the syntax requires at least one item.
    while true:
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NkPortIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
       if not look_ahead(p, TkComma, TkSymbol):
          break
@@ -714,7 +714,7 @@ proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
    # AST node is a regular identifier.
    while true:
       expect_token(p, result, TkSymbol)
-      let identifier = new_identifier_node(p, NkPortIdentifier)
+      let identifier = new_identifier_node(p, NkIdentifier)
       get_token(p)
 
       if p.tok.kind == TkEquals:
@@ -735,8 +735,7 @@ proc parse_list_of_variable_port_identifiers(p: var Parser): seq[PNode] =
 proc parse_list_of_port_identifiers(p: var Parser): seq[PNode] =
    while true:
       expect_token(p, result, TkSymbol)
-      # FIXME: Make this a regular NkIdentifier?
-      add(result, new_identifier_node(p, NkPortIdentifier))
+      add(result, new_identifier_node(p, NkIdentifier))
       get_token(p)
 
       if not look_ahead(p, TkComma, TkSymbol):
@@ -845,7 +844,7 @@ proc parse_constant_range_expression(p: var Parser): PNode =
 proc parse_port_reference(p: var Parser): PNode =
    result = new_node(p, NkPortReference)
    expect_token(p, result, TkSymbol)
-   let id = new_identifier_node(p, NkPortIdentifier)
+   let id = new_identifier_node(p, NkIdentifier)
    get_token(p)
 
    if p.tok.kind == TkLbracket:
@@ -886,7 +885,7 @@ proc parse_port(p: var Parser): PNode =
    of TkDot:
       get_token(p)
       expect_token(p, result, TkSymbol)
-      add(result.sons, new_identifier_node(p, NkPortIdentifier))
+      add(result.sons, new_identifier_node(p, NkIdentifier))
       get_token(p)
 
       expect_token(p, result, TkLparen)
@@ -2348,7 +2347,7 @@ proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
 
    # Expect an idenfitier as the first token after the module keyword.
    expect_token(p, result, TkSymbol)
-   add(result.sons, new_identifier_node(p, NkModuleIdentifier))
+   add(result.sons, new_identifier_node(p, NkIdentifier))
    get_token(p)
 
    # Parse the optional parameter port list.

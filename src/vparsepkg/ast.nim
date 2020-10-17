@@ -32,11 +32,10 @@ type
       # Modules A.1.3
       NkSourceText,
       NkModuleDecl,
-      NkModuleIdentifier,
       # Module parameters and ports A.1.4
       NkModuleParameterPortList, NkListOfPorts, NkListOfPortDeclarations,
       NkPort, NkPortExpression, NkPortReference, NkPortReferenceConcat,
-      NkPortIdentifier, NkPortDecl, NkVariablePort,
+      NkPortDecl, NkVariablePort,
       # Parameter declarations A.2.1.1
       NkLocalparamDecl, NkDefparamDecl, NkParameterDecl, NkSpecparamDecl,
       # Port declarations A.2.1.2
@@ -89,7 +88,7 @@ type
       NkConstantFunctionCall,
       NkConstantSystemFunctionCall,
       # Expressions A.8.3
-      NkConstantExpression, NkConstantMinTypMaxExpression,
+      NkConstantMinTypMaxExpression,
       NkConstantConditionalExpression, NkConstantRangeExpression,
       NkBracketExpression, NkDotExpression,
       # Primaries A.8.4
@@ -100,18 +99,15 @@ type
       NkUnaryOperator, NkBinaryOperator,
       # Attributes A.9.1
       NkAttributeInst, NkAttributeSpec, NkAttributeName,
-      # Identifiers A.9.3
-      NkParameterIdentifier, NkSpecparamIdentifier, NkFunctionIdentifier,
-      NkGenvarIdentifier, NkHierarchicalIdentifier
+      # AST nodes unused by the parser that exists to provide the test suite
+      # with the option to target specific grammars.
+      NkConstantExpression, NkHierarchicalIdentifier
 
    NodeKinds* = set[NodeKind]
 
 
 const
-   IdentifierTypes* =
-      {NkIdentifier, NkAttributeName, NkModuleIdentifier, NkPortIdentifier,
-       NkParameterIdentifier, NkSpecparamIdentifier, NkType,
-       NkFunctionIdentifier, NkGenvarIdentifier, NkDirection, NkNetType}
+   IdentifierTypes* = {NkIdentifier, NkAttributeName, NkType, NkDirection, NkNetType}
 
    HierarchicalIdentifierTypes* = {NkIdentifier, NkBracketExpression, NkDotExpression}
 
@@ -684,13 +680,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
    # We have to hande each type of declaration node individually in order to find
    # the correct identifier node.
    case n.kind
-   of NkPortDecl:
-      # A port declaration allows a list of identifiers.
-      for id in walk_sons(n, NkPortIdentifier):
-         if id.identifier.s == identifier.s:
-            return (n, id, nil)
-
-   of NkGenvarDecl:
+   of NkPortDecl, NkGenvarDecl:
       # A genvar declaration allows a list of identifiers.
       for id in walk_sons(n, NkIdentifier):
          if id.identifier.s == identifier.s:
@@ -704,7 +694,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
       # If we didn't get a hit for the task/function name itself, we check the
       # parameter list.
       for s in walk_sons(n, NkTaskFunctionPortDecl):
-         for id in walk_sons(s, NkPortIdentifier):
+         for id in walk_sons(s, NkIdentifier):
             if id.identifier.s == identifier.s:
                return (s, id, nil)
 
@@ -731,9 +721,9 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
       # When we find a NkParamAssignment node, the first son is expected to be
       # the identifier.
       for s in walk_sons(n, NkParamAssignment):
-         let id = find_first(s, NkParameterIdentifier)
-         if not is_nil(id) and id.identifier.s == identifier.s:
-            return (n, id, find_first(s, ExpressionTypes))
+         let id_idx = find_first_index(s, NkIdentifier)
+         if id_idx >= 0 and s[id_idx].identifier.s == identifier.s:
+            return (n, s[id_idx], find_first(s, ExpressionTypes, id_idx + 1))
 
    of NkSpecparamDecl:
       # When we find a NkAssignment node, the first son is expected to be the
@@ -744,7 +734,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
             return (n, id, find_first(s, ExpressionTypes))
 
    of NkModuleDecl:
-      let id = find_first(n, NkModuleIdentifier)
+      let id = find_first(n, NkIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
          return (n, id, nil)
 
@@ -796,11 +786,7 @@ proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declar
    ## same as for ``find_declarations``. If ``descend`` is ``true``, then the
    ## sons in ``n`` are searched too.
    case n.kind
-   of NkPortDecl:
-      for id in walk_sons(n, NkPortIdentifier):
-         add(result, (n, id))
-
-   of NkGenvarDecl:
+   of NkPortDecl, NkGenvarDecl:
       for id in walk_sons(n, NkIdentifier):
          add(result, (n, id))
 
@@ -832,7 +818,7 @@ proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declar
 
    of NkParameterDecl, NkLocalparamDecl:
       for s in walk_sons(n, NkParamAssignment):
-         let id = find_first(s, NkParameterIdentifier)
+         let id = find_first(s, NkIdentifier)
          if not is_nil(id):
             add(result, (n, id))
 
@@ -843,7 +829,7 @@ proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declar
             add(result, (n, id))
 
    of NkModuleDecl:
-      let idx = find_first_index(n, NkModuleIdentifier)
+      let idx = find_first_index(n, NkIdentifier)
       if idx > -1:
          add(result, (n, n[idx]))
       for s in walk_sons(n, idx + 1):
@@ -925,7 +911,7 @@ proc find_all_drivers*(n: PNode, recursive: bool = false): seq[tuple[driver, ide
    of NkPortDecl:
       let direction = find_first(n, NkDirection)
       if not is_nil(direction) and direction.identifier.s == "input":
-         for id in walk_sons(n, NkPortIdentifier):
+         for id in walk_sons(n, NkIdentifier):
             add(result, (n, id))
 
    of NkContinuousAssignment:
@@ -962,7 +948,7 @@ proc find_all_ports*(n: PNode): seq[tuple[port, identifier: PNode]] =
    ## Find all ports of the module declaration ``n``.
    template add_port_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
       for port in walk_sons(n, NkPortDecl):
-         for id in walk_sons(port, NkPortIdentifier):
+         for id in walk_sons(port, NkIdentifier):
             add(result, (port, id))
 
    if n.kind != NkModuleDecl:
@@ -982,7 +968,7 @@ proc find_all_parameters*(n: PNode): seq[tuple[parameter, identifier: PNode]] =
    template add_parameter_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
       for parameter in walk_sons(n, NkParameterDecl):
          for assignment in walk_sons(parameter, NkParamAssignment):
-            let id = find_first(assignment, NkParameterIdentifier)
+            let id = find_first(assignment, NkIdentifier)
             if not is_nil(id):
                add(result, (parameter, id))
 
@@ -1075,7 +1061,7 @@ proc `$`*(n: PNode): string =
       add(result, " *)")
 
    of NkPort:
-      let id = find_first(n, NkPortIdentifier)
+      let id = find_first(n, NkIdentifier)
       if not is_nil(id):
          add(result, format(".$1($2)", $id, $n[1]))
       else:
