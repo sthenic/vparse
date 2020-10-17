@@ -38,8 +38,6 @@ type
       NkPortDecl, NkVariablePort,
       # Parameter declarations A.2.1.1
       NkLocalparamDecl, NkDefparamDecl, NkParameterDecl, NkSpecparamDecl,
-      # Port declarations A.2.1.2
-      NkInoutDecl, NkInputDecl, NkOutputDecl, # FIXME: Remove if unused
       # Type declarations A.2.1.3
       NkEventDecl, NkGenvarDecl, NkIntegerDecl, NkNetDecl, NkRealDecl,
       NkRealtimeDecl, NkRegDecl, NkTimeDecl,
@@ -50,7 +48,7 @@ type
       # Delays A.2.2.3
       NkDelay,
       # Declaration assignments A.2.4
-      NkParamAssignment, NkNetDeclAssignment, # FIXME: NkNetDeclAssignment unused
+      NkParamAssignment,
       # Declaration ranges A.2.5
       NkRange,
       # Function declarations A.2.6
@@ -95,8 +93,6 @@ type
       NkConstantPrimary,
       # Expression left-side values A.8.5
       NkVariableLvalueConcat,
-      # Operators A.8.6
-      NkUnaryOperator, NkBinaryOperator,
       # Attributes A.9.1
       NkAttributeInst, NkAttributeSpec, NkAttributeName,
       # AST nodes unused by the parser that exists to provide the test suite
@@ -116,22 +112,18 @@ const
    IntegerTypes* =
       {NkIntLit, NkUIntLit, NkAmbIntLit, NkAmbUIntLit}
 
-   # FIXME: Unused right now
-   OperatorTypes* = {NkUnaryOperator, NkBinaryOperator}
-
    ErrorTypes* = {NkTokenError, NkTokenErrorSync, NkCritical}
 
    PrimitiveTypes* =
-      ErrorTypes + IdentifierTypes + IntegerTypes + OperatorTypes +
+      ErrorTypes + IdentifierTypes + IntegerTypes +
       {NkRealLit, NkStrLit, NkWildcard, NkComment}
 
    DeclarationTypes* =
       {NkNetDecl, NkRegDecl, NkPortDecl, NkRealDecl, NkTaskDecl, NkTimeDecl,
-       NkEventDecl, NkInoutDecl, NkInputDecl, NkOutputDecl, NkGenvarDecl,
-       NkModuleDecl, NkIntegerDecl, NkDefparamDecl, NkFunctionDecl,
-       NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl, NkLocalparamDecl,
-       NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts,
-       NkTaskFunctionPortDecl}
+       NkEventDecl, NkGenvarDecl, NkModuleDecl, NkIntegerDecl, NkDefparamDecl,
+       NkFunctionDecl, NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl,
+       NkLocalparamDecl, NkModuleParameterPortList, NkListOfPortDeclarations,
+       NkListOfPorts, NkTaskFunctionPortDecl}
 
    ConcatenationTypes* =
       {NkConstantConcat, NkConstantMultipleConcat, NkPortReferenceConcat,
@@ -166,9 +158,6 @@ type
       of ErrorTypes:
          msg*: string # TODO: Combine w/ NkStrLit?
          eraw*: string
-      of OperatorTypes:
-         # FIXME: Unused right now
-         op*: string
       of NkWildcard:
          discard
       else:
@@ -223,9 +212,6 @@ proc pretty*(n: PNode, indent: int = 0): string =
       add(result, format(": '$1' (base: $2, size: $3)\n", n.iraw, n.base, n.size))
    of NkRealLit:
       add(result, format(": $1 (raw: '$2')\n", n.fnumber, n.fraw))
-   of OperatorTypes:
-      # FIXME: Unused right now
-      add(result, format(": $1\n", n.op))
    of ErrorTypes:
       var msg = ": $1"
       var args = @[n.msg]
@@ -277,12 +263,6 @@ proc `%`*(n: PNode): JsonNode =
          "number": n.fnumber,
          "raw": n.fraw
       }
-   of OperatorTypes:
-      result = %*{
-         "kind": $n.kind,
-         "loc": n.loc,
-         "operator": n.identifier.s
-      }
    of ErrorTypes:
       result = %*{
          "kind": $n.kind,
@@ -326,9 +306,6 @@ proc `==`*(x, y: PNode): bool =
       result = x.iraw == y.iraw and x.base == y.base and x.size == y.size
    of NkRealLit:
       result = x.fnumber == y.fnumber
-   of OperatorTypes:
-      # FIXME: Unused right now
-      result = x.op == y.op
    of NkStrLit, NkComment:
       result = x.s == y.s
    of ErrorTypes, NkWildcard:
@@ -365,8 +342,7 @@ proc detailed_compare*(x, y: PNode) =
       return
 
    case x.kind
-   of IdentifierTypes, IntegerTypes, NkRealLit, OperatorTypes, ErrorTypes,
-      NkStrLit, NkWildcard:
+   of IdentifierTypes, IntegerTypes, NkRealLit, ErrorTypes, NkStrLit, NkWildcard:
       if x != y:
          echo "Node contents differs:\n", pretty(x, indent), pretty(y, indent)
          return
@@ -1067,8 +1043,7 @@ proc `$`*(n: PNode): string =
       else:
          add(result, $n[0])
 
-   of ErrorTypes, NkExpectError, NkComment, OperatorTypes:
-      # FIXME: OperatorTypes are unused right now.
+   of ErrorTypes, NkExpectError, NkComment:
       discard
 
    of NkDelay:
