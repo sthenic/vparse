@@ -181,7 +181,7 @@ endmodule
 """, @[
    (
       parameter: new_node(NkParameterDecl, li(2, 4), @[
-         new_node(NkParamAssignment, li(2, 14), @[
+         new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "WIDTH"),
             new_inumber_node(NkIntLit, li(2, 22), "32", Base10, -1)
          ])
@@ -190,7 +190,7 @@ endmodule
    ),
    (
       parameter: new_node(NkParameterDecl, li(3, 4), @[
-         new_node(NkParamAssignment, li(3, 14), @[
+         new_node(NkAssignment, li(3, 14), @[
             new_identifier_node(NkIdentifier, li(3, 14), "ZERO"),
             new_inumber_node(NkIntLit, li(3, 21), "0", Base10, -1)
          ])
@@ -207,7 +207,7 @@ endmodule
 """, @[
    (
       parameter: new_node(NkParameterDecl, li(2, 4), @[
-         new_node(NkParamAssignment, li(2, 14), @[
+         new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "FOO"),
             new_inumber_node(NkIntLit, li(2, 20), "3", Base10, -1)
          ])

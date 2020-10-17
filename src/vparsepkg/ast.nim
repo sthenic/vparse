@@ -47,8 +47,6 @@ type
       NkDriveStrength, NkChargeStrength,
       # Delays A.2.2.3
       NkDelay,
-      # Declaration assignments A.2.4
-      NkParamAssignment,
       # Declaration ranges A.2.5
       NkRange,
       # Function declarations A.2.6
@@ -693,21 +691,13 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
          else:
             discard
 
-   of NkParameterDecl, NkLocalparamDecl:
-      # When we find a NkParamAssignment node, the first son is expected to be
+   of NkParameterDecl, NkLocalparamDecl, NkSpecparamDecl:
+      # When we find an NkAssignment node, the first son is expected to be
       # the identifier.
-      for s in walk_sons(n, NkParamAssignment):
+      for s in walk_sons(n, NkAssignment):
          let id_idx = find_first_index(s, NkIdentifier)
          if id_idx >= 0 and s[id_idx].identifier.s == identifier.s:
             return (n, s[id_idx], find_first(s, ExpressionTypes, id_idx + 1))
-
-   of NkSpecparamDecl:
-      # When we find a NkAssignment node, the first son is expected to be the
-      # identifier.
-      for s in walk_sons(n, NkAssignment):
-         let id = find_first(s, NkIdentifier)
-         if not is_nil(id) and id.identifier.s == identifier.s:
-            return (n, id, find_first(s, ExpressionTypes))
 
    of NkModuleDecl:
       let id = find_first(n, NkIdentifier)
@@ -793,7 +783,7 @@ proc find_all_declarations*(n: PNode, recursive: bool = false): seq[tuple[declar
             discard
 
    of NkParameterDecl, NkLocalparamDecl:
-      for s in walk_sons(n, NkParamAssignment):
+      for s in walk_sons(n, NkAssignment):
          let id = find_first(s, NkIdentifier)
          if not is_nil(id):
             add(result, (n, id))
@@ -943,7 +933,7 @@ proc find_all_parameters*(n: PNode): seq[tuple[parameter, identifier: PNode]] =
    ## Find all parameter of the module declaration ``n``.
    template add_parameter_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
       for parameter in walk_sons(n, NkParameterDecl):
-         for assignment in walk_sons(parameter, NkParamAssignment):
+         for assignment in walk_sons(parameter, NkAssignment):
             let id = find_first(assignment, NkIdentifier)
             if not is_nil(id):
                add(result, (parameter, id))
@@ -961,6 +951,7 @@ proc find_all_parameters*(n: PNode): seq[tuple[parameter, identifier: PNode]] =
       add_parameter_declarations_from_sons(result, n)
 
 
+# FIXME: This entire thing doesn't work that well with attributes.
 proc `$`*(n: PNode): string =
    if n == nil:
       return
@@ -1020,7 +1011,7 @@ proc `$`*(n: PNode): string =
       add(result, $n[1])
       add(result, ']')
 
-   of NkAssignment, NkParamAssignment, NkBlockingAssignment, NkProceduralContinuousAssignment:
+   of NkAssignment, NkBlockingAssignment, NkProceduralContinuousAssignment:
       add(result, $n[0])
       add(result, " = ")
       add(result, $n[1])
@@ -1105,7 +1096,7 @@ proc `$`*(n: PNode): string =
       for s in n.sons:
          if s.kind == NkComment:
             continue
-         if s.kind in {NkIdentifier, NkParamAssignment, NkAssignment}:
+         if s.kind in {NkIdentifier, NkAssignment, NkAssignment}:
             if seen_identifier:
                add(result, ',')
             seen_identifier = true

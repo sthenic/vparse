@@ -605,7 +605,7 @@ proc parse_constant_expression(p: var Parser): PNode =
 
 
 proc parse_parameter_assignment(p: var Parser): PNode =
-   result = new_node(p, NkParamAssignment)
+   result = new_node(p, NkAssignment)
 
    expect_token(p, result, TkSymbol)
    add(result.sons, new_identifier_node(p, NkIdentifier))

@@ -48,7 +48,7 @@ run_test("Single parameter", """#(
 )"""):
    new_node(NkModuleParameterPortList, li(1, 1), @[
       new_node(NkParameterDecl, li(2, 4), @[
-         new_node(NkParamAssignment, li(2, 14), @[
+         new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "MYPARAM"),
             new_inumber_node(NkIntLit, li(2, 24), "0", Base10, -1)
          ])
@@ -62,7 +62,7 @@ run_test("Single parameter, signed", """#(
    new_node(NkModuleParameterPortList, li(1, 1), @[
       new_node(NkParameterDecl, li(2, 4), @[
          new_identifier_node(NkType, li(2, 14), "signed"),
-         new_node(NkParamAssignment, li(2, 21), @[
+         new_node(NkAssignment, li(2, 21), @[
             new_identifier_node(NkIdentifier, li(2, 21), "FOO"),
             new_node(NkPrefix, li(2, 27), @[
                new_identifier_node(NkIdentifier, li(2, 27), "-"),
@@ -82,7 +82,7 @@ run_test("Single parameter, ranged", """#(
             new_inumber_node(NkIntLit, li(2, 15), "7", Base10, -1),
             new_inumber_node(NkIntLit, li(2, 17), "0", Base10, -1),
          ]),
-         new_node(NkParamAssignment, li(2, 20), @[
+         new_node(NkAssignment, li(2, 20), @[
             new_identifier_node(NkIdentifier, li(2, 20), "FOO"),
             new_inumber_node(NkUIntLit, li(2, 26), "FF", Base16, 8),
          ])
@@ -100,7 +100,7 @@ run_test("Single parameter, signed range", """#(
             new_inumber_node(NkIntLit, li(2, 22), "7", Base10, -1),
             new_inumber_node(NkIntLit, li(2, 24), "0", Base10, -1),
          ]),
-         new_node(NkParamAssignment, li(2, 27), @[
+         new_node(NkAssignment, li(2, 27), @[
             new_identifier_node(NkIdentifier, li(2, 27), "FOO"),
             new_inumber_node(NkUIntLit, li(2, 33), "FF", Base16, 8),
          ])
@@ -117,28 +117,28 @@ run_test("Multiple parameters, different types", """#(
    new_node(NkModuleParameterPortList, li(1, 1), @[
       new_node(NkParameterDecl, li(2, 4), @[
          new_identifier_node(NkType, li(2, 14), "integer"),
-         new_node(NkParamAssignment, li(2, 22), @[
+         new_node(NkAssignment, li(2, 22), @[
             new_identifier_node(NkIdentifier, li(2, 22), "PAR_INT"),
             new_inumber_node(NkIntLit, li(2, 32), "1", Base10, -1)
          ])
       ]),
       new_node(NkParameterDecl, li(3, 4), @[
          new_identifier_node(NkType, li(3, 14), "real"),
-         new_node(NkParamAssignment, li(3, 19), @[
+         new_node(NkAssignment, li(3, 19), @[
             new_identifier_node(NkIdentifier, li(3, 19), "PAR_REAL"),
             new_fnumber_node(NkRealLit, li(3, 30), 3.14, "3.14")
          ])
       ]),
       new_node(NkParameterDecl, li(4, 4), @[
          new_identifier_node(NkType, li(4, 14), "realtime"),
-         new_node(NkParamAssignment, li(4, 23), @[
+         new_node(NkAssignment, li(4, 23), @[
             new_identifier_node(NkIdentifier, li(4, 23), "PAR_REALTIME"),
             new_inumber_node(NkIntLit, li(4, 38), "2", Base10, -1)
          ])
       ]),
       new_node(NkParameterDecl, li(5, 4), @[
          new_identifier_node(NkType, li(5, 14), "time"),
-         new_node(NkParamAssignment, li(5, 19), @[
+         new_node(NkAssignment, li(5, 19), @[
             new_identifier_node(NkIdentifier, li(5, 19), "PAR_TIME"),
             new_inumber_node(NkIntLit, li(5, 30), "3", Base10, -1)
          ])
@@ -159,22 +159,22 @@ run_test("Multiple parameters, same type definition", """#(
             new_inumber_node(NkIntLit, li(2, 22), "7", Base10, -1),
             new_inumber_node(NkIntLit, li(2, 24), "0", Base10, -1),
          ]),
-         new_node(NkParamAssignment, li(2, 27), @[
+         new_node(NkAssignment, li(2, 27), @[
             new_identifier_node(NkIdentifier, li(2, 27), "PAR_SIGNED_8BIT0"),
             new_inumber_node(NkIntLit, li(2, 46), "0", Base10, -1),
          ]),
-         new_node(NkParamAssignment, li(3, 27), @[
+         new_node(NkAssignment, li(3, 27), @[
             new_identifier_node(NkIdentifier, li(3, 27), "PAR_SIGNED_8BIT1"),
             new_inumber_node(NkIntLit, li(3, 46), "1", Base10, -1),
          ])
       ]),
       new_node(NkParameterDecl, li(4, 4), @[
          new_identifier_node(NkType, li(4, 14), "real"),
-         new_node(NkParamAssignment, li(4, 19), @[
+         new_node(NkAssignment, li(4, 19), @[
             new_identifier_node(NkIdentifier, li(4, 19), "PAR_REAL0"),
             new_fnumber_node(NkRealLit, li(4, 31), 3.14, "3.14")
          ]),
-         new_node(NkParamAssignment, li(5, 19), @[
+         new_node(NkAssignment, li(5, 19), @[
             new_identifier_node(NkIdentifier, li(5, 19), "PAR_REAL1"),
             new_fnumber_node(NkRealLit, li(5, 31), 1.59, "1.59")
          ])
@@ -188,7 +188,7 @@ run_test("Invalid syntax, missing comma between parameter declarations", """#(
 )"""):
    new_node(NkModuleParameterPortList, li(1, 1), @[
       new_node(NkParameterDecl, li(2, 4), @[
-         new_node(NkParamAssignment, li(2, 14), @[
+         new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "FOO"),
             new_inumber_node(NkIntLit, li(2, 20), "0", Base10, -1)
          ])
@@ -209,7 +209,7 @@ run_test("Invalid syntax, missing comma between parameter assignments", """#(
 )"""):
    new_node(NkModuleParameterPortList, li(1, 1), @[
       new_node(NkParameterDecl, li(2, 4), @[
-         new_node(NkParamAssignment, li(2, 14), @[
+         new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "FOO"),
             new_inumber_node(NkIntLit, li(2, 20), "0", Base10, -1)
          ])

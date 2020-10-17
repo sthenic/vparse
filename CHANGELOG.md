@@ -39,9 +39,10 @@ All notable changes to this project will be documented in this file.
 
 ## Removed
 
-- Removed AST nodes `NkVariableLvalue` and `NkArrayIdentifier`.
-- Removed special identifier node types like `NkPortIdentifier` and
+- Remove AST nodes `NkVariableLvalue` and `NkArrayIdentifier`.
+- Remove special identifier node types like `NkPortIdentifier` and
   `NkModuleIdentifier` in favor of the generic `NkIdentifier`.
+- Remove `NkParameterAssignment`, use `NkAssignment` instead.
 
 ## [v0.2.2] - 2020-08-31
 
