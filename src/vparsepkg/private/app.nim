@@ -69,7 +69,7 @@ var g: Graph
 var exit_val = ESUCCESS
 for filename in cli_state.input_files:
    let fs = new_file_stream(filename)
-   if fs == nil:
+   if is_nil(fs):
       log.error("Failed to open '$1' for reading, skipping.", filename)
       continue
 
