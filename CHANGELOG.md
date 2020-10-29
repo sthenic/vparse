@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - The returned tuple for the `find_declaration()` procedure now includes any
   expression node if the declaration involves an assignment. Otherwise, this
   field is set to `nil`.
-- Ranged expressions with ':' is now an infix node.
+- Ranged expressions with `:` is now an infix node.
 
 ### Added
 
@@ -20,8 +20,8 @@ All notable changes to this project will be documented in this file.
 - Add the option to specify the start of the search for the various
   `find_first()` functions.
 - Add operators `[]` and `[]=` to AST nodes. This is shorthand to access the
-  sequence of sons for nonprimitive nodes, i.e. `n.sons[i]` is equivalent to
-  `n[i]`.
+  sequence of sons for nonprimitive nodes, i.e. `n[i]` is equivalent to
+  `n.sons[i]`.
 - Define the `len()` proc for nonprimitive AST nodes. The operation is
   equivalent to `len(n.sons)`.
 
