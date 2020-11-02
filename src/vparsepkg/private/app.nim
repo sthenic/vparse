@@ -65,7 +65,6 @@ if len(cli_state.output_file) != 0:
    else:
       log.info("Opened output file '$1'.", cli_state.output_file)
 
-var g: Graph
 var exit_val = ESUCCESS
 for filename in cli_state.input_files:
    let fs = new_file_stream(filename)
@@ -75,10 +74,10 @@ for filename in cli_state.input_files:
 
    let cache = new_ident_cache()
    log.info("Parsing source file '$1'", filename)
+   let graph = new_graph(cache)
    let t_start = cpu_time()
-   open_graph(g, cache, fs, filename, cli_state.include_paths, cli_state.defines)
+   let root_node = parse(graph, fs, filename, cli_state.include_paths, cli_state.defines)
    let t_diff_ms = (cpu_time() - t_start) * 1000
-   let root_node = parse_all(g)
 
    if ofs != nil:
       if cli_state.json:
@@ -99,9 +98,9 @@ for filename in cli_state.input_files:
          echo pretty(root_node)
          if cli_state.maps:
             echo "File maps\n---------"
-            echo pretty(g.locations.file_maps)
+            echo pretty(graph.locations.file_maps)
             echo "Macro maps\n----------"
-            echo pretty(g.locations.macro_maps)
+            echo pretty(graph.locations.macro_maps)
 
    log.info("Parse completed in ", fgGreen, styleBright,
             format_float(t_diff_ms, ffDecimal, 1), " ms", resetStyle, ".")
@@ -112,7 +111,6 @@ for filename in cli_state.input_files:
    else:
       log.info("No errors.\n")
 
-   close_graph(g)
    close(fs)
 
 quit(exit_val)

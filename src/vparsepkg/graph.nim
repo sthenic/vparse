@@ -4,31 +4,156 @@
 # TODO: Describe an overview of the the implementation.
 
 import streams
+import tables
+import os
+import strutils
 
 import ./parser
 import ./location
 export parser
+export tables
 
 type
-   Graph* = object
-      parser: Parser
+   Graph* = ref object
+      modules*: Table[string, PNode]
+      module_stack: seq[string]
+      files_to_parse: seq[string]
+      parsed_files: seq[string]
+      cache*: IdentifierCache
       locations*: PLocations
       root_node*: PNode
+      include_paths*: seq[string]
+      external_defines*: seq[string]
 
 
-proc open_graph*(g: var Graph, cache: IdentifierCache, s: Stream,
-                 filename: string, include_paths: openarray[string],
-                 external_defines: openarray[string]) =
-   new g.locations
-   init(g.locations)
-   open_parser(g.parser, cache, s, filename, g.locations, include_paths,
-               external_defines)
-   g.root_node = parse_all(g.parser)
+const
+   VERILOG_EXTENSIONS = [".v"]
 
 
-proc close_graph*(g: var Graph) =
-   close_parser(g.parser)
+proc new_graph*(cache: IdentifierCache): Graph =
+   ## Create a new graph for a Verilog source tree.
+   new result
+   new result.locations
+   init(result.locations)
+   set_len(result.module_stack, 0)
+   set_len(result.parsed_files, 0)
+   set_len(result.files_to_parse, 0)
+   set_len(result.include_paths, 0)
+   set_len(result.external_defines, 0)
+   result.cache = cache
 
 
-proc parse_all*(g: var Graph): PNode =
-   result = g.root_node
+iterator walk_verilog_files*(dir: string): string {.inline.} =
+   ## Walk the verilog files in ``dir``, returning the full path of each match.
+   for kind, path in walk_dir(dir):
+      let (_, _, ext) = split_file(path)
+      if kind == pcFile and ext in VERILOG_EXTENSIONS:
+         yield path
+
+
+proc find_all_verilog_files*(dir: string): seq[string] =
+   for filename in walk_verilog_files(dir):
+      add(result, filename)
+
+
+proc find_all_verilog_files*(dirs: openarray[string]): seq[string] =
+   for dir in dirs:
+      add(result, find_all_verilog_files(dir))
+
+
+iterator walk_verilog_files(g: Graph, pattern: string): string {.inline.} =
+   ## Walk the remaining Verilog files, prioritizing paths matching the ``pattern``.
+   ## A test with the lowercase version of the pattern is performed if the
+   ## unchanged pattern yields no match.
+   var remainder: seq[string]
+
+   for path in g.files_to_parse:
+      if path in g.parsed_files:
+         continue
+
+      let (_, filename, _) = split_file(path)
+      if contains(filename, pattern) or contains(filename, to_lower_ascii(pattern)):
+         add(g.parsed_files, path)
+         yield path
+      else:
+         add(remainder, path)
+
+   for path in remainder:
+      if path in g.parsed_files:
+         continue
+      add(g.parsed_files, path)
+      yield path
+
+
+# Forward declaration
+proc parse(g: Graph, s: Stream, filename: string): PNode
+
+
+proc cache_module_declaration*(g: Graph, name: string) =
+   ## Attempt to cache the declaration of the module identified by ``name``.
+   # First we check the cache for a hit. Otherwise, we check the source files
+   # available on the include paths. We prioritize files with the same name as
+   # the module we're searching for since there's a good chance we find the
+   # declaration quickly that way.
+   if has_key(g.modules, name):
+      return
+
+   for filename in walk_verilog_files(g, name):
+      let fs = new_file_stream(filename)
+      if is_nil(fs):
+         continue
+      # Recursively call parse for the target module with the enclosing graph.
+      discard parse(g, fs, filename)
+      close(fs)
+      if has_key(g.modules, name):
+         return
+
+   # If we got this far, we failed to find the declaration of the target module.
+   # We mark this as a 'nil' entry in the table.
+   g.modules[name] = nil
+
+
+proc cache_submodule_declarations*(g: Graph, n: PNode) =
+   ## Given a module declaration ``n`` in the context ``g``, go through the AST
+   ## and attempt to cache the declarations of all modules instantiated within.
+   ## The search stops when all instantiations have been processed. All
+   ## declarations found along the way will be cached and available in the
+   ## graph's ``modules`` table. These may or may not be all the modules
+   ## reachable from the include paths.
+   for inst in walk_module_instantiations(n):
+      let id = find_first(inst, NkIdentifier)
+      if not is_nil(id):
+         cache_module_declaration(g, id.identifier.s)
+
+
+proc parse(g: Graph, s: Stream, filename: string): PNode =
+   ## Parse the Verilog source tree contained in the stream ``s``.
+   var p: Parser
+   open_parser(p, g.cache, s, absolute_path(filename), g.locations, g.include_paths, g.external_defines)
+   result = parse_all(p)
+   close_parser(p)
+
+   # We have to do this in two steps since a source tree may contain multiple
+   # module declarations that reference each other.
+   for decl in walk_sons(result, NkModuleDecl):
+      let id = find_first(decl, NkIdentifier)
+      if is_nil(id):
+         continue
+      # TODO: Figure out conflicts in the table.
+      g.modules[id.identifier.s] = decl
+
+   for decl in walk_sons(result, NkModuleDecl):
+      cache_submodule_declarations(g, decl)
+
+
+proc parse*(g: Graph, s: Stream, filename: string,
+            include_paths: openarray[string], external_defines: openarray[string]): PNode =
+   var expanded_include_paths: seq[string]
+   for path in include_paths:
+      add(expanded_include_paths, expand_tilde(path))
+   g.files_to_parse = find_all_verilog_files(expanded_include_paths)
+   g.parsed_files = @[absolute_path(filename)]
+   g.include_paths = expanded_include_paths
+   g.external_defines = new_seq_of_cap[string](len(external_defines))
+   add(g.external_defines, external_defines)
+   parse(g, s, filename)

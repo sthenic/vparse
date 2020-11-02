@@ -137,8 +137,9 @@ location: $2
 
 
 proc pretty*(maps: openarray[FileMap]): string =
-   for m in maps:
-      add(result, pretty(m) & "\n")
+   for i, m in maps:
+      let s = format("index: $1\n", i + 1)
+      add(result, s & pretty(m) & "\n")
 
 
 proc new_file_map*(filename: string, loc: Location): FileMap =
