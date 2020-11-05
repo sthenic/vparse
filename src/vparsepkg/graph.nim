@@ -62,9 +62,9 @@ proc find_all_verilog_files*(dirs: openarray[string]): seq[string] =
 
 
 iterator walk_verilog_files(g: Graph, pattern: string): string {.inline.} =
-   ## Walk the remaining Verilog files, prioritizing paths matching the ``pattern``.
-   ## A test with the lowercase version of the pattern is performed if the
-   ## unchanged pattern yields no match.
+   ## Walk the remaining Verilog files, prioritizing paths matching the
+   ## ``pattern``. A test with the lowercase version of the pattern is performed
+   ## if the pattern yields no match as-is.
    var remainder: seq[string]
 
    for path in g.files_to_parse:
@@ -79,13 +79,17 @@ iterator walk_verilog_files(g: Graph, pattern: string): string {.inline.} =
          add(remainder, path)
 
    for path in remainder:
+      # We have to double-check against the list of parsed files since an
+      # earlier yield may have caused a recursive parse that handled the path
+      # we're about to yield.
       if path in g.parsed_files:
          continue
       add(g.parsed_files, path)
       yield path
 
 
-# Forward declaration
+# Forward declaration of the local parse proc so we can perform recursive
+# parsing when we look for submodule declarations.
 proc parse(g: Graph, s: Stream, filename: string): PNode
 
 
@@ -146,14 +150,23 @@ proc parse(g: Graph, s: Stream, filename: string): PNode =
       cache_submodule_declarations(g, decl)
 
 
-proc parse*(g: Graph, s: Stream, filename: string,
-            include_paths: openarray[string], external_defines: openarray[string]): PNode =
-   var expanded_include_paths: seq[string]
+proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[string],
+            external_defines: openarray[string]): PNode =
+   ## Given an initialized graph ``g``, parse the Verilog source tree contained
+   ## in the stream ``s``. The parser will attempt to look up any external
+   ## objects, e.g. targets of an ``include`` directive, or declarations of
+   ## modules instantiated within the source tree, by traversing the paths listed
+   ## in ``include_paths``. A list of external defines may be provided in
+   ## ``external_defines`` that are treated as if the preprocessor had processed
+   ## each element with the ``define`` directive.
+   g.include_paths = new_seq_of_cap[string](len(include_paths))
    for path in include_paths:
-      add(expanded_include_paths, expand_tilde(path))
-   g.files_to_parse = find_all_verilog_files(expanded_include_paths)
-   g.parsed_files = @[absolute_path(filename)]
-   g.include_paths = expanded_include_paths
+      add(g.include_paths, expand_tilde(path))
+
    g.external_defines = new_seq_of_cap[string](len(external_defines))
    add(g.external_defines, external_defines)
+
+   g.files_to_parse = find_all_verilog_files(g.include_paths)
+   g.parsed_files = @[absolute_path(filename)]
+
    parse(g, s, filename)
