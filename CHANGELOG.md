@@ -36,6 +36,12 @@ All notable changes to this project will be documented in this file.
 - Hierarchical identifiers are now supported `foo.bar[1].baz[3:0]`. Previously,
   only ranged identifiers was allowed and the scoping syntax with `.` didn't
   work.
+- Fix an issue where operators were not being lexed correctly.
+
+  The issue occurred when a an infix operator was immediately followed by a
+  prefix operator, i.e. not separated by whitespace. Before this fix an
+  expression like `a|~b` would be lexed as `a`, `|~` and `b` instead of `a`,
+  `|`, `~` and `b` like it should.
 
 ## Removed
 

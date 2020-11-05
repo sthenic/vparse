@@ -88,6 +88,9 @@ const
    BinaryOperators* = ["+", "-", "*", "/", "%", "==", "!=", "===", "!==", "&&",
                        "||", "**", "<", "<=", ">", ">=", "&", "|", "^", "^~",
                        "~^", ">>", "<<", ">>>", "<<<"]
+   Operators* = ["+", "-", "!", "~", "&", "~&", "|", "~|", "^", "~^", "^~", "*",
+                 "/", "%", "==", "!=", "===", "!==", "&&", "||", "**", "<", "<=",
+                 ">", ">=", ">>", "<<", ">>>", "<<<", "+:", "-:", "->", "=", ":"]
 
    SignedTokens* = {TkIntLit, TkAmbIntLit}
    UnsignedTokens* = {TkUIntLit, TkAmbUIntLit}
@@ -388,7 +391,6 @@ proc handle_comment(l: var Lexer, tok: var Token) =
 
 
 proc handle_identifier(l: var Lexer, tok: var Token, char_set: set[char]) =
-   # Grab characters in 'a'..'z', '_'.
    var pos = l.bufpos
    var h: Hash = 0
    while true:
@@ -399,24 +401,44 @@ proc handle_identifier(l: var Lexer, tok: var Token, char_set: set[char]) =
       inc(pos)
    h = !$h
 
-   tok.identifier =
-      get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
-
+   tok.identifier = get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
    l.bufpos = pos
 
 
 proc handle_symbol(l: var Lexer, tok: var Token) =
    handle_identifier(l, tok, SymChars)
 
-   if tok.identifier.id > ord(TkInvalid) and
-         tok.identifier.id < ord(TkBackslash):
+   if tok.identifier.id > ord(TkInvalid) and tok.identifier.id < ord(TkBackslash):
       tok.kind = TokenKind(tok.identifier.id)
    else:
       tok.kind = TkSymbol
 
 
 proc handle_operator(l: var Lexer, tok: var Token) =
-   handle_identifier(l, tok, OpChars)
+   # Since Verilog is insensitive to whitespace for the most part, we might be
+   # put in a position where two operators appear 'as one'. For example 'a|~b'
+   # is legal Verilog and should be parsed as 'a | ~b'. Greedily eating away at
+   # the character stream until a nonoperator token is encountered would result
+   # in the three tokens 'a |~ b'. Thus, we have to adopt a more careful
+   # strategy, selecting the largest group of consecutive operator characters
+   # that constitute a legal Verilog operator. We still want to lex '<<<' as one
+   # operator token and not stop at '<<' just because that's legal too. As
+   # always, we have to do this in a way that leaves the buffer cursor pointing
+   # at the first token after the operator we decide to remove from the buffer.
+   var pos = l.bufpos
+   var h: Hash = 0
+   var op = new_string_of_cap(3)
+   while true:
+      let c = l.buf[pos]
+      if c notin OpChars or op & c notin Operators:
+         break
+      h = h !& ord(c)
+      add(op, c)
+      inc(pos)
+   h = !$h
+
+   tok.identifier = get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
+   l.bufpos = pos
 
    if tok.identifier.id < ord(TkBackslash) or tok.identifier.id > ord(TkEquals):
       # Generic operator

@@ -118,6 +118,21 @@ run_test("Binary operators", "+ - * / % == != === !== && || ** < <= > >= & | ^ ^
    new_identifier(TkOperator, loc(1, 1, 65), "<<<")
 ])
 
+run_test("Operator splitting (binary/unary)", "a|~b a*-b a&&&b", @[
+   new_identifier(TkSymbol, loc(1, 1, 0), "a"),
+   new_identifier(TkOperator, loc(1, 1, 1), "|"),
+   new_identifier(TkOperator, loc(1, 1, 2), "~"),
+   new_identifier(TkSymbol, loc(1, 1, 3), "b"),
+   new_identifier(TkSymbol, loc(1, 1, 5), "a"),
+   new_identifier(TkOperator, loc(1, 1, 6), "*"),
+   new_identifier(TkOperator, loc(1, 1, 7), "-"),
+   new_identifier(TkSymbol, loc(1, 1, 8), "b"),
+   new_identifier(TkSymbol, loc(1, 1, 10), "a"),
+   new_identifier(TkOperator, loc(1, 1, 11), "&&"),
+   new_identifier(TkOperator, loc(1, 1, 13), "&"),
+   new_identifier(TkSymbol, loc(1, 1, 14), "b"),
+])
+
 run_test("Assigment operator", "=", @[
    new_token(TkEquals, loc(1, 1, 0))
 ])
