@@ -9,7 +9,7 @@ jobs:
     - name: Checkout vparse
       uses: actions/checkout@v2
 
-    - uses: jiro4989/setup-nim-action@v1.1.2
+    - uses: jiro4989/setup-nim-action@v1.1.4
       with:
         nim-version: 'stable'
 
