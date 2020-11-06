@@ -3,6 +3,7 @@
 ![tests](https://github.com/sthenic/vparse/workflows/tests/badge.svg)
 
 # vparse
+
 This tool is a Verilog IEEE 1364-2005 parser library written in
 [Nim](https://nim-lang.org). The output is an abstract syntax tree (AST)
 intended to be used by other tools to process source files written in Verilog.
@@ -13,15 +14,24 @@ It's also possible to extract the tokenized source code directly from the lexer
 or from the preprocessor.
 
 ## Documentation
+
 Coming soon.
 
 ## Version numbers
-Releases follow [semantic versioning](https://semver.org/) to determine how the version number is incremented. If the specification is ever broken by a release, this will be documented in the changelog.
+
+Releases follow [semantic versioning](https://semver.org/) to determine how the
+version number is incremented. If the specification is ever broken by a release,
+this will be documented in the changelog.
 
 ## Reporting a bug
-If you discover a bug or what you believe is unintended behavior, please submit an issue on the [issue board](https://github.com/sthenic/vparse/issues). A minimal working example and a short description of the context is appreciated and goes a long way towards being able to fix the problem quickly.
+
+If you discover a bug or what you believe is unintended behavior, please submit
+an issue on the [issue board](https://github.com/sthenic/vparse/issues). A
+minimal working example and a short description of the context is appreciated
+and goes a long way towards being able to fix the problem quickly.
 
 ## License
+
 This tool is free software released under the [MIT license](https://opensource.org/licenses/MIT).
 
 ## Third-party dependencies
@@ -29,4 +39,4 @@ This tool is free software released under the [MIT license](https://opensource.o
 * [Nim's standard library](https://github.com/nim-lang/Nim)
 
 ## Author
-vparse is maintained by [Marcus Eriksson](mailto:marcus.jr.eriksson@gmail.com).
+`vparse` is maintained by [Marcus Eriksson](mailto:marcus.jr.eriksson@gmail.com).
