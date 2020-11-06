@@ -42,6 +42,12 @@ proc run_test(title, context, stimuli: string, reference: Token, expect_error: b
 template run_test(title, context, stimuli: string, reference: Token, expect_error: bool = false) =
    run_test(title, context, stimuli, reference, expect_error, nof_passed, nof_failed)
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: constant expression evaluation
+------------------------------------------""")
 
 # Arithmetic '+'
 run_test("Arithmetic (+) two terms, unsized", "",

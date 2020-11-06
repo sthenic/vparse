@@ -38,6 +38,12 @@ template run_test_no_context(title, stimuli: string, reference: tuple[kind: Toke
          nof_failed += 1
          echo "Exception: ", e.msg
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: constant expression size & kind determination
+---------------------------------------------------------""")
 
 # Arithmetic operators w/ size as max(LHS, RHS)
 for op in ["+", "-", "*", "/"]:

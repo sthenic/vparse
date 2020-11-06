@@ -44,6 +44,12 @@ template assert_module_doesnt_exist(g: Graph, name: string) =
    if has_key(g.modules, name):
       raise new_test_exception("Module declaration present when it shouldn't be: '$1'", name)
 
+# Test suite title
+styledWriteLine(stdout, styleBright,
+"""
+
+Test suite: module graphs
+-------------------------""")
 
 run_test("Module discovery, all declarations in parent directory", "src/moda.v", []):
    if is_nil(g.root):
