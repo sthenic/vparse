@@ -52,7 +52,7 @@ run_test("Module discovery, all declarations in parent directory", "src/moda.v",
    assert_module_exists(g, "modD")
 
 
-run_test("Module discovery, all declarations in parent directory", "src/needs_includemod.v", ["src/include"]):
+run_test("Module discovery, declaration outside parent directory", "src/needs_includemod.v", ["src/include"]):
    if is_nil(g.root):
       raise new_test_exception("Root node is nil.")
    assert_module_exists(g, "needs_includemod")
