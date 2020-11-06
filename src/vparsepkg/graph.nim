@@ -34,6 +34,7 @@ proc new_graph*(cache: IdentifierCache): Graph =
    new result
    new result.locations
    init(result.locations)
+   clear(result.modules)
    set_len(result.module_stack, 0)
    set_len(result.parsed_files, 0)
    set_len(result.files_to_parse, 0)
