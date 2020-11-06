@@ -21,13 +21,12 @@ type
       parsed_files: seq[string]
       cache*: IdentifierCache
       locations*: PLocations
-      root_node*: PNode
+      root*: PNode
       include_paths*: seq[string]
       external_defines*: seq[string]
 
 
-const
-   VERILOG_EXTENSIONS = [".v"]
+const VERILOG_EXTENSIONS = [".v"]
 
 
 proc new_graph*(cache: IdentifierCache): Graph =
@@ -105,6 +104,7 @@ proc cache_module_declaration*(g: Graph, name: string) =
    for filename in walk_verilog_files(g, name):
       let fs = new_file_stream(filename)
       if is_nil(fs):
+         close(fs)
          continue
       # Recursively call parse for the target module with the enclosing graph.
       discard parse(g, fs, filename)
@@ -131,9 +131,14 @@ proc cache_submodule_declarations*(g: Graph, n: PNode) =
 
 
 proc parse(g: Graph, s: Stream, filename: string): PNode =
-   ## Parse the Verilog source tree contained in the stream ``s``.
+   ## Parse the Verilog source tree contained in the stream ``s``. Module
+   ## declarations found within are added to the graph's ``modules`` table. The
+   ## modules instantated within defines additional targets for the parser. The
+   ## parsing is complete once the AST is fully defined from this entry point and
+   ## downwards or the source files the include paths have been exhausted.
    var p: Parser
-   open_parser(p, g.cache, s, absolute_path(filename), g.locations, g.include_paths, g.external_defines)
+   open_parser(p, g.cache, s, absolute_path(filename), g.locations,
+               g.include_paths, g.external_defines)
    result = parse_all(p)
    close_parser(p)
 
@@ -163,10 +168,17 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
    for path in include_paths:
       add(g.include_paths, expand_tilde(path))
 
+   # We always add the parent directory to the include path.
+   let absolute_filename = absolute_path(filename)
+   let absolute_parent_dir = parent_dir(absolute_filename)
+   if absolute_parent_dir notin g.include_paths:
+      add(g.include_paths, absolute_parent_dir)
+
    g.external_defines = new_seq_of_cap[string](len(external_defines))
    add(g.external_defines, external_defines)
 
    g.files_to_parse = find_all_verilog_files(g.include_paths)
-   g.parsed_files = @[absolute_path(filename)]
+   g.parsed_files = @[absolute_filename]
 
-   parse(g, s, filename)
+   g.root = parse(g, s, filename)
+   result = g.root
