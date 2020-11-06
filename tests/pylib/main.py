@@ -5,7 +5,8 @@ import vparse as vp
 
 if __name__ == "__main__":
     try:
-        graph = vp.open_graph("./src3.v", [], [])
+        graph = vp.new_graph()
+        root = vp.parse(graph, "./src3.v", [], [])
     except vp.NimPyException as e:
         print(repr(e))
         quit(-1)
@@ -13,4 +14,3 @@ if __name__ == "__main__":
     root = vp.get_root_node(graph)
     print("AST: {}", vp.json(root))
     print("Has errors: {}".format(vp.has_errors(root)))
-    vp.close_graph(graph)
