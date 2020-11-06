@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
   expression node if the declaration involves an assignment. Otherwise, this
   field is set to `nil`.
 - Ranged expressions with `:` is now an infix node.
+- Refactored the module graph type (`graph.nim`) and its interface.
+
+  Parsing a Verilog source file now involves attempting to look up the
+  declarations of all modules instantiated within.
 
 ### Added
 
