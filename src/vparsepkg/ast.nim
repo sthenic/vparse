@@ -855,6 +855,15 @@ proc find_all_module_instantiations*(n: PNode): seq[PNode] =
          add(result, find_all_module_instantiations(s))
 
 
+iterator walk_module_instantiations*(n: PNode): PNode {.inline.} =
+   ## Walk the module instantations contained in the module declaration ``n``.
+   ## The node ``n`` is expected to be a ``NkModuleDecl``. This iterator yields
+   ## nodes of type ``NkModuleInstantation``.
+   if not is_nil(n) and n.kind == NkModuleDecl:
+      for inst in find_all_module_instantiations(n):
+         yield inst
+
+
 proc find_all_lvalues*(n: PNode): seq[PNode] =
    if is_nil(n):
       return

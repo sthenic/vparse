@@ -26,6 +26,7 @@ task test, "Run the test suite":
    exec("nimble parsertests")
    exec("nimble asttests")
    exec("nimble expressiontests")
+   exec("nimble graphtests")
 
 
 task lexertests, "Run the lexer test suite":
@@ -63,3 +64,8 @@ task expressiontests, "Run the expression test suite":
    with_dir("tests/expression"):
       exec("nim c --hints:off -r texpressioneval")
       exec("nim c --hints:off -r texpressionkindsize")
+
+
+task graphtests, "Run the graph test suite":
+   with_dir("tests/graph"):
+      exec("nim c --hints:off -r tgraph")
