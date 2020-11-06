@@ -14,6 +14,11 @@ export parser
 export tables
 
 type
+   WalkStrategy* = enum
+      WalkAll
+      WalkDefined
+      WalkUndefined
+
    Graph* = ref object
       modules*: Table[string, PNode]
       module_stack: seq[string]
@@ -86,6 +91,22 @@ iterator walk_verilog_files(g: Graph, pattern: string): string {.inline.} =
          continue
       add(g.parsed_files, path)
       yield path
+
+
+iterator walk_modules*(g: Graph, strategy: WalkStrategy = WalkAll):
+      tuple[module: PNode, name, filename: string] =
+   for name, module in g.modules:
+      if is_nil(module):
+         if strategy in {WalkAll, WalkUndefined}:
+            yield (nil, name, "")
+         else:
+            continue
+      else:
+         if strategy in {WalkAll, WalkDefined}:
+            let filename = g.locations.file_maps[module.loc.file - 1].filename
+            yield (module, name, filename)
+         else:
+            continue
 
 
 # Forward declaration of the local parse proc so we can perform recursive
