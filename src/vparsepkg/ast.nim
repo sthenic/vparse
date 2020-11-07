@@ -529,6 +529,26 @@ iterator walk_parameter_ports*(n: PNode): PNode {.inline.} =
                   yield p
 
 
+iterator walk_port_references*(n: PNode): PNode {.inline.} =
+   # Walk the port references of a module. Port references only exists if the
+   # module uses a 'list of ports' to describe its interface and puts the actual
+   # port declarations within the module body. The node ``n`` is expected to be
+   # a ``NkModuleDecl``.
+   for port in walk_ports(n):
+      if port.kind != NkPort:
+         continue
+
+      let port_ref_concat = find_first(port, NkPortReferenceConcat)
+      if not is_nil(port_ref_concat):
+         for port_ref in walk_sons(port_ref_concat, NkPortReference):
+            yield port_ref
+         continue
+
+      let port_ref = find_first(port, NkPortReference)
+      if not is_nil(port_ref):
+         yield port_ref
+
+
 iterator walk_nodes_starting_with*(nodes: openarray[PNode], prefix: string): PNode =
    for n in nodes:
       if n.kind in IdentifierTypes and starts_with(n.identifier.s, prefix):
