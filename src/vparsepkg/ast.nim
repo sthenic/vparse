@@ -546,7 +546,6 @@ proc find_all_identifiers*(n: PNode, context: var AstContext, recursive: bool = 
    of PrimitiveTypes - IdentifierTypes:
       discard
    of NkDotExpression:
-      # add(result, (n, context))
       for i, s in n.sons:
          if s.kind notin IdentifierTypes:
             add(context, i, n)
@@ -567,6 +566,27 @@ iterator walk_identifiers*(n: PNode, recursive: bool = false): tuple[id: PNode, 
    var context: AstContext
    for (n, c) in find_all_identifiers(n, context, recursive):
       yield (n, c)
+
+
+proc is_external_identifier*(context: AstContext): bool =
+   ## Given the ``context`` of an identifier, check if its declaration is an
+   ## external object.
+   if len(context) == 0:
+      return false
+
+   let n = context[^1].n
+   case n.kind
+   of NkModuleInstantiation:
+      result = true
+   of NkNamedPortConnection, NkNamedParameterAssignment:
+      # It's only an external identifier if it's the one following the dot
+      # character, i.e. if it's the first identifier we find.
+      var seen_another_identifier = false
+      for i in 0..<context[^1].pos:
+         seen_another_identifier = (n.sons[i].kind == NkIdentifier)
+      result = not seen_another_identifier
+   else:
+      result = false
 
 
 proc find_identifier*(n: PNode, loc: Location, context: var AstContext,

@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
   equivalent to `len(n.sons)`.
 - For completeness, performing a declaration lookup with a module instance name
   leads back to the instantiation itself.
+- Add `is_external_identifier()` to the AST API.
 
 ## Fixed
 
