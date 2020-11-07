@@ -35,6 +35,7 @@ All notable changes to this project will be documented in this file.
 - Add `find_external_identifier()`, `find_module_port_declaration()` and
   `find_module_parameter_declaration()` to the module graph API.
 - Add the iterator `walk_port_references()`.
+- Module declaration nodes now include the leading comment token.
 
 ## Fixed
 
@@ -55,7 +56,6 @@ All notable changes to this project will be documented in this file.
   `|`, `~` and `b` like it should.
 - Fix `find_declaration()` not yielding the declaration when the target
   identifier is a port reference.
-
 
 ## Removed
 

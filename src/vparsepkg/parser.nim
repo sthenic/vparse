@@ -2341,6 +2341,7 @@ proc parse_module_item(p: var Parser, attributes: seq[PNode]): PNode =
 
 proc parse_module_declaration(p: var Parser, attributes: seq[PNode]): PNode =
    result = new_node(p, NkModuleDecl)
+   add_comment(p, result)
    get_token(p)
    if len(attributes) > 0:
       add(result.sons, attributes)
