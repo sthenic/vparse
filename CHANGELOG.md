@@ -52,6 +52,9 @@ All notable changes to this project will be documented in this file.
   prefix operator, i.e. not separated by whitespace. Before this fix an
   expression like `a|~b` would be lexed as `a`, `|~` and `b` instead of `a`,
   `|`, `~` and `b` like it should.
+- Fix `find_declaration()` not yielding the declaration when the target
+  identifier is a port reference.
+
 
 ## Removed
 

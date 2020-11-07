@@ -674,7 +674,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
    # the correct identifier node.
    case n.kind
    of NkPortDecl, NkGenvarDecl:
-      # A genvar declaration allows a list of identifiers.
+      # A port or genvar declaration allows a list of identifiers.
       for id in walk_sons(n, NkIdentifier):
          if id.identifier.s == identifier.s:
             return (n, id, nil)
@@ -736,6 +736,32 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
             break
 
 
+proc find_port_reference_declaration*(context: AstContext, identifier: PIdentifier):
+      tuple[declaration, identifier, expression: PNode, context: AstContextItem] =
+   # Traverse the context bottom-up until we find the module declaration.
+   # Descend into the body looking for the port declaration, ignoring everything
+   # else.
+   result.declaration = nil
+   result.identifier = nil
+   result.expression = nil
+   result.context = AstContextItem(n: nil, pos: 0)
+   for i in countdown(high(context), 0):
+      if context[i].n.kind == NkModuleDecl:
+         result.context = context[i]
+         break
+
+   # Once we have the module declaration, look through the sons for the matching
+   # port declaration, remembering that the port declaration syntax allows for a
+   # list of identifiers.
+   if not is_nil(result.context.n):
+      for decl in walk_sons(result.context.n, NkPortDecl):
+         for id in walk_sons(decl, NkIdentifier):
+            if id.identifier.s == identifier.s:
+               result.declaration = decl
+               result.identifier = id
+               return
+
+
 proc find_declaration*(context: AstContext, identifier: PIdentifier):
       tuple[declaration, identifier, expression: PNode, context: AstContextItem] =
    ## Traverse the AST ``context`` bottom-up, descending into any declaration
@@ -749,14 +775,19 @@ proc find_declaration*(context: AstContext, identifier: PIdentifier):
    result.expression = nil
    for i in countdown(high(context), 0):
       let context_item = context[i]
-      if context_item.n.kind notin PrimitiveTypes:
+      if context_item.n.kind == NkPortReference:
+         # Port references are a bit special since they work with a 'delayed'
+         # declaration, presumed to appear in the module body. We handle these
+         # as a special case.
+         return find_port_reference_declaration(context, identifier)
+      elif context_item.n.kind notin PrimitiveTypes:
          for pos in countdown(context_item.pos, 0):
             let s = context_item.n[pos]
             if s.kind in DeclarationTypes - {NkDefparamDecl}:
                (result.declaration, result.identifier, result.expression) = find_declaration(s, identifier)
                if not is_nil(result.declaration):
-                  if context_item.n.kind in {NkModuleParameterPortList, NkListOfPortDeclarations, NkListOfPorts}:
-                     # If the declaration was enclosed in any of the list types,
+                  if context_item.n.kind in {NkModuleParameterPortList, NkListOfPortDeclarations}:
+                     # If the declaration is enclosed in any of the list types,
                      # its scope stretches from the parent node and onwards.
                      result.context = context[i-1]
                   else:
