@@ -138,8 +138,7 @@ const
 type
    PNode* = ref TNode
    TNodeSeq* = seq[PNode]
-   # FIXME: Add .acyclic. later on when it's supported by a new release.
-   TNode {.final.} = object
+   TNode {.final, acyclic.} = object
       loc*: Location
       case kind*: NodeKind
       of NkStrLit, NkComment:

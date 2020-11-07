@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Require Nim v1.4.0.
 - The returned tuple for the `find_declaration()` procedure now includes any
   expression node if the declaration involves an assignment. Otherwise, this
   field is set to `nil`.
