@@ -32,6 +32,8 @@ All notable changes to this project will be documented in this file.
 - For completeness, performing a declaration lookup with a module instance name
   leads back to the instantiation itself.
 - Add `is_external_identifier()` to the AST API.
+- Add `find_external_identifier()`, `find_module_port_declaration()` and
+  `find_module_parameter_declaration()` to the module graph API.
 
 ## Fixed
 

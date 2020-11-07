@@ -204,3 +204,101 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
 
    g.root = parse(g, s, filename)
    result = g.root
+
+
+proc find_module_port_declaration*(g: Graph, module_id, port_id: PIdentifier):
+      tuple[declaration, identifier: PNode, filename: string] =
+   ## Given a parsed module graph ``g``, find the declaration of the module port
+   ## ``port_id`` that belong to the module ``module_id``. The return value is a
+   ## tuple containing the declaration node, the matching identifier node within
+   ## this declaration and the filename in which this declaration appears. If the
+   ## search fails, the declaration node is set to ``nil``.
+   result = (nil, nil, "")
+   let module = get_or_default(g.modules, module_id.s, nil)
+   if is_nil(module):
+      return
+
+   let filename = g.locations.file_maps[module.loc.file - 1].filename
+   for port in walk_ports(module):
+      case port.kind
+      of NkPortDecl:
+         let id = find_first(port, NkIdentifier)
+         if not is_nil(id) and id.identifier.s == port_id.s:
+            return (port, id, filename)
+      of NkPort:
+         # If we find a port identifier as the first node, that's the name that
+         # this port is known by from the outside. Otherwise, we're looking for
+         # the first identifier in a port reference.
+         let id = find_first(port, NkIdentifier)
+         if not is_nil(id) and id.identifier.s == port_id.s:
+            return (port, id, filename)
+         else:
+            let port_ref = find_first(port, NkPortReference)
+            if not is_nil(port_ref):
+               let id = find_first(port_ref, NkIdentifier)
+               if not is_nil(id) and id.identifier.s == port_id.s:
+                  return (port, id, filename)
+      else:
+         discard
+
+
+proc find_module_parameter_declaration*(g: Graph, module_id, parameter_id: PIdentifier):
+      tuple[declaration, identifier: PNode, filename: string] =
+   ## Given a parsed module graph ``g``, find the declaration of the module
+   ## parameter ``parameter_id`` that belongs to the module ``module_id``. The
+   ## return value is a tuple containing the declaration node, the matching
+   ## identifier node within this declaration and the filename in which this
+   ## declaration appears. If the search fails, the declaration node is set to
+   ## ``nil``.
+   template return_if_matching(parameter: PNode, parameter_id: PIdentifier) =
+      let assignment = find_first(parameter, NkAssignment)
+      if not is_nil(assignment):
+         let id = find_first(assignment, NkIdentifier)
+         if not is_nil(id) and id.identifier.s == parameter_id.s:
+            return (parameter, id, filename)
+
+   result = (nil, nil, "")
+   let module = get_or_default(g.modules, module_id.s, nil)
+   if is_nil(module):
+      return
+
+   let filename = g.locations.file_maps[module.loc.file - 1].filename
+   if not is_nil(find_first(module, NkModuleParameterPortList)):
+      for parameter in walk_parameter_ports(module):
+         return_if_matching(parameter, parameter_id)
+   else:
+      for parameter in walk_sons(module, NkParameterDecl):
+         return_if_matching(parameter, parameter_id)
+
+
+proc find_external_declaration*(g: Graph, context: AstContext, identifier: PIdentifier):
+      tuple[declaration, identifier: PNode, filename: string] =
+   ## Given a parsed module graph ``g``, find the external declaration of the
+   ## ``identifier`` that exists in the provided ``context``. The return value is
+   ## a tuple containing the declaration node, the matching identifier node within
+   ## this declaration and the filename in which this declaration appears. If the
+   ## search fails, the declaration node is set to ``nil``.
+   result = (nil, nil, "")
+   if not is_external_identifier(context):
+      return
+
+   case context[^1].n.kind
+   of NkModuleInstantiation:
+      let module = get_or_default(g.modules, identifier.s, nil)
+      if not is_nil(module):
+         let id = find_first(module, NkIdentifier)
+         let filename = g.locations.file_maps[id.loc.file - 1].filename
+         result = (module, id, filename)
+
+   of NkNamedPortConnection:
+      let module_id = find_first(context[^3].n, NkIdentifier)
+      if not is_nil(module_id):
+         result = find_module_port_declaration(g, module_id.identifier, identifier)
+
+   of NkNamedParameterAssignment:
+      let module_id = find_first(context[^3].n, NkIdentifier)
+      if not is_nil(module_id):
+         result = find_module_parameter_declaration(g, module_id.identifier, identifier)
+
+   else:
+      discard
