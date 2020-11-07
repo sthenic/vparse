@@ -29,6 +29,8 @@ All notable changes to this project will be documented in this file.
   `n.sons[i]`.
 - Define the `len()` proc for nonprimitive AST nodes. The operation is
   equivalent to `len(n.sons)`.
+- For completeness, performing a declaration lookup with a module instance name
+  leads back to the instantiation itself.
 
 ## Fixed
 

@@ -121,7 +121,7 @@ const
        NkEventDecl, NkGenvarDecl, NkModuleDecl, NkIntegerDecl, NkDefparamDecl,
        NkFunctionDecl, NkRealtimeDecl, NkParameterDecl, NkSpecparamDecl,
        NkLocalparamDecl, NkModuleParameterPortList, NkListOfPortDeclarations,
-       NkListOfPorts, NkTaskFunctionPortDecl}
+       NkListOfPorts, NkTaskFunctionPortDecl, NkModuleInstance}
 
    ConcatenationTypes* =
       {NkConstantConcat, NkConstantMultipleConcat, NkPortReferenceConcat,
@@ -698,7 +698,7 @@ proc find_declaration*(n: PNode, identifier: PIdentifier): tuple[declaration, id
          if id_idx >= 0 and s[id_idx].identifier.s == identifier.s:
             return (n, s[id_idx], find_first(s, ExpressionTypes, id_idx + 1))
 
-   of NkModuleDecl:
+   of NkModuleDecl, NkModuleInstance:
       let id = find_first(n, NkIdentifier)
       if not is_nil(id) and id.identifier.s == identifier.s:
          return (n, id, nil)
