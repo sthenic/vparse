@@ -530,10 +530,10 @@ iterator walk_parameter_ports*(n: PNode): PNode {.inline.} =
 
 
 iterator walk_port_references*(n: PNode): PNode {.inline.} =
-   # Walk the port references of a module. Port references only exists if the
-   # module uses a 'list of ports' to describe its interface and puts the actual
-   # port declarations within the module body. The node ``n`` is expected to be
-   # a ``NkModuleDecl``.
+   ## Walk the port references of a module. Port references only exists if the
+   ## module uses a 'list of ports' to describe its interface and puts the actual
+   ## port declarations within the module body. The node ``n`` is expected to be
+   ## a ``NkModuleDecl``.
    for port in walk_ports(n):
       if port.kind != NkPort:
          continue
@@ -547,6 +547,34 @@ iterator walk_port_references*(n: PNode): PNode {.inline.} =
       let port_ref = find_first(port, NkPortReference)
       if not is_nil(port_ref):
          yield port_ref
+
+
+iterator walk_named_ports*(n: PNode): tuple[declaration, identifier: PNode] {.inline.} =
+   ## Walk the 'named' ports of the module declaration ``n``. This means that
+   ## this iterator only yields for ports that may be used in named port
+   ## connections.
+   # TODO: Think about if for port references, the declaration node should be
+   #       the actual NkPortDecl, presumably found in the module body.
+   for port in walk_ports(n):
+      case port.kind
+      of NkPortDecl:
+         let id = find_first(port, NkIdentifier)
+         if not is_nil(id):
+            yield (port, id)
+      of NkPort:
+         # If we find a port identifier as the first node, that's the name that
+         # this port is known by from the outside. Otherwise, we're looking for
+         # the first identifier in a port reference. Unnamed port reference
+         # concatenations are not addressable from the outside.
+         let id = find_first(port, NkIdentifier)
+         if not is_nil(id):
+            yield (port, id)
+         else:
+            let id = find_first_chain(port, [NkPortReference, NkIdentifier])
+            if not is_nil(id):
+               yield (port, id)
+      else:
+         discard
 
 
 iterator walk_nodes_starting_with*(nodes: openarray[PNode], prefix: string): PNode =
