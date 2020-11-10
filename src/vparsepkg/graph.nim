@@ -219,27 +219,9 @@ proc find_module_port_declaration*(g: Graph, module_id, port_id: PIdentifier):
       return
 
    let filename = g.locations.file_maps[module.loc.file - 1].filename
-   for port in walk_ports(module):
-      case port.kind
-      of NkPortDecl:
-         let id = find_first(port, NkIdentifier)
-         if not is_nil(id) and id.identifier.s == port_id.s:
-            return (port, id, filename)
-      of NkPort:
-         # If we find a port identifier as the first node, that's the name that
-         # this port is known by from the outside. Otherwise, we're looking for
-         # the first identifier in a port reference.
-         let id = find_first(port, NkIdentifier)
-         if not is_nil(id) and id.identifier.s == port_id.s:
-            return (port, id, filename)
-         else:
-            let port_ref = find_first(port, NkPortReference)
-            if not is_nil(port_ref):
-               let id = find_first(port_ref, NkIdentifier)
-               if not is_nil(id) and id.identifier.s == port_id.s:
-                  return (port, id, filename)
-      else:
-         discard
+   for (declaration, id) in walk_ports(module):
+      if id.identifier.s == port_id.s:
+         return (declaration, id, filename)
 
 
 proc find_module_parameter_declaration*(g: Graph, module_id, parameter_id: PIdentifier):
@@ -250,25 +232,15 @@ proc find_module_parameter_declaration*(g: Graph, module_id, parameter_id: PIden
    ## identifier node within this declaration and the filename in which this
    ## declaration appears. If the search fails, the declaration node is set to
    ## ``nil``.
-   template return_if_matching(parameter: PNode, parameter_id: PIdentifier) =
-      let assignment = find_first(parameter, NkAssignment)
-      if not is_nil(assignment):
-         let id = find_first(assignment, NkIdentifier)
-         if not is_nil(id) and id.identifier.s == parameter_id.s:
-            return (parameter, id, filename)
-
    result = (nil, nil, "")
    let module = get_or_default(g.modules, module_id.s, nil)
    if is_nil(module):
       return
 
    let filename = g.locations.file_maps[module.loc.file - 1].filename
-   if not is_nil(find_first(module, NkModuleParameterPortList)):
-      for parameter in walk_parameter_ports(module):
-         return_if_matching(parameter, parameter_id)
-   else:
-      for parameter in walk_sons(module, NkParameterDecl):
-         return_if_matching(parameter, parameter_id)
+   for (declaration, id) in find_all_parameters(module):
+      if id.identifier.s == parameter_id.s:
+         return (declaration, id, filename)
 
 
 proc find_external_declaration*(g: Graph, context: AstContext, identifier: PIdentifier):

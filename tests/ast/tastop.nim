@@ -72,7 +72,7 @@ module port_finder (
 endmodule
 """, @[
    (
-      port: new_node(NkPortDecl, li(2, 4), @[
+      declaration: new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkNetType, li(2, 10), "wire"),
          new_identifier_node(NkIdentifier, li(2, 15), "clk_i"),
@@ -82,7 +82,7 @@ endmodule
       identifier: new_identifier_node(NkIdentifier, li(2, 15), "clk_i")
    ),
    (
-      port: new_node(NkPortDecl, li(2, 4), @[
+      declaration: new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkNetType, li(2, 10), "wire"),
          new_identifier_node(NkIdentifier, li(2, 15), "clk_i"),
@@ -92,7 +92,7 @@ endmodule
       identifier: new_identifier_node(NkIdentifier, li(3, 15), "another_port_i")
    ),
    (
-      port: new_node(NkPortDecl, li(2, 4), @[
+      declaration: new_node(NkPortDecl, li(2, 4), @[
          new_identifier_node(NkDirection, li(2, 4), "input"),
          new_identifier_node(NkNetType, li(2, 10), "wire"),
          new_identifier_node(NkIdentifier, li(2, 15), "clk_i"),
@@ -102,7 +102,7 @@ endmodule
       identifier: new_identifier_node(NkIdentifier, li(4, 15), "the_last_port_i")
    ),
    (
-      port: new_node(NkPortDecl, li(5, 4), @[
+      declaration: new_node(NkPortDecl, li(5, 4), @[
          new_identifier_node(NkDirection, li(5, 4), "output"),
          new_identifier_node(NkNetType, li(5, 11), "reg"),
          new_node(NkRange, li(5, 15), @[
@@ -127,37 +127,37 @@ module port_finder (
 endmodule
 """, @[
    (
-      port: new_node(NkPortDecl, li(4, 4), @[
+      declaration: new_node(NkPortDecl, li(4, 4), @[
          new_identifier_node(NkDirection, li(4, 4), "input"),
          new_identifier_node(NkNetType, li(4, 10), "wire"),
          new_identifier_node(NkIdentifier, li(4, 15), "clk_i"),
          new_identifier_node(NkIdentifier, li(5, 15), "another_port_i"),
          new_identifier_node(NkIdentifier, li(6, 15), "the_last_port_i")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(4, 15), "clk_i")
+      identifier: new_identifier_node(NkIdentifier, li(2, 4), "clk_i")
    ),
    (
-      port: new_node(NkPortDecl, li(4, 4), @[
+      declaration: new_node(NkPortDecl, li(4, 4), @[
          new_identifier_node(NkDirection, li(4, 4), "input"),
          new_identifier_node(NkNetType, li(4, 10), "wire"),
          new_identifier_node(NkIdentifier, li(4, 15), "clk_i"),
          new_identifier_node(NkIdentifier, li(5, 15), "another_port_i"),
          new_identifier_node(NkIdentifier, li(6, 15), "the_last_port_i")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(5, 15), "another_port_i")
+      identifier: new_identifier_node(NkIdentifier, li(2, 11), "another_port_i")
    ),
    (
-      port: new_node(NkPortDecl, li(4, 4), @[
+      declaration: new_node(NkPortDecl, li(4, 4), @[
          new_identifier_node(NkDirection, li(4, 4), "input"),
          new_identifier_node(NkNetType, li(4, 10), "wire"),
          new_identifier_node(NkIdentifier, li(4, 15), "clk_i"),
          new_identifier_node(NkIdentifier, li(5, 15), "another_port_i"),
          new_identifier_node(NkIdentifier, li(6, 15), "the_last_port_i")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(6, 15), "the_last_port_i")
+      identifier: new_identifier_node(NkIdentifier, li(2, 27), "the_last_port_i")
    ),
    (
-      port: new_node(NkPortDecl, li(7, 4), @[
+      declaration: new_node(NkPortDecl, li(7, 4), @[
          new_identifier_node(NkDirection, li(7, 4), "output"),
          new_identifier_node(NkNetType, li(7, 11), "reg"),
          new_node(NkRange, li(7, 15), @[
@@ -166,7 +166,7 @@ endmodule
          ]),
          new_identifier_node(NkIdentifier, li(7, 21), "data_o")
       ]),
-      identifier: new_identifier_node(NkIdentifier, li(7, 21), "data_o")
+      identifier: new_identifier_node(NkIdentifier, li(2, 44), "data_o")
    )
 ])
 
@@ -180,7 +180,7 @@ module port_finder #(
 endmodule
 """, @[
    (
-      parameter: new_node(NkParameterDecl, li(2, 4), @[
+      declaration: new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "WIDTH"),
             new_inumber_node(NkIntLit, li(2, 22), "32", Base10, -1)
@@ -189,7 +189,7 @@ endmodule
       identifier: new_identifier_node(NkIdentifier, li(2, 14), "WIDTH")
    ),
    (
-      parameter: new_node(NkParameterDecl, li(3, 4), @[
+      declaration: new_node(NkParameterDecl, li(3, 4), @[
          new_node(NkAssignment, li(3, 14), @[
             new_identifier_node(NkIdentifier, li(3, 14), "ZERO"),
             new_inumber_node(NkIntLit, li(3, 21), "0", Base10, -1)
@@ -206,7 +206,7 @@ module port_finder ();
 endmodule
 """, @[
    (
-      parameter: new_node(NkParameterDecl, li(2, 4), @[
+      declaration: new_node(NkParameterDecl, li(2, 4), @[
          new_node(NkAssignment, li(2, 14), @[
             new_identifier_node(NkIdentifier, li(2, 14), "FOO"),
             new_inumber_node(NkIntLit, li(2, 20), "3", Base10, -1)

@@ -496,8 +496,8 @@ iterator walk_sons_index*(n: PNode, kind: NodeKind, start: Natural = 0): tuple[i
 
 
 iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
-   ## Walk the sons in ``n`` between indexes ``start`` and ``stop``. If ``stop`` is omitted,
-   ## the iterator continues until the last son has been returned.
+   ## Walk the sons in ``n`` between indexes ``start`` and ``stop``. If ``stop``
+   ## is omitted, the iterator continues until the last son has been returned.
    if n.kind notin PrimitiveTypes:
       var lstop = stop
       var lstart = start
@@ -507,26 +507,15 @@ iterator walk_sons*(n: PNode, start: Natural, stop: int = -1): PNode =
          yield n[i]
 
 
-iterator walk_ports*(n: PNode): PNode {.inline.} =
-   ## Walk the ports of a module. The node ``n`` is expected to be a ``NkModuleDecl``.
-   ## This iterator yields nodes of type ``NkPortDecl`` or ``NkPort``.
-   if n.kind == NkModuleDecl:
-      for s in n.sons:
-         if s.kind in {NkListOfPortDeclarations, NkListOfPorts}:
-            for p in s.sons:
-               if p.kind in {NkPortDecl, NkPort}:
-                  yield p
-
-
-iterator walk_parameter_ports*(n: PNode): PNode {.inline.} =
-   ## Walk the parameter ports of a module. The node ``n`` is expected to be a ``NkModuleDecl``.
-   ## This iterator yields nodes of type ``NkParameterDecl``.
-   if n.kind == NkModuleDecl:
-      for s in n.sons:
-         if s.kind == NkModuleParameterPortList:
-            for p in s.sons:
-               if p.kind == NkParameterDecl:
-                  yield p
+iterator walk_port_list*(n: PNode): PNode {.inline.} =
+   ## Walk the nodes in the port list of module ``n``. That list may either be a
+   ## 'list of port declarations', for which this iterator yields ``NkPortDecl``
+   ## nodes, or a 'list of ports', in which case ``NkPort`` nodes are yielded
+   ## instead. A module declaration can only ever use one of these syntaxes.
+   let list = find_first(n, {NkListOfPortDeclarations, NkListOfPorts})
+   if not is_nil(list):
+      for port in walk_sons(list, {NkPortDecl, NkPort}):
+         yield port
 
 
 iterator walk_port_references*(n: PNode): PNode {.inline.} =
@@ -534,7 +523,7 @@ iterator walk_port_references*(n: PNode): PNode {.inline.} =
    ## module uses a 'list of ports' to describe its interface and puts the actual
    ## port declarations within the module body. The node ``n`` is expected to be
    ## a ``NkModuleDecl``.
-   for port in walk_ports(n):
+   for port in walk_port_list(n):
       if port.kind != NkPort:
          continue
 
@@ -549,41 +538,14 @@ iterator walk_port_references*(n: PNode): PNode {.inline.} =
          yield port_ref
 
 
-iterator walk_named_ports*(n: PNode): tuple[declaration, identifier: PNode] {.inline.} =
-   ## Walk the 'named' ports of the module declaration ``n``. This means that
-   ## this iterator only yields for ports that may be used in named port
-   ## connections.
-   # TODO: Think about if for port references, the declaration node should be
-   #       the actual NkPortDecl, presumably found in the module body.
-   for port in walk_ports(n):
-      case port.kind
-      of NkPortDecl:
-         let id = find_first(port, NkIdentifier)
-         if not is_nil(id):
-            yield (port, id)
-      of NkPort:
-         # If we find a port identifier as the first node, that's the name that
-         # this port is known by from the outside. Otherwise, we're looking for
-         # the first identifier in a port reference. Unnamed port reference
-         # concatenations are not addressable from the outside.
-         let id = find_first(port, NkIdentifier)
-         if not is_nil(id):
-            yield (port, id)
-         else:
-            let id = find_first_chain(port, [NkPortReference, NkIdentifier])
-            if not is_nil(id):
-               yield (port, id)
-      else:
-         discard
-
-
 iterator walk_nodes_starting_with*(nodes: openarray[PNode], prefix: string): PNode =
    for n in nodes:
       if n.kind in IdentifierTypes and starts_with(n.identifier.s, prefix):
          yield n
 
 
-proc find_all_identifiers*(n: PNode, context: var AstContext, recursive: bool = false): seq[tuple[id: PNode, context: AstContext]] =
+proc find_all_identifiers*(n: PNode, context: var AstContext, recursive: bool = false):
+      seq[tuple[identifier: PNode, context: AstContext]] =
    ## Find all the identifiers in ``n``, returning a tuple of each identifier
    ## node and its context.
    case n.kind
@@ -608,7 +570,8 @@ proc find_all_identifiers*(n: PNode, context: var AstContext, recursive: bool = 
          discard pop(context)
 
 
-iterator walk_identifiers*(n: PNode, recursive: bool = false): tuple[id: PNode, context: AstContext] {.inline.} =
+iterator walk_identifiers*(n: PNode, recursive: bool = false):
+      tuple[identifier: PNode, context: AstContext] {.inline.} =
    ## Walk all identifiers in ``n`` (depth first) returning a tuple of the
    ## identifier node and its context.
    var context: AstContext
@@ -802,10 +765,10 @@ proc find_port_reference_declaration*(context: AstContext, identifier: PIdentifi
    # port declaration, remembering that the port declaration syntax allows for a
    # list of identifiers.
    if not is_nil(result.context.n):
-      for decl in walk_sons(result.context.n, NkPortDecl):
-         for id in walk_sons(decl, NkIdentifier):
+      for declaration in walk_sons(result.context.n, NkPortDecl):
+         for id in walk_sons(declaration, NkIdentifier):
             if id.identifier.s == identifier.s:
-               result.declaration = decl
+               result.declaration = declaration
                result.identifier = id
                return
 
@@ -962,6 +925,61 @@ iterator walk_module_instantiations*(n: PNode): PNode {.inline.} =
          yield inst
 
 
+iterator walk_ports*(n: PNode): tuple[declaration, identifier: PNode] {.inline.} =
+   ## Walk the externally visible ports of the module declaration ``n``. If the
+   ## module uses port references, this iterator will not yield for the internal
+   ## identifiers.
+   for port in walk_port_list(n):
+      case port.kind
+      of NkPortDecl:
+         # A port declaration may contain multiple identifiers.
+         for id in walk_sons(port, NkIdentifier):
+            yield (port, id)
+      of NkPort:
+         # If we find a port identifier as the first node, that's the name that
+         # this port is known by from the outside. Otherwise, we're looking for
+         # the first identifier in a port reference, also known as an 'implicit
+         # port'. For these ports, we try to find the matching declaration in
+         # the module body. Unnamed port reference concatenations are not
+         # addressable from the outside.
+         let id = find_first(port, NkIdentifier)
+         if not is_nil(id):
+            yield (port, id)
+         else:
+            let id = find_first_chain(port, [NkPortReference, NkIdentifier])
+            if not is_nil(id):
+               for s in walk_sons(n, NkPortDecl):
+                  let (declaration, _, _) = find_declaration(s, id.identifier)
+                  if not is_nil(declaration):
+                     yield (declaration, id)
+      else:
+         discard
+
+
+iterator walk_parameters*(n: PNode): tuple[declaration, identifier: PNode] {.inline.} =
+   ## Walk all the externally visible parameters of the module declaration ``n``.
+   ## The iterator yields a tuple where the declaration node
+   ## (``NkParameterDecl``) is paired with the declared identifier
+   ## (``NkIdentifier``). Since parameter declaration statements may declare more
+   ## than one parameter with the same properties, the same declaration node may
+   ## appear more than once, although the identifier is different.
+   template yield_parameters(n: PNode) =
+      for declaration in walk_sons(n, NkParameterDecl):
+         for assignment in walk_sons(declaration, NkAssignment):
+            let id = find_first(assignment, NkIdentifier)
+            if not is_nil(id):
+               yield (declaration, id)
+
+   # Add parameter declarations from the parameter port list. Otherwise, we
+   # check the module body for parameter declarations. The two are mutually
+   # exclusive according to Section 4.10.1.
+   let declarations = find_first(n, NkModuleParameterPortList)
+   if not is_nil(declarations):
+      yield_parameters(declarations)
+   else:
+      yield_parameters(n)
+
+
 proc find_all_lvalues*(n: PNode): seq[PNode] =
    if is_nil(n):
       return
@@ -1017,45 +1035,16 @@ proc find_all_drivers*(context: AstContext): seq[tuple[driver, identifier: PNode
             add(result, find_all_drivers(context_item.n[pos]))
 
 
-proc find_all_ports*(n: PNode): seq[tuple[port, identifier: PNode]] =
-   ## Find all ports of the module declaration ``n``.
-   template add_port_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
-      for port in walk_sons(n, NkPortDecl):
-         for id in walk_sons(port, NkIdentifier):
-            add(result, (port, id))
-
-   if n.kind != NkModuleDecl:
-      return
-
-   # Add any port declarations from the list of port declarations. Otherwise, we
-   # check the module body for port declarations. The two are mutually exclusive.
-   let port_declarations = find_first(n, NkListOfPortDeclarations)
-   if is_nil(port_declarations):
-      add_port_declarations_from_sons(result, n)
-   else:
-      add_port_declarations_from_sons(result, port_declarations)
+proc find_all_ports*(n: PNode): seq[tuple[declaration, identifier: PNode]] =
+   ## Find all ports of the module declaration ``n``. See ``walk_ports``.
+   for t in walk_ports(n):
+      add(result, t)
 
 
-proc find_all_parameters*(n: PNode): seq[tuple[parameter, identifier: PNode]] =
-   ## Find all parameter of the module declaration ``n``.
-   template add_parameter_declarations_from_sons(result: seq[(PNode, PNode)], n: PNode) =
-      for parameter in walk_sons(n, NkParameterDecl):
-         for assignment in walk_sons(parameter, NkAssignment):
-            let id = find_first(assignment, NkIdentifier)
-            if not is_nil(id):
-               add(result, (parameter, id))
-
-   if n.kind != NkModuleDecl:
-      return
-
-   # Add parameter declarations from the parameter port list. Otherwise, we
-   # check the module body for parameter declarations. The two are mutually
-   # exclusive according to Section 4.10.1.
-   let parameter_declarations = find_first(n, NkModuleParameterPortList)
-   if not is_nil(parameter_declarations):
-      add_parameter_declarations_from_sons(result, parameter_declarations)
-   else:
-      add_parameter_declarations_from_sons(result, n)
+proc find_all_parameters*(n: PNode): seq[tuple[declaration, identifier: PNode]] =
+   ## Find all the parameters of the module declaration ``n``. See ``walk_parameters``.
+   for t in walk_parameters(n):
+      add(result, t)
 
 
 # FIXME: This entire thing doesn't work that well with attributes.

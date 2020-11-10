@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 
   Parsing a Verilog source file now involves attempting to look up the
   declarations of all modules instantiated within.
+- Refactored the iterators `walk_ports()` and `walk_parameters()` to simplify
+  logic in user applications.
 
 ### Added
 
@@ -34,7 +36,7 @@ All notable changes to this project will be documented in this file.
 - Add `is_external_identifier()` to the AST API.
 - Add `find_external_identifier()`, `find_module_port_declaration()` and
   `find_module_parameter_declaration()` to the module graph API.
-- Add the iterators `walk_port_references()` and `walk_named_ports()`.
+- Add the iterator `walk_port_references()`.
 - Module declaration nodes now include the leading comment token.
 
 ## Fixed
