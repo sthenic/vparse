@@ -13,6 +13,11 @@ requires "nimpy >= 0.1.0"
 requires "bignum >= 1.0.4"
 
 
+task tracebuild, "":
+   exec("nim c --hints:off -d:danger -d:trace --gc:orc src/vparse")
+   mv_file("src/vparse".to_exe, "vparse".to_exe)
+
+
 task build_pylib, "Build the Python bindings":
    when defined(windows):
       exec("nim c --hints:off --threads:on --app:lib -d:pylib -d:release --out:vparse.pyd src/vparse.nim")

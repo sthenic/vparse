@@ -36,12 +36,12 @@ template run_test(title, filename: string, include_paths: openarray[string], bod
 
 
 template assert_module_exists(g: Graph, name: string) =
-   if not has_key(g.modules, name) or is_nil(g.modules[name]):
+   if not has_key(g.module_cache.modules, name) or is_nil(g.module_cache.modules[name]):
       raise new_test_exception("AST missing or invalid: '$1'", name)
 
 
 template assert_module_doesnt_exist(g: Graph, name: string) =
-   if has_key(g.modules, name):
+   if has_key(g.module_cache.modules, name):
       raise new_test_exception("Module declaration present when it shouldn't be: '$1'", name)
 
 # Test suite title

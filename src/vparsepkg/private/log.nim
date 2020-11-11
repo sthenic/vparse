@@ -121,14 +121,13 @@ template error*(msg: string, args: varargs[string]) =
          call_styled_write_line("         " & msg_split[m])
 
 
-
 template debug*(args: varargs[typed]) =
-   when not defined(release):
+   when defined(trace):
       debug_always(args)
 
 
 template debug*(msg: string, args: varargs[string]) =
-   when not defined(release):
+   when defined(trace):
       debug_always(msg, args)
 
 
