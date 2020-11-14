@@ -4,26 +4,21 @@
 # TODO: Describe an overview of the the implementation.
 
 import streams
-import tables
 import os
 import strutils
 
 import ./private/log
 import ./parser
 import ./location
+import ./module
 export parser
-export tables
+import module
 
 type
    WalkStrategy* = enum
       WalkAll
       WalkDefined
       WalkUndefined
-
-   # FIXME: Maybe do something similar to the identifier cache, it's still named
-   #        lookups we're after.
-   ModuleCache* = ref object
-      modules*: Table[string, PNode]
 
 
    Graph* = ref object
@@ -42,10 +37,6 @@ type
 const VERILOG_EXTENSIONS = [".v"]
 
 
-proc new_module_cache(): ModuleCache =
-   new result
-
-
 proc new_graph*(identifier_cache: IdentifierCache, module_cache: ModuleCache): Graph =
    ## Create a new graph for a Verilog source tree.
    new result
@@ -61,6 +52,15 @@ proc new_graph*(identifier_cache: IdentifierCache, module_cache: ModuleCache): G
 
 template new_graph*(cache: IdentifierCache): Graph =
    new_graph(cache, new_module_cache())
+
+
+proc get_module*(g: Graph, name: string): PModule =
+   ## Attempt to get the from the graph's module cache. This function will return
+   ## ``nil`` if the module cannot be found.
+   result = nil
+   let module = get_module(g.module_cache, name)
+   if not is_nil(module.n):
+      result = module
 
 
 iterator walk_verilog_files*(dir: string): string {.inline.} =
@@ -108,20 +108,18 @@ iterator walk_verilog_files(g: Graph, pattern: string): string {.inline.} =
       yield path
 
 
-iterator walk_modules*(g: Graph, strategy: WalkStrategy = WalkAll):
-      tuple[module: PNode, name, filename: string] =
-   for name, module in g.module_cache.modules:
-      if is_nil(module):
+iterator walk_modules*(g: Graph, strategy: WalkStrategy = WalkAll): PModule =
+   for module in walk_modules(g.module_cache):
+      if is_nil(module.n):
          if strategy in {WalkAll, WalkUndefined}:
-            yield (nil, name, "")
-         else:
-            continue
-      else:
-         if strategy in {WalkAll, WalkDefined}:
-            let filename = g.locations.file_maps[module.loc.file - 1].filename
-            yield (module, name, filename)
-         else:
-            continue
+            yield module
+      elif strategy in {WalkAll, WalkDefined}:
+         yield module
+
+
+iterator walk_modules*(g: Graph, filename: string): PModule =
+   for module in walk_modules(g.module_cache, filename):
+      yield module
 
 
 # Forward declaration of the local parse proc so we can perform recursive
@@ -135,7 +133,7 @@ proc cache_module_declaration*(g: Graph, name: string) =
    # available on the include paths. We prioritize files with the same name as
    # the module we're searching for since there's a good chance we find the
    # declaration quickly that way.
-   if has_key(g.module_cache.modules, name):
+   if not is_nil(get_module(g, name)):
       log.debug("      [✓] Found '$1' in cache.", name)
       return
 
@@ -147,14 +145,14 @@ proc cache_module_declaration*(g: Graph, name: string) =
       # Recursively call parse for the target module with the enclosing graph.
       discard parse(g, fs, filename)
       close(fs)
-      if has_key(g.module_cache.modules, name):
+      if not is_nil(get_module(g, name)):
          log.debug("      [✓] Found '$1' after parsing.", name)
          return
 
    # If we got this far, we failed to find the declaration of the target module.
    # We mark this as a 'nil' entry in the table.
    log.debug("      [✗] Failed to find '$1'.", name)
-   g.module_cache.modules[name] = nil
+   # g.module_cache.modules[name] = nil
 
 
 proc cache_submodule_declarations*(g: Graph, n: PNode) =
@@ -181,20 +179,14 @@ proc parse(g: Graph, s: Stream, filename: string): PNode =
       log.debug("($1) Parsing file '$2'.", $g.depth, filename)
       inc(g.depth)
    var p: Parser
-   open_parser(p, g.identifier_cache, s, absolute_path(filename), g.locations,
-               g.include_paths, g.external_defines)
+   let afilename = absolute_path(filename)
+   open_parser(p, g.identifier_cache, s, afilename, g.locations, g.include_paths, g.external_defines)
    result = parse_all(p)
    close_parser(p)
 
    # We have to do this in two steps since a source tree may contain multiple
    # module declarations that reference each other.
-   for decl in walk_sons(result, NkModuleDecl):
-      let id = find_first(decl, NkIdentifier)
-      if is_nil(id):
-         continue
-      # TODO: Figure out conflicts in the table.
-      log.debug("  Adding declaration of module '$1'.", id.identifier.s)
-      g.module_cache.modules[id.identifier.s] = decl
+   add_modules(g.module_cache, result, afilename)
 
    for decl in walk_sons(result, NkModuleDecl):
       cache_submodule_declarations(g, decl)
@@ -243,12 +235,12 @@ proc find_module_port_declaration*(g: Graph, module_id, port_id: PIdentifier):
    ## this declaration and the filename in which this declaration appears. If the
    ## search fails, the declaration node is set to ``nil``.
    result = (nil, nil, "")
-   let module = get_or_default(g.module_cache.modules, module_id.s, nil)
+   let module = get_module(g, module_id.s)
    if is_nil(module):
       return
 
-   let filename = g.locations.file_maps[module.loc.file - 1].filename
-   for (declaration, id) in walk_ports(module):
+   let filename = g.locations.file_maps[module.n.loc.file - 1].filename
+   for (declaration, id) in walk_ports(module.n):
       if id.identifier.s == port_id.s:
          return (declaration, id, filename)
 
@@ -262,12 +254,12 @@ proc find_module_parameter_declaration*(g: Graph, module_id, parameter_id: PIden
    ## declaration appears. If the search fails, the declaration node is set to
    ## ``nil``.
    result = (nil, nil, "")
-   let module = get_or_default(g.module_cache.modules, module_id.s, nil)
+   let module = get_module(g, module_id.s)
    if is_nil(module):
       return
 
-   let filename = g.locations.file_maps[module.loc.file - 1].filename
-   for (declaration, id) in find_all_parameters(module):
+   let filename = g.locations.file_maps[module.n.loc.file - 1].filename
+   for (declaration, id) in find_all_parameters(module.n):
       if id.identifier.s == parameter_id.s:
          return (declaration, id, filename)
 
@@ -285,11 +277,10 @@ proc find_external_declaration*(g: Graph, context: AstContext, identifier: PIden
 
    case context[^1].n.kind
    of NkModuleInstantiation:
-      let module = get_or_default(g.module_cache.modules, identifier.s, nil)
+      let module = get_module(g, identifier.s)
       if not is_nil(module):
-         let id = find_first(module, NkIdentifier)
-         let filename = g.locations.file_maps[id.loc.file - 1].filename
-         result = (module, id, filename)
+         let id = find_first(module.n, NkIdentifier)
+         result = (module.n, id, module.filename)
 
    of NkNamedPortConnection:
       let module_id = find_first(context[^3].n, NkIdentifier)

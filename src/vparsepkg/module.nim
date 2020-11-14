@@ -9,23 +9,23 @@ import ./location
 type
    PModule* = ref TModule
    TModule* {.final.} = object
-      id*: int
-      s*: string
-      next*: PModule
-      h*: Hash
+      id: int
+      next: PModule
+      h: Hash
+      name*: string
       filename*: string
       n*: PNode
 
    ModuleCache* = ref object
       buckets: array[0..1024 * 2 - 1, PModule]
-      nof_modules: int
+      count*: int
 
 
 proc `$`*(x: PModule): string =
    if is_nil(x):
       return "nil"
 
-   result = format("($1) s: '$2', hash: $3", $x.id, x.s, $x.h)
+   result = format("($1) s: '$2', hash: $3", $x.id, x.name, $x.h)
    if is_nil(x.next):
       add(result, ", next: nil")
    else:
@@ -53,7 +53,7 @@ proc get_module*(cache: ModuleCache, identifier: string, h: Hash): PModule =
    var last: PModule = nil
    # Handle hash collisions.
    while not is_nil(result):
-      if result.s == identifier:
+      if result.name == identifier:
          # We've found a perfect match in the table and we're ready to return
          # from this function. If we got here by searching a chain of hashed
          # identifiers we swap the position of the first element we encountered
@@ -71,13 +71,13 @@ proc get_module*(cache: ModuleCache, identifier: string, h: Hash): PModule =
    # Initialize a new module.
    new result
    result.h = h
-   result.s = identifier
+   result.name = identifier
    result.next = cache.buckets[idx]
    cache.buckets[idx] = result
 
    # Update the cache status.
-   result.id = cache.nof_modules
-   inc(cache.nof_modules)
+   result.id = cache.count
+   inc(cache.count)
 
 
 template get_module*(cache: ModuleCache, identifier: string): PModule =
@@ -86,7 +86,7 @@ template get_module*(cache: ModuleCache, identifier: string): PModule =
 
 proc new_module_cache*(): ModuleCache =
    new result
-   result.nof_modules = 0
+   result.count = 0
 
 
 iterator walk_modules*(cache: ModuleCache): PModule {.inline.} =
@@ -121,9 +121,9 @@ proc remove_modules*(cache: ModuleCache, filename: string) =
       # the front of the list implies that no other element holds a reference to
       # the soon-to-be removed module in its '.next' field. All we have to do is
       # update the head of the linked list to point past the module.
-      let lmodule = get_module(cache, module.s)
+      let lmodule = get_module(cache, module.name)
       if not is_nil(lmodule.next):
          let idx = lmodule.h and high(cache.buckets)
          cache.buckets[idx] = lmodule.next
 
-      dec(cache.nof_modules)
+      dec(cache.count)
