@@ -18,13 +18,14 @@ when defined(trace):
 export parser
 export module
 
-const
-   TRACE_MSG_MATCH = "      [!] Skipping '$1' since the checksums match."
-   TRACE_MSG_CLEAR = "      [!] Clearing modules from cache for '$1' since the checksums do not match."
-   TRACE_MSG_FOUND_ALREADY_PARSED = "      [✓] Found '$1' in cache (already parsed)."
-   TRACE_MSG_FOUND_MATCH = "      [✓] Found '$1' in cache (checksum match)."
-   TRACE_MSG_FOUND_AFTER_PARSE = "      [✓] Found '$1' after parse."
-   TRACE_MSG_NOT_FOUND = "      [✗] Failed to find '$1'."
+when defined(trace):
+   const
+      TRACE_MSG_MATCH = "      [!] Skipping '$1' since the checksums match."
+      TRACE_MSG_CLEAR = "      [!] Clearing modules from cache for '$1' since the checksums do not match."
+      TRACE_MSG_FOUND_ALREADY_PARSED = "      [✓] Found '$1' in cache (already parsed)."
+      TRACE_MSG_FOUND_MATCH = "      [✓] Found '$1' in cache (checksum match)."
+      TRACE_MSG_FOUND_AFTER_PARSE = "      [✓] Found '$1' after parse."
+      TRACE_MSG_NOT_FOUND = "      [✗] Failed to find '$1'."
 
 type
    WalkStrategy* = enum
