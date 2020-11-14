@@ -291,10 +291,9 @@ proc find_module_port_declaration*(g: Graph, module_id, port_id: PIdentifier):
    if is_nil(module):
       return
 
-   let filename = g.locations.file_maps[module.n.loc.file - 1].filename
    for (declaration, id) in walk_ports(module.n):
       if id.identifier.s == port_id.s:
-         return (declaration, id, filename)
+         return (declaration, id, module.filename)
 
 
 proc find_module_parameter_declaration*(g: Graph, module_id, parameter_id: PIdentifier):
@@ -310,10 +309,9 @@ proc find_module_parameter_declaration*(g: Graph, module_id, parameter_id: PIden
    if is_nil(module):
       return
 
-   let filename = g.locations.file_maps[module.n.loc.file - 1].filename
    for (declaration, id) in find_all_parameters(module.n):
       if id.identifier.s == parameter_id.s:
-         return (declaration, id, filename)
+         return (declaration, id, module.filename)
 
 
 proc find_external_declaration*(g: Graph, context: AstContext, identifier: PIdentifier):
