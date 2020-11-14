@@ -19,11 +19,11 @@ type
 
 
 proc `$`*(x: PIdentifier): string =
-   if x == nil:
+   if is_nil(x):
       return "nil"
 
    result = "(" & $x.id & ")" & " s: '" & x.s & "' hash: " & $x.h & " next: "
-   if x.next == nil:
+   if is_nil(x.next):
       add(result, "nil")
    else:
       add(result, "(" & $x.next.id & ")")
@@ -65,13 +65,13 @@ proc get_identifier*(ic: IdentifierCache, identifier: cstring,
 
    var last: PIdentifier = nil
    # Handle hash collisions.
-   while result != nil:
+   while not is_nil(result):
       if cmp_exact(cstring(result.s), identifier, length) == 0:
          # We've found a perfect match in the table and we're ready to return
          # from this function. If we got here by searching a chain of hashed
          # identifiers we swap the position of the first element we encountered
          # and this one to make subsequent lookups faster.
-         if last != nil:
+         if not is_nil(last):
             last.next = result.next
             result.next = ic.buckets[idx]
             ic.buckets[idx] = result
