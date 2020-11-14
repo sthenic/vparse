@@ -20,6 +20,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Add module caching. The user has to manage the module cache and location
+  database and initialize each new module graph with these objects. See
+  `graph.nim:new_graph()`.
 - Add interface `find_all_drivers()` to simplify extracting driver nodes from
   the AST.
 - Add interface `find_all_ports()` and `find_all_parameters()`.
