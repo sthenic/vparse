@@ -87,7 +87,7 @@ proc get_token(p: var Parser) =
 
 proc open_parser*(p: var Parser, cache: IdentifierCache,
                   s: Stream, filename: string,
-                  locations: PLocations,
+                  locations: Locations,
                   include_paths: openarray[string],
                   external_defines: openarray[string]) =
    init(p.tok)
@@ -2419,7 +2419,7 @@ proc parse_all*(p: var Parser): PNode =
 proc parse_string*(s: string, cache: IdentifierCache): PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   var locations: PLocations
+   var locations: Locations
    new locations
    open_parser(p, cache, ss, "", locations, [], [])
    result = parse_all(p)
@@ -2430,7 +2430,7 @@ proc parse_string*(s: string, cache: IdentifierCache): PNode =
 proc parse_specific_grammar*(s: string, cache: IdentifierCache, kind: NodeKind, b: bool = false): PNode =
    var p: Parser
    var ss = new_string_stream(s)
-   var locations: PLocations
+   var locations: Locations
    new locations
    open_parser(p, cache, ss, "", locations, [], [])
 

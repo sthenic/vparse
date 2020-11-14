@@ -67,6 +67,7 @@ if len(cli_state.output_file) != 0:
 
 var exit_val = ESUCCESS
 let module_cache = new_module_cache()
+let locations = new_locations()
 for filename in cli_state.input_files:
    let fs = new_file_stream(filename)
    if is_nil(fs):
@@ -75,7 +76,7 @@ for filename in cli_state.input_files:
 
    let identifier_cache = new_ident_cache()
    log.info("Parsing source file '$1'", filename)
-   let graph = new_graph(identifier_cache, module_cache)
+   let graph = new_graph(identifier_cache, module_cache, locations)
    let t_start = cpu_time()
    let root_node = parse(graph, fs, filename, cli_state.include_paths, cli_state.defines)
    let t_diff_ms = (cpu_time() - t_start) * 1000

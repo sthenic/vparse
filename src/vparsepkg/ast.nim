@@ -644,7 +644,7 @@ proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
          discard pop(context)
 
 
-proc find_identifier_physical*(n: PNode, locs: PLocations, loc: Location, context: var AstContext,
+proc find_identifier_physical*(n: PNode, locs: Locations, loc: Location, context: var AstContext,
                                added_length: int = 0): PNode =
    ## Descend into ``n``, searching for the identifier at the physical location
    ## ``loc``, i.e. ``loc.file`` > 0 is assumed. The length of the identifier

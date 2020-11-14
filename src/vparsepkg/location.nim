@@ -23,15 +23,15 @@ type
       # Location pairs of the tokens in this macro.
       locations*: seq[LocationPair]
 
-   FileMap* = object
+   FileMap* {.final.} = object
       # The full path of the file.
       filename*: string
       # If this file is the result of an `include, this field holds the location
       # of that directive.
       loc*: Location
 
-   PLocations* = ref Locations
-   Locations* = object
+   Locations* = ref TLocations
+   TLocations* = object
       file_maps*: seq[FileMap]
       macro_maps*: seq[MacroMap]
 
@@ -147,27 +147,32 @@ proc new_file_map*(filename: string, loc: Location): FileMap =
    result.loc = loc
 
 
-proc init*(locs: PLocations) =
+proc init*(locs: Locations) =
    locs.file_maps = new_seq_of_cap[FileMap](32)
    locs.macro_maps = new_seq_of_cap[MacroMap](64)
 
 
+proc new_locations*(): Locations =
+   new result
+   init(result)
+
+
 # FIXME: Maybe return int32 to match the 'file' member of Location.
-proc add_file_map*(locs: PLocations, file_map: FileMap): int =
+proc add_file_map*(locs: Locations, file_map: FileMap): int =
    ## Add a file map to the file index and return its location in the index. If
    add(locs.file_maps, file_map)
    result = high(locs.file_maps) + 1
 
 
-proc add_macro_map*(locs: PLocations, macro_map: MacroMap) =
+proc add_macro_map*(locs: Locations, macro_map: MacroMap) =
    add(locs.macro_maps, macro_map)
 
 
-proc next_macro_map_index*(locs: PLocations): int =
+proc next_macro_map_index*(locs: Locations): int =
    result = -high(locs.macro_maps) - 2
 
 
-proc to_physical*(locs: PLocations, loc: Location): Location =
+proc to_physical*(locs: Locations, loc: Location): Location =
    ## Given a location database: ``locs``, translate the virtual
    ## location ``loc`` into a physical location.
    result = loc
@@ -177,7 +182,7 @@ proc to_physical*(locs: PLocations, loc: Location): Location =
       result = locs.macro_maps[-(result.file + 1)].locations[result.line].x
 
 
-proc unroll_location*(locs: PLocations, loc: var Location) =
+proc unroll_location*(locs: Locations, loc: var Location) =
    ## Given a location database: ``locs``, unroll the virtual
    ## (``loc.file < 0``) location ``loc`` to reach the corresponding
    ## virtual location that will appear in the AST. Unrolling is required

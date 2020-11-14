@@ -10,7 +10,7 @@ var nof_passed = 0
 var nof_failed = 0
 var pp: Preprocessor
 var cache = new_ident_cache()
-var locations: PLocations
+var locations: Locations
 new locations
 
 

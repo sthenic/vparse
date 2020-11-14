@@ -37,7 +37,7 @@ type
       context_stack: seq[Context]
       error_tokens: seq[Token]
       pp_include: ref Preprocessor
-      locations: PLocations
+      locations: Locations
 
    PreprocessorError = object of ValueError
       loc: Location
@@ -130,7 +130,7 @@ proc handle_external_define(pp: var Preprocessor, external_define: string) =
 
 proc open_preprocessor*(pp: var Preprocessor, cache: IdentifierCache,
                         s: Stream, file_map: FileMap,
-                        locations: PLocations,
+                        locations: Locations,
                         include_paths: openarray[string],
                         external_defines: openarray[string]) =
    ## Open the preprocessor and prepare to process the target file.

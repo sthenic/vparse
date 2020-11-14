@@ -37,7 +37,7 @@ type
       parsed_files: seq[string]
       identifier_cache*: IdentifierCache
       module_cache*: ModuleCache
-      locations*: PLocations
+      locations*: Locations
       root*: PNode
       include_paths*: seq[string]
       external_defines*: seq[string]
