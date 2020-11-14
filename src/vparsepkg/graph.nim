@@ -47,21 +47,20 @@ type
 const VERILOG_EXTENSIONS = [".v"]
 
 
-proc new_graph*(identifier_cache: IdentifierCache, module_cache: ModuleCache): Graph =
+proc new_graph*(identifier_cache: IdentifierCache, module_cache: ModuleCache, locations: Locations): Graph =
    ## Create a new graph for a Verilog source tree.
    new result
-   new result.locations
-   init(result.locations)
    set_len(result.parsed_files, 0)
    set_len(result.files_to_parse, 0)
    set_len(result.include_paths, 0)
    set_len(result.external_defines, 0)
    result.identifier_cache = identifier_cache
    result.module_cache = module_cache
+   result.locations = locations
 
 
 template new_graph*(cache: IdentifierCache): Graph =
-   new_graph(cache, new_module_cache())
+   new_graph(cache, new_module_cache(), new_locations())
 
 
 proc get_module*(g: Graph, name: string): PModule =
