@@ -23,7 +23,7 @@ type
    ModuleCache* = ref object
       buckets: array[0..1024 * 2 - 1, PModule]
       count*: int
-      files*: Table[string, MD5Digest]
+      checksums*: Table[string, MD5Digest]
 
 
 proc `$`*(x: PModule): string =
@@ -92,6 +92,7 @@ template get_module*(cache: ModuleCache, identifier: string): PModule =
 proc new_module_cache*(): ModuleCache =
    new result
    result.count = 0
+   clear(result.checksums)
 
 
 iterator walk_modules*(cache: ModuleCache): PModule {.inline.} =
@@ -117,7 +118,7 @@ proc add_modules*(cache: ModuleCache, root: PNode, filename: string, md5: MD5Dig
          let module = get_module(cache, id.identifier.s)
          module.filename = filename
          module.n = declaration
-   cache.files[filename] = md5
+   cache.checksums[filename] = md5
 
 
 proc remove_modules*(cache: ModuleCache, filename: string) =
@@ -130,18 +131,22 @@ proc remove_modules*(cache: ModuleCache, filename: string) =
       # list. This allows us to cleanly remove it from the cache since being at
       # the front of the list implies that no other element holds a reference to
       # the soon-to-be removed module in its '.next' field. All we have to do is
-      # update the head of the linked list to point past the module.
+      # update the head of the linked list to point past the module if there's
+      # anything to point to. Otherwise, we simply clear the bucket.
       let lmodule = get_module(cache, module.name)
+      let idx = lmodule.h and high(cache.buckets)
       if not is_nil(lmodule.next):
-         let idx = lmodule.h and high(cache.buckets)
          cache.buckets[idx] = lmodule.next
+      else:
+         cache.buckets[idx] = nil
 
       dec(cache.count)
 
 
 proc compute_md5*(s: Stream): MD5Digest =
-   ## Compute the MD5 hash of the data in the input stream ``s``. The stream's
-   ## position is reset to the beginning of the stream when this proc returns.
+   ## Compute the MD5 checksum of the data in the input stream ``s``. The
+   ## stream's position is reset to the beginning of the stream when this proc
+   ## returns.
    const BLOCK_SIZE = 8192
    let data = cast[cstring](alloc(BLOCK_SIZE))
    var context: MD5Context
@@ -155,7 +160,6 @@ proc compute_md5*(s: Stream): MD5Digest =
 
 
 proc compute_md5*(filename: string): MD5Digest =
-   ## Compute the MD5 hash of the
    let fs = new_file_stream(filename)
    if not is_nil(fs):
       result = compute_md5(fs)

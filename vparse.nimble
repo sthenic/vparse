@@ -74,3 +74,5 @@ task expressiontests, "Run the expression test suite":
 task graphtests, "Run the graph test suite":
    with_dir("tests/graph"):
       exec("nim c --hints:off -r tgraph")
+   with_dir("tests/module"):
+      exec("nim c --hints:off -r tmodule")

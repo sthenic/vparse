@@ -33,8 +33,8 @@ template run_test(title: string, new_cache: bool, body: untyped) =
 styledWriteLine(stdout, styleBright,
 """
 
-Test suite: Identifiers
------------------------""")
+Test suite: Modules
+-------------------""")
 
 
 # Run testcases

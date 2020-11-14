@@ -6,13 +6,25 @@
 import streams
 import os
 import strutils
+import tables
+import md5
 
-import ./private/log
 import ./parser
 import ./location
 import ./module
+when defined(trace):
+   import ./private/log
+
 export parser
-import module
+export module
+
+const
+   TRACE_MSG_MATCH = "      [!] Skipping '$1' since the checksums match."
+   TRACE_MSG_CLEAR = "      [!] Clearing modules from cache for '$1' since the checksums do not match."
+   TRACE_MSG_FOUND_ALREADY_PARSED = "      [✓] Found '$1' in cache (already parsed)."
+   TRACE_MSG_FOUND_MATCH = "      [✓] Found '$1' in cache (checksum match)."
+   TRACE_MSG_FOUND_AFTER_PARSE = "      [✓] Found '$1' after parse."
+   TRACE_MSG_NOT_FOUND = "      [✗] Failed to find '$1'."
 
 type
    WalkStrategy* = enum
@@ -20,18 +32,15 @@ type
       WalkDefined
       WalkUndefined
 
-
    Graph* = ref object
-      module_cache*: ModuleCache
       files_to_parse: seq[string]
       parsed_files: seq[string]
       identifier_cache*: IdentifierCache
+      module_cache*: ModuleCache
       locations*: PLocations
       root*: PNode
       include_paths*: seq[string]
       external_defines*: seq[string]
-      when defined(trace):
-         depth: int
 
 
 const VERILOG_EXTENSIONS = [".v"]
@@ -124,35 +133,77 @@ iterator walk_modules*(g: Graph, filename: string): PModule =
 
 # Forward declaration of the local parse proc so we can perform recursive
 # parsing when we look for submodule declarations.
-proc parse(g: Graph, s: Stream, filename: string): PNode
+proc parse(g: Graph, s: Stream, filename: string, checksum: MD5Digest,
+           cache_submodules: bool = true): PNode
+
+
+proc cache_module_declaration_helper(g: Graph, filename: string): bool =
+   result = false
+   let fs = new_file_stream(filename)
+   if is_nil(fs):
+      return
+
+   let checksum = compute_md5(fs)
+   if has_key(g.module_cache.checksums, filename):
+      if checksum == g.module_cache.checksums[filename]:
+         when defined(trace):
+            log.debug(TRACE_MSG_MATCH, filename)
+         close(fs)
+         return true
+      else:
+         when defined(trace):
+            log.debug(TRACE_MSG_CLEAR, filename)
+         remove_modules(g.module_cache, filename)
+
+   # Recursively call parse for the target module with the enclosing graph.
+   # If the parse caused the module declaration to appear in the cache, we
+   # make an early exit.
+   discard parse(g, fs, filename, checksum)
+   close(fs)
 
 
 proc cache_module_declaration*(g: Graph, name: string) =
    ## Attempt to cache the declaration of the module identified by ``name``.
-   # First we check the cache for a hit. Otherwise, we check the source files
-   # available on the include paths. We prioritize files with the same name as
-   # the module we're searching for since there's a good chance we find the
-   # declaration quickly that way.
-   if not is_nil(get_module(g, name)):
-      log.debug("      [✓] Found '$1' in cache.", name)
-      return
-
-   for filename in walk_verilog_files(g, name):
-      let fs = new_file_stream(filename)
-      if is_nil(fs):
-         close(fs)
-         continue
-      # Recursively call parse for the target module with the enclosing graph.
-      discard parse(g, fs, filename)
-      close(fs)
-      if not is_nil(get_module(g, name)):
-         log.debug("      [✓] Found '$1' after parsing.", name)
+   # We begin by checking the cache for a hit. However, if we do find an entry,
+   # we have to verify that its source file either:
+   #
+   #   - is a file we've already parsed; or
+   #   - that the MD5 checksum matches the one on register before we can
+   #     confidently make an early return.
+   #
+   # If there's an MD5 mismatch, we clear the associated modules from the cache
+   # and use same source file as a starting point to get the latest module
+   # declaration. If we cannot find it by reparsing the original source file
+   # (our best guess), then we expand the search and start walking through the
+   # remaining source files on the include path. The iterator
+   # walk_verilog_files() is somewhat clever in that it prioritizes files with
+   # the same name as the module we're searching for since there's a good chance
+   # we find the declaration quickly that way.
+   let cached_module = get_module(g.module_cache, name)
+   if not is_nil(cached_module):
+      if cached_module.filename in g.parsed_files:
+         when defined(trace):
+            log.debug(TRACE_MSG_FOUND_ALREADY_PARSED, name)
+         return
+      let checksum_match = cache_module_declaration_helper(g, cached_module.filename)
+      if checksum_match:
+         when defined(trace):
+            log.debug(TRACE_MSG_FOUND_MATCH, name)
          return
 
-   # If we got this far, we failed to find the declaration of the target module.
-   # We mark this as a 'nil' entry in the table.
-   log.debug("      [✗] Failed to find '$1'.", name)
-   # g.module_cache.modules[name] = nil
+   for filename in walk_verilog_files(g, name):
+      let checksum_match = cache_module_declaration_helper(g, filename)
+      if checksum_match:
+         continue
+      elif not is_nil(get_module(g, name)):
+         # If the parsing caused the target module declaration to appear in the
+         # cache, we make an early exit.
+         when defined(trace):
+            log.debug(TRACE_MSG_FOUND_AFTER_PARSE, name)
+         return
+
+   when defined(trace):
+      log.debug(TRACE_MSG_NOT_FOUND, name)
 
 
 proc cache_submodule_declarations*(g: Graph, n: PNode) =
@@ -165,19 +216,21 @@ proc cache_submodule_declarations*(g: Graph, n: PNode) =
    for inst in walk_module_instantiations(n):
       let id = find_first(inst, NkIdentifier)
       if not is_nil(id):
-         log.debug("    Attempting to cache declaration of module '$1'.", id.identifier.s)
+         when defined(trace):
+            log.debug("    Attempting to cache declaration of module '$1'.", id.identifier.s)
          cache_module_declaration(g, id.identifier.s)
 
 
-proc parse(g: Graph, s: Stream, filename: string): PNode =
+proc parse(g: Graph, s: Stream, filename: string, checksum: MD5Digest,
+           cache_submodules: bool = true): PNode =
    ## Parse the Verilog source tree contained in the stream ``s``. Module
-   ## declarations found within are added to the graph's ``modules`` table. The
-   ## modules instantated within defines additional targets for the parser. The
-   ## parsing is complete once the AST is fully defined from this entry point and
-   ## downwards or the source files the include paths have been exhausted.
+   ## declarations found within are added to the graph's ``modules`` table. If
+   ## ``cache_submodules`` is ``true`` (the default), modules instantated within
+   ## defines additional targets for the parser. The parsing is complete once the
+   ## AST is fully defined from this entry point and downwards or the source
+   ## files the include paths have been exhausted.
    when defined(trace):
-      log.debug("($1) Parsing file '$2'.", $g.depth, filename)
-      inc(g.depth)
+      log.debug("Parsing file '$1'.", filename)
    var p: Parser
    let afilename = absolute_path(filename)
    open_parser(p, g.identifier_cache, s, afilename, g.locations, g.include_paths, g.external_defines)
@@ -186,18 +239,17 @@ proc parse(g: Graph, s: Stream, filename: string): PNode =
 
    # We have to do this in two steps since a source tree may contain multiple
    # module declarations that reference each other.
-   add_modules(g.module_cache, result, afilename)
-
-   for decl in walk_sons(result, NkModuleDecl):
-      cache_submodule_declarations(g, decl)
-
+   add_modules(g.module_cache, result, afilename, checksum)
    when defined(trace):
-      log.debug("Leaving depth $1.", $g.depth)
-      dec(g.depth)
+      log.debug("Cache contains $1 modules after parse.", $g.module_cache.count)
+
+   if cache_submodules:
+      for decl in walk_sons(result, NkModuleDecl):
+         cache_submodule_declarations(g, decl)
 
 
 proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[string],
-            external_defines: openarray[string]): PNode =
+            external_defines: openarray[string], cache_submodules: bool = true): PNode =
    ## Given an initialized graph ``g``, parse the Verilog source tree contained
    ## in the stream ``s``. The parser will attempt to look up any external
    ## objects, e.g. targets of an ``include`` directive, or declarations of
@@ -221,9 +273,8 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
    g.files_to_parse = find_all_verilog_files(g.include_paths)
    g.parsed_files = @[absolute_filename]
 
-   when defined(trace):
-      g.depth = 0
-   g.root = parse(g, s, filename)
+   # FIXME: Parse regardless or MD5 check here too?
+   g.root = parse(g, s, filename, compute_md5(s), cache_submodules)
    result = g.root
 
 

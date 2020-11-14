@@ -66,15 +66,16 @@ if len(cli_state.output_file) != 0:
       log.info("Opened output file '$1'.", cli_state.output_file)
 
 var exit_val = ESUCCESS
+let module_cache = new_module_cache()
 for filename in cli_state.input_files:
    let fs = new_file_stream(filename)
    if is_nil(fs):
       log.error("Failed to open '$1' for reading, skipping.", filename)
       continue
 
-   let cache = new_ident_cache()
+   let identifier_cache = new_ident_cache()
    log.info("Parsing source file '$1'", filename)
-   let graph = new_graph(cache)
+   let graph = new_graph(identifier_cache, module_cache)
    let t_start = cpu_time()
    let root_node = parse(graph, fs, filename, cli_state.include_paths, cli_state.defines)
    let t_diff_ms = (cpu_time() - t_start) * 1000
@@ -113,4 +114,5 @@ for filename in cli_state.input_files:
 
    close(fs)
 
+log.info("The module cache contains $1 entries.", $module_cache.count)
 quit(exit_val)

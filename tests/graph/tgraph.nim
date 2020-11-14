@@ -19,8 +19,8 @@ proc new_test_exception(msg: string, args: varargs[string, `$`]): ref TestExcept
 
 
 template run_test(title, filename: string, include_paths: openarray[string], body: untyped) =
-   let cache = new_ident_cache()
-   g = new_graph(cache)
+   let identifier_cache = new_ident_cache()
+   g = new_graph(identifier_cache)
    let fs = new_file_stream(filename)
    if is_nil(fs):
       raise new_test_exception("Failed to open input file '$1'.", filename)
