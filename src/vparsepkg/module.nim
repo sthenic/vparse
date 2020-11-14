@@ -3,6 +3,10 @@
 # heavily inspired by the Nim compiler.
 import hashes
 import strutils
+import streams
+import tables
+import md5
+
 import ./ast
 import ./location
 
@@ -19,6 +23,7 @@ type
    ModuleCache* = ref object
       buckets: array[0..1024 * 2 - 1, PModule]
       count*: int
+      files*: Table[string, MD5Digest]
 
 
 proc `$`*(x: PModule): string =
@@ -101,13 +106,18 @@ iterator walk_modules*(cache: ModuleCache, filename: string): PModule {.inline.}
          yield(module)
 
 
-proc add_modules*(cache: ModuleCache, root: PNode, filename: string) =
+proc add_modules*(cache: ModuleCache, root: PNode, filename: string, md5: MD5Digest) =
+   ## Add the module declarations contained in the source text node ``root`` to
+   ## the cache. The modules are added with their origin set to ``filename``.
+   ## The file is added to the cache's ``files`` table with its ``md5`` checksum
+   ## for future use.
    for declaration in walk_sons(root, NkModuleDecl):
       let id = find_first(declaration, NkIdentifier)
       if not is_nil(id):
          let module = get_module(cache, id.identifier.s)
          module.filename = filename
          module.n = declaration
+   cache.files[filename] = md5
 
 
 proc remove_modules*(cache: ModuleCache, filename: string) =
@@ -127,3 +137,26 @@ proc remove_modules*(cache: ModuleCache, filename: string) =
          cache.buckets[idx] = lmodule.next
 
       dec(cache.count)
+
+
+proc compute_md5*(s: Stream): MD5Digest =
+   ## Compute the MD5 hash of the data in the input stream ``s``. The stream's
+   ## position is reset to the beginning of the stream when this proc returns.
+   const BLOCK_SIZE = 8192
+   let data = cast[cstring](alloc(BLOCK_SIZE))
+   var context: MD5Context
+   md5_init(context)
+   while not at_end(s):
+      let bytes_read = read_data(s, data, BLOCK_SIZE)
+      md5_update(context, data, bytes_read)
+   dealloc(data)
+   md5_final(context, result)
+   set_position(s, 0)
+
+
+proc compute_md5*(filename: string): MD5Digest =
+   ## Compute the MD5 hash of the
+   let fs = new_file_stream(filename)
+   if not is_nil(fs):
+      result = compute_md5(fs)
+      close(fs)

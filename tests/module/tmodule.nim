@@ -1,5 +1,6 @@
 import terminal
 import strformat
+import md5
 
 include ../../src/vparsepkg/module
 include ../../src/vparsepkg/parser
@@ -38,33 +39,21 @@ Test suite: Identifiers
 
 # Run testcases
 run_test("Initialize cache", true):
-   passed = cache.nof_modules == 0
+   passed = cache.count == 0
 
 
 var identifier_cache = new_ident_cache()
 var root: PNode = nil
 
-run_test("Add modules", false):
-   root = parse_string("""
+const MODULES_AB = """
 module module_a();
 endmodule
 
 module module_b();
 endmodule
-""", identifier_cache)
+"""
 
-   add_modules(cache, root, "test")
-   passed = cache.nof_modules == 2
-   let module_a = get_module(cache, "module_a")
-   passed = passed and (module_a.filename == "test")
-   passed = passed and (module_a.n.loc == new_location(1, 1, 0))
-   let module_b = get_module(cache, "module_b")
-   passed = passed and (module_b.filename == "test")
-   passed = passed and (module_b.n.loc == new_location(1, 4, 0))
-
-
-run_test("Add modules from another file", false):
-   root = parse_string("""
+const MODULES_CD = """
    module module_c(
       input wire clk_i
    );
@@ -75,10 +64,25 @@ run_test("Add modules from another file", false):
       output wire data_o
    );
    endmodule
-""", identifier_cache)
+"""
 
-   add_modules(cache, root, "test2")
-   passed = cache.nof_modules == 4
+
+run_test("Add modules", false):
+   root = parse_string(MODULES_AB, identifier_cache)
+   add_modules(cache, root, "test", to_md5(MODULES_AB))
+   passed = cache.count == 2
+   let module_a = get_module(cache, "module_a")
+   passed = passed and (module_a.filename == "test")
+   passed = passed and (module_a.n.loc == new_location(1, 1, 0))
+   let module_b = get_module(cache, "module_b")
+   passed = passed and (module_b.filename == "test")
+   passed = passed and (module_b.n.loc == new_location(1, 4, 0))
+
+
+run_test("Add modules from another file", false):
+   root = parse_string(MODULES_CD, identifier_cache)
+   add_modules(cache, root, "test2", to_md5(MODULES_CD))
+   passed = cache.count == 4
    let module_c = get_module(cache, "module_c")
    passed = passed and (module_c.filename == "test2")
    passed = passed and (module_c.n.loc == new_location(1, 1, 3))
@@ -89,7 +93,7 @@ run_test("Add modules from another file", false):
 
 run_test("Remove module", false):
    remove_modules(cache, "test")
-   passed = cache.nof_modules == 2
+   passed = cache.count == 2
 
 
 # Print summary
