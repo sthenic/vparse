@@ -50,9 +50,9 @@ All notable changes to this project will be documented in this file.
   omitted.
 - Fix an issue where the lexer would throw an exception when parsing a decimal
   constant larger than 64 bits.
-- Hierarchical identifiers are now supported `foo.bar[1].baz[3:0]`. Previously,
-  only ranged identifiers was allowed and the scoping syntax with `.` didn't
-  work.
+- Hierarchical identifiers like `foo.bar[1].baz[3:0]` are now supported.
+  Previously, only ranged identifiers was allowed and the scoping syntax with
+  `.` didn't work.
 - Fix an issue where operators were not being lexed correctly.
 
   The issue occurred when a an infix operator was immediately followed by a
