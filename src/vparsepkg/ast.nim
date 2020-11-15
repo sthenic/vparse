@@ -579,25 +579,46 @@ iterator walk_identifiers*(n: PNode, recursive: bool = false):
       yield (n, c)
 
 
-proc is_external_identifier*(context: AstContext): bool =
+proc check_external_identifier*(context: AstContext): tuple[value: bool, kind: NodeKind] =
    ## Given the ``context`` of an identifier, check if its declaration is an
-   ## external object.
+   ## external object. This proc returns a tuple with the boolean ``value`` and
+   ## the ``kind`` of the external symbol:
+   ##   - ``NkModuleInstantiation`` for module instances,
+   ##   - ``NkNamedPortConnection`` for named module instance port connections; and
+   ##   - ``NkNamedParameterAssignment`` for named module instance parameter port assignments.
+   ##
+   ## If the ``value`` is ``false``, then the ``kind`` is undefined.
    if len(context) == 0:
-      return false
+      return (false, NkInvalid)
 
    let n = context[^1].n
    case n.kind
    of NkModuleInstantiation:
-      result = true
+      result = (true, NkModuleInstantiation)
    of NkNamedPortConnection, NkNamedParameterAssignment:
       # It's only an external identifier if it's the one following the dot
       # character, i.e. if it's the first identifier we find.
       var seen_another_identifier = false
       for i in 0..<context[^1].pos:
          seen_another_identifier = (n.sons[i].kind == NkIdentifier)
-      result = not seen_another_identifier
+      result = (not seen_another_identifier, n.kind)
    else:
-      result = false
+      result = (false, NkInvalid)
+
+
+proc is_external_identifier*(context: AstContext): bool =
+   ## Given the ``context`` of an identifier, check if its declaration is an
+   ## external object.
+   result = check_external_identifier(context).value
+
+
+proc get_module_name_from_connection*(context: AstContext): PNode =
+   ## Assuming the ``context`` points to a named connection in a module instance,
+   ## retrieve the module name as an identifier node. If the context is
+   ## malformed, the return value is ``nil``.
+   result = nil
+   if len(context) >= 3:
+      result = find_first(context[^3].n, NkIdentifier)
 
 
 proc find_identifier*(n: PNode, loc: Location, context: var AstContext,
