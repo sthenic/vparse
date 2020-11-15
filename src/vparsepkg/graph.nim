@@ -138,6 +138,10 @@ proc parse(g: Graph, s: Stream, filename: string, checksum: MD5Digest,
 
 
 proc cache_module_declaration_helper(g: Graph, filename: string): bool =
+   ## Helper proc to parse the file with path ``filename``, adding the modules it
+   ## declares to the cache. If ther file's checksum matches the one on record,
+   ## the parsing is skipped and the return value is set to ``true``. Otherwise,
+   ## the return value is set to ``false``.
    result = false
    let fs = new_file_stream(filename)
    if is_nil(fs):
@@ -185,15 +189,13 @@ proc cache_module_declaration*(g: Graph, name: string) =
          when defined(trace):
             log.debug(TRACE_MSG_FOUND_ALREADY_PARSED, name)
          return
-      let checksum_match = cache_module_declaration_helper(g, cached_module.filename)
-      if checksum_match:
+      elif cache_module_declaration_helper(g, cached_module.filename):
          when defined(trace):
             log.debug(TRACE_MSG_FOUND_MATCH, name)
          return
 
    for filename in walk_verilog_files(g, name):
-      let checksum_match = cache_module_declaration_helper(g, filename)
-      if checksum_match:
+      if cache_module_declaration_helper(g, filename):
          continue
       elif not is_nil(get_module(g, name)):
          # If the parsing caused the target module declaration to appear in the
@@ -209,10 +211,10 @@ proc cache_module_declaration*(g: Graph, name: string) =
 proc cache_submodule_declarations*(g: Graph, n: PNode) =
    ## Given a module declaration ``n`` in the context ``g``, go through the AST
    ## and attempt to cache the declarations of all modules instantiated within.
-   ## The search stops when all instantiations have been processed. All
-   ## declarations found along the way will be cached and available in the
-   ## graph's ``modules`` table. These may or may not be all the modules
-   ## reachable from the include paths.
+   ## The search stops when all instantiations have been processed. All module
+   ## declarations found along the way will be available in the graph's module
+   ## cache. These may or may not be all the modules reachable from the include
+   ## paths.
    for inst in walk_module_instantiations(n):
       let id = find_first(inst, NkIdentifier)
       if not is_nil(id):
