@@ -124,7 +124,7 @@ iterator walk_verilog_files(g: Graph, pattern: string): string {.inline.} =
       yield path
 
 
-iterator walk_modules*(g: Graph, strategy: WalkStrategy = WalkAll): PModule =
+iterator walk_modules*(g: Graph, strategy: WalkStrategy = WalkDefined): PModule =
    for module in walk_modules(g.module_cache):
       if is_nil(module.n):
          if strategy in {WalkAll, WalkUndefined}:
