@@ -10,7 +10,6 @@ import tables
 import md5
 
 import ./parser
-import ./location
 import ./module
 when defined(trace):
    import ./private/log
@@ -283,8 +282,10 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
    g.files_to_parse = find_all_verilog_files(g.include_paths)
    g.parsed_files = @[absolute_filename]
 
-   # FIXME: Parse regardless or MD5 check here too?
-   g.root = parse(g, s, filename, compute_md5(s), cache_submodules)
+   # Clear the module declarations previously contained in the source file
+   # before proceeding with the parse.
+   remove_modules(g.module_cache, absolute_filename)
+   g.root = parse(g, s, absolute_filename, compute_md5(s), cache_submodules)
    result = g.root
 
 

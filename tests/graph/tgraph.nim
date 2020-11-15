@@ -11,16 +11,20 @@ type TestException = object of ValueError
 var nof_passed = 0
 var nof_failed = 0
 var g: Graph
-
+var module_cache = new_module_cache()
+var locations = new_locations()
 
 proc new_test_exception(msg: string, args: varargs[string, `$`]): ref TestException =
    new result
    result.msg = format(msg, args)
 
 
-template run_test(title, filename: string, include_paths: openarray[string], body: untyped) =
+template run_test(title, filename: string, include_paths: openarray[string], clear_cache: bool, body: untyped) =
    let identifier_cache = new_ident_cache()
-   g = new_graph(identifier_cache)
+   if clear_cache:
+      module_cache = new_module_cache()
+      locations = new_locations()
+   g = new_graph(identifier_cache, module_cache, locations)
    let fs = new_file_stream(filename)
    if is_nil(fs):
       raise new_test_exception("Failed to open input file '$1'.", filename)
@@ -51,7 +55,24 @@ styledWriteLine(stdout, styleBright,
 Test suite: module graphs
 -------------------------""")
 
-run_test("Module discovery, all declarations in parent directory", "src/moda.v", []):
+# Restore the file src/modb.v. We'll manipulate its contents in a bit.
+let fs = new_file_stream("src/modb.v", fmWrite)
+if is_nil(fs):
+   echo "Failed to open file src/modb.v"
+   quit(-1)
+
+write(fs, """
+module modB();
+
+    modD();
+    modC();
+
+endmodule
+""")
+flush(fs)
+
+
+run_test("Module discovery, all declarations in parent directory", "src/moda.v", [], true):
    if is_nil(g.root):
       raise new_test_exception("Root node is nil.")
    assert_module_exists(g, "modA")
@@ -60,7 +81,7 @@ run_test("Module discovery, all declarations in parent directory", "src/moda.v",
    assert_module_exists(g, "modD")
 
 
-run_test("Module discovery, declaration outside parent directory", "src/needs_includemod.v", ["src/include"]):
+run_test("Module discovery, declaration outside parent directory", "src/needs_includemod.v", ["src/include"], true):
    if is_nil(g.root):
       raise new_test_exception("Root node is nil.")
    assert_module_exists(g, "needs_includemod")
@@ -69,6 +90,28 @@ run_test("Module discovery, declaration outside parent directory", "src/needs_in
    assert_module_doesnt_exist(g, "modB")
    assert_module_doesnt_exist(g, "modC")
    assert_module_doesnt_exist(g, "modD")
+
+
+run_test("Clean parse of modB", "src/modb.v", [], true):
+   if g.module_cache.count != 3:
+      raise new_test_exception("Cache contains $1 modules, expected $2.", g.module_cache.count, 4)
+   assert_module_exists(g, "modB")
+   assert_module_doesnt_exist(g, "foo")
+
+set_position(fs, 0)
+write(fs, """
+module foo();
+
+    modD();
+    modC();
+
+endmodule """)
+close(fs)
+
+
+run_test("Renamed modB -> foo, reparse", "src/modb.v", [], false):
+   assert_module_exists(g, "foo")
+   assert_module_doesnt_exist(g, "modB")
 
 
 # Print summary
