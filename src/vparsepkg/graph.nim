@@ -72,12 +72,20 @@ proc get_module*(g: Graph, name: string): PModule =
       result = module
 
 
-iterator walk_verilog_files*(dir: string): string {.inline.} =
-   ## Walk the verilog files in ``dir``, returning the full path of each match.
-   for kind, path in walk_dir(dir):
-      let (_, _, ext) = split_file(path)
-      if kind == pcFile and ext in VERILOG_EXTENSIONS:
-         yield path
+iterator walk_verilog_files*(dirs: openarray[string]): string {.inline.} =
+   ## Walk the Verilog files (``*.v``) in the directories ``dirs``, returning the
+   ## full path of each match.
+   for dir in dirs:
+      for kind, path in walk_dir(dir):
+         let (_, _, ext) = split_file(path)
+         if kind == pcFile and ext in VERILOG_EXTENSIONS:
+            yield path
+
+
+template walk_verilog_files*(dir: string): untyped =
+   ## Walk the Verilog files (``*.v``)in the directory ``dir``, returning the
+   ## full path of each match.
+   walk_verilog_files([dir])
 
 
 proc find_all_verilog_files*(dir: string): seq[string] =
