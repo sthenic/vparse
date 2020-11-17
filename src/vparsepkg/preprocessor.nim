@@ -286,19 +286,33 @@ proc handle_undef(pp: var Preprocessor) =
 
 
 proc get_include_file(pp: Preprocessor, filename: string): string =
-   ## Return the full path to the file with name/path ``filename``. If the file
-   ## does not exist, a ``PreprocessorError`` is raised.
+   ## Return the full path to the file with name/path ``filename``.
    # FIXME: Environment variable for include path?
    # If the file exists relative to the parent directory of the current file,
-   # we're done right away. Otherwise, we go through the include paths.
+   # we're done right away. Otherwise, we go through the include paths. If the
+   # path ends with '**', that implies a recursive search through all the
+   # directories. The first matching file is returned so the order is important.
    let path_relative_parent_dir = parent_dir(pp.lex.filename) / filename
    if file_exists(path_relative_parent_dir):
       return path_relative_parent_dir
    else:
       for dir in pp.include_paths:
-         let tmp = dir / filename
-         if file_exists(tmp):
-            return tmp
+         if ends_with(dir, "**"):
+            var head = dir
+            remove_suffix(head, "**")
+            # Since the recursive walk will not yield for the root directory, we
+            # check that manually before we begin.
+            let tmp = head / filename
+            if file_exists(tmp):
+               return tmp
+            for tail in walk_dir_rec(head, yield_filter = {pcDir}, relative = true):
+               let tmp = head / tail / filename
+               if file_exists(tmp):
+                  return tmp
+         else:
+            let tmp = dir / filename
+            if file_exists(tmp):
+               return tmp
 
 
 proc handle_include(pp: var Preprocessor) =

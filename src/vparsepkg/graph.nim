@@ -73,12 +73,21 @@ proc get_module*(g: Graph, name: string): PModule =
 
 iterator walk_verilog_files*(dirs: openarray[string]): string {.inline.} =
    ## Walk the Verilog files (``*.v``) in the directories ``dirs``, returning the
-   ## full path of each match.
+   ## full path of each match. A recursive search of the full directory tree will
+   ## be performed if the path ends with ``**``.
    for dir in dirs:
-      for kind, path in walk_dir(dir):
-         let (_, _, ext) = split_file(path)
-         if kind == pcFile and ext in VERILOG_EXTENSIONS:
-            yield path
+      if ends_with(dir, "**"):
+         var head = dir
+         remove_suffix(head, "**")
+         for path in walk_dir_rec(head, yield_filter = {pcFile}):
+            let (_, _, ext) = split_file(path)
+            if ext in VERILOG_EXTENSIONS:
+               yield path
+      else:
+         for kind, path in walk_dir(dir):
+            let (_, _, ext) = split_file(path)
+            if kind == pcFile and ext in VERILOG_EXTENSIONS:
+               yield path
 
 
 template walk_verilog_files*(dir: string): untyped =
@@ -268,7 +277,7 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
    ## each element with the ``define`` directive.
    g.include_paths = new_seq_of_cap[string](len(include_paths))
    for path in include_paths:
-      add(g.include_paths, expand_tilde(path))
+      add(g.include_paths, normalized_path(expand_tilde(path)))
 
    # We always add the parent directory to the include path.
    let absolute_filename = absolute_path(filename)

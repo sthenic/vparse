@@ -41,6 +41,7 @@ All notable changes to this project will be documented in this file.
   `find_module_parameter_declaration()` to the module graph API.
 - Add the iterator `walk_port_references()`.
 - Module declaration nodes now include the leading comment token.
+- An include path ending with '**' implies a recursive include.
 
 ## Fixed
 

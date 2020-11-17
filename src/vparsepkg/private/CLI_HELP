@@ -17,7 +17,14 @@ options:
   -v, --version             Print the version information and exit.
 
   -I:PATH,                  Add PATH to the list of include paths searched when
-                            an `include directive is encountered.
+                            an `include directive is encountered, or to look up
+                            external module declarations. By default, only the
+                            Verilog files immediately on the path are included,
+                            i.e. 'PATH/*.v', However, a recursive include may be
+                            specified by ending the path with '**'.
+
+                            The order of the include paths is important; the
+                            parser will always choose the first matching file.
 
   -D:DEFINE                 Add DEFINE as a global macro, as if it had been
                             added with the `define compiler directive. The input
