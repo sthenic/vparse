@@ -103,7 +103,7 @@ iterator walk_modules*(cache: ModuleCache): PModule {.inline.} =
 
 iterator walk_modules*(cache: ModuleCache, filename: string): PModule {.inline.} =
    for module in cache.buckets:
-      if module.filename == filename:
+      if not is_nil(module) and module.filename == filename:
          yield(module)
 
 
