@@ -10,8 +10,7 @@ import md5
 
 import ./parser
 import ./module
-when defined(trace):
-   import ./private/log
+import ./private/log
 
 export parser
 export module
@@ -61,12 +60,35 @@ template new_graph*(cache: IdentifierCache): Graph =
    new_graph(cache, new_module_cache(), new_locations())
 
 
+proc filter_module(module: PModule, include_paths: openarray[string]): bool =
+   ## Returns ``true`` if the module is reachable from the ``include_paths``.
+   result = false
+   let (module_directory, _, _) = split_file(module.filename)
+   for path in include_paths:
+      log.debug("Checking path '$1'.", path)
+      if ends_with(path, "**"):
+         var head = path
+         remove_suffix(head, "**")
+         if starts_with(module_directory, head):
+            log.debug("Recursive match, returning.")
+            return true
+      elif path == module_directory:
+         log.debug("Explicit match.")
+         return true
+
+
 proc get_module*(g: Graph, name: string): PModule =
    ## Attempt to get the from the graph's module cache. This function will return
    ## ``nil`` if the module cannot be found.
+   # For efficiency reasons (speed and memory consumption), we prepare for the
+   # fact that a module cache can be shared between many module graphs, all with
+   # different include paths. This means that we may be able to retrieve a
+   # module object from get_module() that this graph actually shouldn't be aware
+   # of. To fix this, we check the module's source file path against the graph's
+   # include paths. If there are no include paths, we pass on the module object.
    result = nil
    let module = get_module(g.module_cache, name)
-   if not is_nil(module.n):
+   if not is_nil(module.n) and filter_module(module, g.include_paths):
       result = module
 
 
@@ -137,13 +159,14 @@ iterator walk_modules*(g: Graph, strategy: WalkStrategy = WalkDefined): PModule 
       if is_nil(module.n):
          if strategy in {WalkAll, WalkUndefined}:
             yield module
-      elif strategy in {WalkAll, WalkDefined}:
+      elif strategy in {WalkAll, WalkDefined} and filter_module(module, g.include_paths):
          yield module
 
 
 iterator walk_modules*(g: Graph, filename: string): PModule =
    for module in walk_modules(g.module_cache, filename):
-      yield module
+      if filter_module(module, g.include_paths):
+         yield module
 
 
 # Forward declaration of the local parse proc so we can perform recursive
@@ -275,7 +298,7 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
    ## each element with the ``define`` directive.
    g.include_paths = new_seq_of_cap[string](len(include_paths))
    for path in include_paths:
-      add(g.include_paths, normalized_path(expand_tilde(path)))
+      add(g.include_paths, absolute_path(normalized_path(expand_tilde(path))))
 
    # We always add the parent directory to the include path.
    let absolute_filename = absolute_path(filename)

@@ -1,0 +1,4 @@
+[verilog]
+include_paths = [
+    "../lib"
+]

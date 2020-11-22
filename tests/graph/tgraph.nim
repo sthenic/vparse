@@ -114,6 +114,37 @@ run_test("Renamed modB -> foo, reparse", "src/modb.v", [], false):
    assert_module_doesnt_exist(g, "modB")
 
 
+# Tests for the src2/ directory.
+run_test("Include path filter: module graph A", "src2/a/a.v", ["src2/lib"], true):
+   # Assert that we can reach modules: A, C, B, D, E but not F and G.
+   assert_module_exists(g, "A")
+   assert_module_exists(g, "C")
+   assert_module_exists(g, "B")
+   assert_module_exists(g, "D")
+   assert_module_exists(g, "E")
+   assert_module_doesnt_exist(g, "F")
+   assert_module_doesnt_exist(g, "G")
+   # Check the iterator.
+   for module in walk_modules(g):
+      if module.name in ["F", "G"]:
+         raise new_test_exception("thing")
+
+
+run_test("Include path filter: module graph F", "src2/f/f.v", ["src2/lib"], false):
+   # Assert that we can reach modules: F, G, B, D, E but not A and C.
+   assert_module_exists(g, "F")
+   assert_module_exists(g, "G")
+   assert_module_exists(g, "B")
+   assert_module_exists(g, "D")
+   assert_module_exists(g, "E")
+   assert_module_doesnt_exist(g, "A")
+   assert_module_doesnt_exist(g, "C")
+   # Check the iterator.
+   for module in walk_modules(g):
+      if module.name in ["A", "C"]:
+         raise new_test_exception("thing")
+
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"
