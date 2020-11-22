@@ -69,7 +69,7 @@ const MODULES_CD = """
 
 run_test("Add modules", false):
    root = parse_string(MODULES_AB, identifier_cache)
-   add_modules(cache, root, "test", to_md5(MODULES_AB))
+   add_source_file(cache, root, "test", to_md5(MODULES_AB))
    passed = cache.count == 2
    let module_a = get_module(cache, "module_a")
    passed = passed and (module_a.filename == "test")
@@ -81,7 +81,7 @@ run_test("Add modules", false):
 
 run_test("Add modules from another file", false):
    root = parse_string(MODULES_CD, identifier_cache)
-   add_modules(cache, root, "test2", to_md5(MODULES_CD))
+   add_source_file(cache, root, "test2", to_md5(MODULES_CD))
    passed = cache.count == 4
    let module_c = get_module(cache, "module_c")
    passed = passed and (module_c.filename == "test2")
@@ -92,7 +92,7 @@ run_test("Add modules from another file", false):
 
 
 run_test("Remove module", false):
-   remove_modules(cache, "test")
+   remove_source_file(cache, "test")
    passed = cache.count == 2
 
 

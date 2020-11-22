@@ -6,7 +6,6 @@
 import streams
 import os
 import strutils
-import tables
 import md5
 
 import ./parser
@@ -164,16 +163,15 @@ proc cache_module_declaration_helper(g: Graph, filename: string): bool =
       return
 
    let checksum = compute_md5(fs)
-   if has_key(g.module_cache.checksums, filename):
-      if checksum == g.module_cache.checksums[filename]:
-         when defined(trace):
-            log.debug(TRACE_MSG_MATCH, filename)
-         close(fs)
-         return true
-      else:
-         when defined(trace):
-            log.debug(TRACE_MSG_CLEAR, filename)
-         remove_modules(g.module_cache, filename)
+   if has_matching_checksum(g.module_cache, filename, checksum):
+      when defined(trace):
+         log.debug(TRACE_MSG_MATCH, filename)
+      close(fs)
+      return true
+   else:
+      when defined(trace):
+         log.debug(TRACE_MSG_CLEAR, filename)
+      remove_source_file(g.module_cache, filename)
 
    # Recursively call parse for the target module with the enclosing graph.
    # If the parse caused the module declaration to appear in the cache, we
@@ -257,7 +255,7 @@ proc parse(g: Graph, s: Stream, filename: string, checksum: MD5Digest,
 
    # We have to do this in two steps since a source tree may contain multiple
    # module declarations that reference each other.
-   add_modules(g.module_cache, result, afilename, checksum)
+   add_source_file(g.module_cache, result, afilename, checksum)
    when defined(trace):
       log.debug("Cache contains $1 modules after parse.", $g.module_cache.count)
 
@@ -293,7 +291,7 @@ proc parse*(g: Graph, s: Stream, filename: string, include_paths: openarray[stri
 
    # Clear the module declarations previously contained in the source file
    # before proceeding with the parse.
-   remove_modules(g.module_cache, absolute_filename)
+   remove_source_file(g.module_cache, absolute_filename)
    g.root = parse(g, s, absolute_filename, compute_md5(s), cache_submodules)
    result = g.root
 

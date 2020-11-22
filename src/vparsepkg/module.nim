@@ -1,6 +1,8 @@
 # This file implements a module cache which is leveraged by the graph module to
 # speed up nagivating the module graph. Like the identifier cache, this is also
 # heavily inspired by the Nim compiler.
+# TODO: Describe the jist of the data structure: LRU cache for modules + hash
+# table to allow operations indexing the modules using a filename.
 import hashes
 import strutils
 import streams
@@ -20,10 +22,16 @@ type
       filename*: string
       n*: PNode
 
+   SourceFile* = ref object
+      filename*: string
+      checksum*: MD5Digest
+      modules*: seq[PModule]
+      root*: PNode
+
    ModuleCache* = ref object
       buckets: array[0..1024 * 2 - 1, PModule]
       count*: int
-      checksums*: Table[string, MD5Digest]
+      source_files: Table[string, SourceFile]
 
 
 proc `$`*(x: PModule): string =
@@ -89,58 +97,87 @@ template get_module*(cache: ModuleCache, identifier: string): PModule =
    get_module(cache, identifier, local_hash(identifier))
 
 
+template get_source_file*(cache: ModuleCache, filename: string): SourceFile =
+   ## Retrieve the source file object
+   get_or_default(cache.source_files, filename, nil)
+
+
+proc has_matching_checksum*(cache: ModuleCache, filename: string, checksum: MD5Digest): bool =
+   ## Returns ``true`` if the .
+   let source_file = get_source_file(cache, filename)
+   if is_nil(source_file):
+      result = false
+   else:
+      result = source_file.checksum == checksum
+
+
 proc new_module_cache*(): ModuleCache =
    new result
    result.count = 0
-   clear(result.checksums)
+   clear(result.source_files)
 
 
 iterator walk_modules*(cache: ModuleCache): PModule {.inline.} =
    for module in cache.buckets:
       if not is_nil(module):
          yield module
+         var cursor = module.next
+         while not is_nil(cursor):
+            yield cursor
+            cursor = cursor.next
 
 
 iterator walk_modules*(cache: ModuleCache, filename: string): PModule {.inline.} =
-   for module in cache.buckets:
-      if not is_nil(module) and module.filename == filename:
-         yield(module)
+   let source_file = get_source_file(cache, filename)
+   if not is_nil(source_file):
+      for module in source_file.modules:
+         yield module
 
 
-proc add_modules*(cache: ModuleCache, root: PNode, filename: string, md5: MD5Digest) =
-   ## Add the module declarations contained in the source text node ``root`` to
-   ## the cache. The modules are added with their origin set to ``filename``.
-   ## The file is added to the cache's ``files`` table with its ``md5`` checksum
-   ## for future use.
+proc add_source_file*(cache: ModuleCache, root: PNode, filename: string, checksum: MD5Digest) =
+   # Add the source file and the module declarations contained in its source
+   # text node ``root`` to the cache. The file's ``checksum`` is stored
+   let source_file = SourceFile(filename: filename, checksum: checksum)
    for declaration in walk_sons(root, NkModuleDecl):
       let id = find_first(declaration, NkIdentifier)
       if not is_nil(id):
          let module = get_module(cache, id.identifier.s)
+         # FIXME: How to handle duplicates, i.e. if module.n is not nil here
+         # then there are two modules with the same name in this scope. We could
+         # maintain another linked list of those? It would be nice to be able to
+         # warn about the ambiguity.
          module.filename = filename
          module.n = declaration
-   cache.checksums[filename] = md5
+         add(source_file.modules, module)
+   cache.source_files[filename] = source_file
 
 
-proc remove_modules*(cache: ModuleCache, filename: string) =
-   for module in cache.buckets:
-      if is_nil(module) or module.filename != filename:
-         continue
+proc remove_source_file*(cache: ModuleCache, filename: string) =
+   ## Remove the source file ``filename`` and its associated module declarations
+   ## from the ``cache``. The proc does nothing if the file does not exist in the
+   ## cache.
+   let source_file = get_source_file(cache, filename)
+   if is_nil(source_file):
+      return
 
-      # Once we have a matching module to remove, we begin by perform a lookup
-      # which serves the purpose of moving the module to the front of its linked
-      # list. This allows us to cleanly remove it from the cache since being at
-      # the front of the list implies that no other element holds a reference to
-      # the soon-to-be removed module in its '.next' field. All we have to do is
-      # update the head of the linked list to point past the module if there's
-      # anything to point to. Otherwise, we simply clear the bucket.
+   # Once we have a matching source file object, we walk over its modules in
+   # the cache. For each module, we begin by perform a lookup which serves
+   # the purpose of moving the module to the front of its linked list. This
+   # allows us to cleanly remove it from the cache since being at the front
+   # of the list implies that no other element holds a reference to the
+   # soon-to-be removed module in its '.next' field. All we have to do is
+   # update the head of the linked list to point past the module if there's
+   # anything to point to. Otherwise, we simply clear the bucket.
+   for module in source_file.modules:
       let lmodule = get_module(cache, module.name)
       let idx = lmodule.h and high(cache.buckets)
       if not is_nil(lmodule.next):
          cache.buckets[idx] = lmodule.next
       else:
          cache.buckets[idx] = nil
-
       dec(cache.count)
+
+   del(cache.source_files, filename)
 
 
 proc compute_md5*(s: Stream): MD5Digest =
