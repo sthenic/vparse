@@ -95,19 +95,23 @@ proc get_module*(g: Graph, name: string): PModule =
 iterator walk_verilog_files*(dirs: openarray[string]): string {.inline.} =
    ## Walk the Verilog files (``*.v``) in the directories ``dirs``, returning the
    ## full path of each match. A recursive search of the full directory tree will
-   ## be performed if the path ends with ``**``.
+   ## be performed if the path ends with ``**``. Overlapping directories are
+   ## supported, each file is only yielded once.
+   var seen_paths = new_seq_of_cap[string](64)
    for dir in dirs:
       if ends_with(dir, "**"):
          var head = dir
          remove_suffix(head, "**")
          for path in walk_dir_rec(head, yield_filter = {pcFile}):
             let (_, _, ext) = split_file(path)
-            if ext in VERILOG_EXTENSIONS:
+            if ext in VERILOG_EXTENSIONS and path notin seen_paths:
+               add(seen_paths, path)
                yield path
       else:
          for kind, path in walk_dir(dir):
             let (_, _, ext) = split_file(path)
-            if kind == pcFile and ext in VERILOG_EXTENSIONS:
+            if kind == pcFile and ext in VERILOG_EXTENSIONS and path notin seen_paths:
+               add(seen_paths, path)
                yield path
 
 

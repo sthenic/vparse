@@ -2,6 +2,7 @@ import terminal
 import strformat
 import strutils
 import streams
+import os
 
 import ../../src/vparsepkg/graph
 
@@ -143,6 +144,37 @@ run_test("Include path filter: module graph F", "src2/f/f.v", ["src2/lib"], fals
    for module in walk_modules(g):
       if module.name in ["A", "C"]:
          raise new_test_exception("thing")
+
+
+run_test("Walk Verilog files (iterator)", "src/moda.v", ["src/**", "src2/lib", "src2/**"], true):
+   # Intentionally overlapping include paths. The iterator should only yield
+   # once per unique file.
+   var expected_paths = @[
+      expand_filename("src/include/includemod.v"),
+      expand_filename("src/moda.v"),
+      expand_filename("src/modb.v"),
+      expand_filename("src/modc.v"),
+      expand_filename("src/modd.v"),
+      expand_filename("src/needs_includemod.v"),
+      expand_filename("src2/lib/b.v"),
+      expand_filename("src2/lib/de.v"),
+      expand_filename("src2/a/a.v"),
+      expand_filename("src2/a/c.v"),
+      expand_filename("src2/f/f.v"),
+      expand_filename("src2/f/g.v")
+   ]
+
+   for path in walk_verilog_files(g.include_paths):
+      if len(expected_paths) == 0:
+         raise new_test_exception("Got '$1' but the list of expected paths is empty.", path)
+      elif path notin expected_paths:
+         raise new_test_exception("Got unexpected path '$1'.", path)
+      else:
+         del(expected_paths, find(expected_paths, path))
+
+   if len(expected_paths) != 0:
+      echo expected_paths
+      raise new_test_exception("")
 
 
 # Print summary
