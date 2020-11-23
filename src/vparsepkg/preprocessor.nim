@@ -292,14 +292,15 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
    # we're done right away. Otherwise, we go through the include paths. If the
    # path ends with '**', that implies a recursive search through all the
    # directories. The first matching file is returned so the order is important.
+   const RECURSIVE_TAIL = DirSep & "**"
    let path_relative_parent_dir = parent_dir(pp.lex.filename) / filename
    if file_exists(path_relative_parent_dir):
       return path_relative_parent_dir
    else:
-      for dir in pp.include_paths:
-         if ends_with(dir, "**"):
-            var head = dir
-            remove_suffix(head, "**")
+      for path in pp.include_paths:
+         if ends_with(path, RECURSIVE_TAIL):
+            var head = path
+            remove_suffix(head, RECURSIVE_TAIL)
             # Since the recursive walk will not yield for the root directory, we
             # check that manually before we begin.
             let tmp = head / filename
@@ -310,7 +311,7 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
                if file_exists(tmp):
                   return tmp
          else:
-            let tmp = dir / filename
+            let tmp = path / filename
             if file_exists(tmp):
                return tmp
 

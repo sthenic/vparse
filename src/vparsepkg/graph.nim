@@ -62,13 +62,14 @@ template new_graph*(cache: IdentifierCache): Graph =
 
 proc filter_module(module: PModule, include_paths: openarray[string]): bool =
    ## Returns ``true`` if the module is reachable from the ``include_paths``.
+   const RECURSIVE_TAIL = DirSep & "**"
    result = false
    let (module_directory, _, _) = split_file(module.filename)
    for path in include_paths:
       log.debug("Checking path '$1'.", path)
-      if ends_with(path, "**"):
+      if ends_with(path, RECURSIVE_TAIL):
          var head = path
-         remove_suffix(head, "**")
+         remove_suffix(head, RECURSIVE_TAIL)
          if starts_with(module_directory, head):
             log.debug("Recursive match, returning.")
             return true

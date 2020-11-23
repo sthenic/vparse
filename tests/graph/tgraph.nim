@@ -128,7 +128,7 @@ run_test("Include path filter: module graph A", "src2/a/a.v", ["src2/lib"], true
    # Check the iterator.
    for module in walk_modules(g):
       if module.name in ["F", "G"]:
-         raise new_test_exception("thing")
+         raise new_test_exception("Unexpected iterator access to module '$1'.", module.name)
 
 
 run_test("Include path filter: module graph F", "src2/f/f.v", ["src2/lib"], false):
@@ -143,7 +143,20 @@ run_test("Include path filter: module graph F", "src2/f/f.v", ["src2/lib"], fals
    # Check the iterator.
    for module in walk_modules(g):
       if module.name in ["A", "C"]:
-         raise new_test_exception("thing")
+         raise new_test_exception("Unexpected iterator access to module '$1'.", module.name)
+
+
+run_test("Include path filter: prepare module H", "src2/h.v", ["src2/**"], true):
+   assert_module_exists(g, "H")
+
+
+run_test("Include path filter w/ '**'", "src2/lib/b.v", ["src2/**"], false):
+   # Check that we can reach module H from a module graph located in a
+   # subdirectory as long as it's on the include path.
+   assert_module_exists(g, "B")
+   assert_module_exists(g, "D")
+   assert_module_exists(g, "E")
+   assert_module_exists(g, "H")
 
 
 run_test("Walk Verilog files (iterator)", "src/moda.v", ["src/**", "src2/lib", "src2/**"], true):
@@ -161,7 +174,8 @@ run_test("Walk Verilog files (iterator)", "src/moda.v", ["src/**", "src2/lib", "
       expand_filename("src2/a/a.v"),
       expand_filename("src2/a/c.v"),
       expand_filename("src2/f/f.v"),
-      expand_filename("src2/f/g.v")
+      expand_filename("src2/f/g.v"),
+      expand_filename("src2/h.v")
    ]
 
    for path in walk_verilog_files(g.include_paths):
