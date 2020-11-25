@@ -1,4 +1,4 @@
-version = "0.2.2"
+version = "0.3.0"
 author = "Marcus Eriksson"
 description = "A Verilog IEEE 1364-2005 parser library."
 src_dir = "src"
@@ -14,7 +14,7 @@ requires "bignum >= 1.0.4"
 
 
 task tracebuild, "":
-   exec("nim c --hints:off -d:danger -d:trace --gc:orc src/vparse")
+   exec("nim c --hints:off -d:danger -d:trace src/vparse")
    mv_file("src/vparse".to_exe, "vparse".to_exe)
 
 

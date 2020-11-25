@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.3.0] - 2020-11-25
 
 ### Changed
 
@@ -43,7 +43,7 @@ All notable changes to this project will be documented in this file.
 - Module declaration nodes now include the leading comment token.
 - An include path ending with '**' implies a recursive include.
 
-## Fixed
+### Fixed
 
 - Disable colored output when stdout does not lead to a terminal.
 - Fix `find_all_parameters()` always including the parameters declared in the
@@ -63,7 +63,7 @@ All notable changes to this project will be documented in this file.
 - Fix `find_declaration()` not yielding the declaration when the target
   identifier is a port reference.
 
-## Removed
+### Removed
 
 - Remove AST nodes `NkVariableLvalue` and `NkArrayIdentifier`.
 - Remove special identifier node types like `NkPortIdentifier` and
