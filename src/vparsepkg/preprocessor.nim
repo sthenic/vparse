@@ -31,7 +31,7 @@ type
       lex_tok_next: Token
       include_tok: Token
       tok: Token
-      next_tok: Token
+      tok_next: Token
       comment: Token
       endif_semaphore: int
       defines: Table[string, Define]
@@ -140,7 +140,7 @@ template open_preprocessor_common(pp: var Preprocessor, cache: IdentifierCache,
    init(pp.lex_tok_next)
    init(pp.include_tok)
    init(pp.tok)
-   init(pp.next_tok)
+   init(pp.tok_next)
    init(pp.comment)
    pp.endif_semaphore = 0
    pp.defines = init_table[string, Define](64)
@@ -397,7 +397,7 @@ proc handle_else(pp: var Preprocessor) =
       get_lexer_token(pp)
       case pp.lex_tok.kind
       of TkEndOfFile:
-         # The error is added in prepare_token().
+         # The error is added in prepare_token_raw().
          break
       of TkDirective:
          case pp.lex_tok.identifier.s
@@ -714,7 +714,7 @@ proc is_macro_defined(pp: Preprocessor, tok: Token): bool =
           pp.defines[tok.identifier.s].is_expandable
 
 
-proc prepare_token(pp: var Preprocessor) =
+proc prepare_token_raw(pp: var Preprocessor) =
    # When this proc returns, the preprocessor is in a position to return a token
    # from either the include file, the topmost context entry or the source
    # buffer. We get to this point by examining the next token from the active
@@ -730,7 +730,7 @@ proc prepare_token(pp: var Preprocessor) =
          close_preprocessor(pp.include_pp[])
          merge(pp.defines, pp.include_pp.defines)
          pp.include_pp = nil
-         prepare_token(pp)
+         prepare_token_raw(pp)
    elif len(pp.context_stack) > 0:
       while true:
          let next_tok = top_context_token(pp)
@@ -746,7 +746,7 @@ proc prepare_token(pp: var Preprocessor) =
          # If a include file has been set up as a token source we break out of
          # the loop.
          if pp.include_pp != nil:
-            prepare_token(pp)
+            prepare_token_raw(pp)
             break
 
          # If there's an error token to propagate we break out of the loop.
@@ -757,7 +757,7 @@ proc prepare_token(pp: var Preprocessor) =
          # perform a recursive call to run the code block above. A macro
          # invocation may be the first context token.
          if len(pp.context_stack) > 0:
-            prepare_token(pp)
+            prepare_token_raw(pp)
             break
 
          case pp.lex_tok.kind
@@ -794,7 +794,7 @@ proc get_token_raw(pp: var Preprocessor, tok: var Token) =
    # But before the source is selected, the preprocessor goes through a
    # preparation phase to process tokens intended for this layer and remove
    # them from the token stream.
-   prepare_token(pp)
+   prepare_token_raw(pp)
    if pp.include_pp != nil:
       get_include_token(pp, tok)
    elif len(pp.error_tokens) > 0:
@@ -805,12 +805,67 @@ proc get_token_raw(pp: var Preprocessor, tok: var Token) =
       get_source_token(pp, tok)
 
 
+proc merge_macro_sized_integer_literal(pp: var Preprocessor) =
+   # First we unroll the location of the first token (which is guaranteed to be
+   # the result of at least one macro expansion) until we reach the same file
+   # level as the second token---the unsized integer literal we're about to
+   # modify.
+   let expansion_loc = unroll_to_same_file(pp.locations, pp.tok.loc, pp.tok_next.loc.file)
+   if expansion_loc == InvalidLocation:
+      return
+
+   # However, we want to filter out situations where the tokens are separated by
+   # whitespace. For example, we want to merge `WIDTH'hF0 but leave `WIDTH 'hF0
+   # intact. To do this we convert the the expansion location (now representing
+   # the first token) and the location of the second token to their physical
+   # coordinates and check the distance between them. '+1' compensates for the
+   # backtick character.
+   let name = pp.locations.macro_maps[find_map_expanded_at(pp.locations, expansion_loc)].name
+   let ploc = to_physical(pp.locations, expansion_loc)
+   let ploc_next = to_physical(pp.locations, pp.tok_next.loc)
+   if ploc.col + len(name) + 1 != ploc_next.col:
+      return
+
+   var size: int
+   try:
+      size = parse_int(pp.tok.literal)
+   except ValueError:
+      return
+   pp.tok_next.size = size
+   pp.tok_next.loc = expansion_loc
+   pp.tok = pp.tok_next
+   if pp.tok_next.kind != TkEndOfFile:
+      get_token_raw(pp, pp.tok_next)
+
+
+proc prepare_token(pp: var Preprocessor) =
+   # While it's not strictly legal according to the standard, many parsers
+   # appear to support a syntax like `WIDTH'hF0 where `WIDTH has been defined as
+   # another integer literal. We try to detect the this case and merge the two
+   # integer literals by letting the value of the first specify the size of the
+   # second.
+   if pp.tok.kind == TkIntLit and pp.tok.size == -1 and
+      pp.tok_next.kind in {TkIntLit, TkUIntLit} and pp.tok_next.size == -1 and
+      pp.tok.loc.file < 0 and pp.tok_next.loc.file != pp.tok.loc.file:
+      # At this point we know that:
+      #
+      #   - pp.tok holds an unsized (signed) integer literal that is the result
+      #     of a macro expansion; and
+      #   - pp.tok_next holds an unsized integer literal whose file location is
+      #     not the same as pp.tok.
+      #
+      # and we can try to proceed with the merge.
+      merge_macro_sized_integer_literal(pp)
+
+
 proc get_token*(pp: var Preprocessor, tok: var Token) =
    ## Read a token from the preprocessor ``pp`` into ``tok``.
-   # This proc sits on top of the 'raw' preprocessor token interface that
-   # arbitrates the various token sources and implements a look-ahead buffer of
-   # one token to allow us to catch a few special events.
+   # This is the external token interface and sits on top of the internal
+   # preprocessor token interface that arbitrates the various token sources.
+   # This layer implements a look-ahead buffer of one token to allow us to catch
+   # a few special events. These are handled in prepare_token().
+   prepare_token(pp)
    tok = pp.tok
-   pp.tok = pp.next_tok
-   if pp.next_tok.kind != TkEndOfFile:
-      get_token_raw(pp, pp.next_tok)
+   pp.tok = pp.tok_next
+   if pp.tok_next.kind != TkEndOfFile:
+      get_token_raw(pp, pp.tok_next)

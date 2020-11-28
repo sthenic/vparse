@@ -1703,6 +1703,186 @@ wire always_zero = `AND(1'b1, 1'b0);
 ])
 
 
+run_test("Sized integer literal with macro", """
+`define WIDTH 8
+'hF0
+8'hF0
+`WIDTH'hF0 `WIDTH'shF0
+`WIDTH 'hF0 `WIDTH 'shF0
+`define NESTED_WIDTH `WIDTH
+`NESTED_WIDTH'hD0 `NESTED_WIDTH 'shD0
+`define TWICE_NESTED `NESTED_WIDTH'h77 `NESTED_WIDTH 'h88
+`TWICE_NESTED
+8 32
+12 'd9
+12 'sd98
+`include "test4.vh"
+`WIDTH'd102
+`define LAST_TOKEN foo bar 32
+`LAST_TOKEN'd62
+""", [
+   new_inumber(TkUIntLit, loc(1, 2, 0), Base16, -1, "F0"),
+   new_inumber(TkUIntLit, loc(1, 3, 0), Base16, 8, "F0"),
+   # WIDTH
+   new_inumber(TkUIntLit, loc(1, 4, 0), Base16, 8, "F0"),
+   new_inumber(TkIntLit, loc(1, 4, 11), Base16, 8, "F0"),
+   # WIDTH w/ space
+   new_inumber(TkIntLit, loc(-3, 0, 0), Base10, -1, "8"),
+   new_inumber(TkUIntLit, loc(1, 5, 7), Base16, -1, "F0"),
+   new_inumber(TkIntLit, loc(-4, 0, 0), Base10, -1, "8"),
+   new_inumber(TkIntLit, loc(1, 5, 19), Base16, -1, "F0"),
+   # NESTED_WIDTH
+   new_inumber(TkUIntLit, loc(1, 7, 0), Base16, 8, "D0"),
+   new_inumber(TkIntLit, loc(-8, 0, 0), Base10, -1, "8"),
+   new_inumber(TkIntLit, loc(1, 7, 32), Base16, -1, "D0"),
+   # TWICE_NESTED
+   new_inumber(TkUIntLit, loc(-9, 0, 0), Base16, 8, "77"),
+   new_inumber(TkIntLit, loc(-13, 0, 0), Base10, -1, "8"),
+   new_inumber(TkUIntLit, loc(-9, 3, 0), Base16, -1, "88"),
+   # Separated regular numbers
+   new_inumber(TkIntLit, loc(1, 10, 0), Base10, -1, "8"),
+   new_inumber(TkIntLit, loc(1, 10, 2), Base10, -1, "32"),
+   new_inumber(TkIntLit, loc(1, 11, 0), Base10, -1, "12"),
+   new_inumber(TkUIntLit, loc(1, 11, 3), Base10, -1, "9"),
+   new_inumber(TkIntLit, loc(1, 12, 0), Base10, -1, "12"),
+   new_inumber(TkIntLit, loc(1, 12, 3), Base10, -1, "98"),
+   # Macro definition from include file.
+   new_inumber(TkUIntLit, loc(1, 14, 0), Base10, 8, "102"),
+   # LAST_TOKEN
+   new_identifier(TkSymbol, loc(-15, 0, 0), "foo"),
+   new_identifier(TkSymbol, loc(-15, 1, 0), "bar"),
+   # TODO: This location is perhaps abit confusing? Is it better to use the
+   #       location of 'd62?
+   new_inumber(TkUIntLit, loc(1, 16, 0), Base10, 32, "62"),
+], [
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 4, 0),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 4, 11),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 5, 0),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 5, 12),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "NESTED_WIDTH",
+      define_loc: loc(1, 6, 8),
+      expansion_loc: loc(1, 7, 0),
+      locations: @[
+         (loc(1, 6, 21), loc(1, 6, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-5, 0, 0),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "NESTED_WIDTH",
+      define_loc: loc(1, 6, 8),
+      expansion_loc: loc(1, 7, 18),
+      locations: @[
+         (loc(1, 6, 21), loc(1, 6, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-7, 0, 0),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "TWICE_NESTED",
+      define_loc: loc(1, 8, 8),
+      expansion_loc: loc(1, 9, 0),
+      locations: @[
+         (loc(1, 8, 21), loc(1, 8, 21)),
+         (loc(1, 8, 34), loc(1, 8, 34)),
+         (loc(1, 8, 39), loc(1, 8, 39)),
+         (loc(1, 8, 53), loc(1, 8, 53)),
+      ]
+   ),
+   MacroMap(
+      name: "NESTED_WIDTH",
+      define_loc: loc(1, 6, 8),
+      expansion_loc: loc(-9, 0, 0),
+      locations: @[
+         (loc(1, 6, 21), loc(1, 6, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-10, 0, 0),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "NESTED_WIDTH",
+      define_loc: loc(1, 6, 8),
+      expansion_loc: loc(-9, 2, 0),
+      locations: @[
+         (loc(1, 6, 21), loc(1, 6, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-12, 0, 0),
+      locations: @[
+         (loc(1, 1, 14), loc(1, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "WIDTH",
+      define_loc: loc(2, 1, 8),
+      expansion_loc: loc(1, 14, 0),
+      locations: @[
+         (loc(2, 1, 14), loc(2, 1, 14)),
+      ]
+   ),
+   MacroMap(
+      name: "LAST_TOKEN",
+      define_loc: loc(1, 15, 8),
+      expansion_loc: loc(1, 16, 0),
+      locations: @[
+         (loc(1, 15, 19), loc(1, 15, 19)),
+         (loc(1, 15, 23), loc(1, 15, 23)),
+         (loc(1, 15, 27), loc(1, 15, 27)),
+      ]
+   ),
+])
+
+
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:
 #

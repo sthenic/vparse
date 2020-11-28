@@ -182,6 +182,20 @@ proc to_physical*(locs: Locations, loc: Location): Location =
       result = locs.macro_maps[-(result.file + 1)].locations[result.line].x
 
 
+proc unroll_to_same_file*(locs: Locations, loc: Location, file: int32): Location =
+   ## Given a location database ``locs``, attempt to find a path from the virtual
+   ## location ``loc`` to the target file id ``file``. If not path can be found,
+   ## the return value is set to ``InvalidLocation``.
+   result = loc
+   while true:
+      if result.file == file:
+         break
+      elif result.file > 0:
+         result = InvalidLocation
+         break
+      result = locs.macro_maps[-(result.file + 1)].expansion_loc
+
+
 proc unroll_location*(locs: Locations, loc: var Location) =
    ## Given a location database: ``locs``, unroll the virtual
    ## (``loc.file < 0``) location ``loc`` to reach the corresponding
@@ -191,6 +205,15 @@ proc unroll_location*(locs: Locations, loc: var Location) =
       for j, lpair in map.locations:
          if loc == lpair.x:
             loc = new_location(-(i + 1), j, 0)
+
+
+proc find_map_expanded_at*(locs: Locations, loc: Location): int =
+   ## Find the map for the macro expanded at ``loc``. If a map cannot be found
+   ## ``-1`` is returned.
+   result = -1
+   for i, map in locs.macro_maps:
+      if map.expansion_loc == loc:
+         return i
 
 
 proc in_bounds*(x, y: Location, len: int): bool =
