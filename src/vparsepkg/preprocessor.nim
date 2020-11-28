@@ -775,10 +775,6 @@ proc prepare_token_raw(pp: var Preprocessor) =
                break
          else:
             break
-   # FIXME: Here se should try to detect `WIDTH'hF0 where `WIDTH has expanded to
-   #        a single unsized integer literal. Check if the next token is an
-   #        unsized integer literal etc. etc. Have to make it whitespace
-   #        sensitive too: `WIDTH 'hFO should not trigger the token joining.
 
 
 proc get_token_raw(pp: var Preprocessor, tok: var Token) =
