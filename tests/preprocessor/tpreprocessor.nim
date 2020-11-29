@@ -811,13 +811,13 @@ run_test("Indirect recursion, longer replacement lists", """
 
 
 run_test("Ignoring one-line comments", """
-`define  foo this \
+`define  foo comment \
    spans \
    // surprise!
    multiple \
    lines
 `foo""", [
-   new_identifier(TkSymbol, loc(-1, 0, 0), "this"),
+   new_identifier(TkSymbol, loc(-1, 0, 0), "comment"),
    new_identifier(TkSymbol, loc(-1, 1, 0), "spans"),
    new_identifier(TkSymbol, loc(-1, 2, 0), "multiple"),
    new_identifier(TkSymbol, loc(-1, 3, 0), "lines"),
@@ -836,11 +836,11 @@ run_test("Ignoring one-line comments", """
 ])
 
 run_test("Ignoring one-line comments, next line is empty", """
-`define foo this \
+`define foo comment \
    // surprise!
 
 `foo""", [
-   new_identifier(TkSymbol, loc(-1, 0, 0), "this"),
+   new_identifier(TkSymbol, loc(-1, 0, 0), "comment"),
 ], [
    MacroMap(
       name: "foo",
@@ -854,13 +854,13 @@ run_test("Ignoring one-line comments, next line is empty", """
 
 
 run_test("Ignoring block comments", """
-`define foo this \
+`define foo comment \
    spans \
    /* surprise! */
    multiple \
    lines
 `foo""", [
-   new_identifier(TkSymbol, loc(-1, 0, 0), "this"),
+   new_identifier(TkSymbol, loc(-1, 0, 0), "comment"),
    new_identifier(TkSymbol, loc(-1, 1, 0), "spans"),
    new_identifier(TkSymbol, loc(-1, 2, 0), "multiple"),
    new_identifier(TkSymbol, loc(-1, 3, 0), "lines"),
