@@ -439,7 +439,7 @@ proc parse_hierarchical_identifier*(p: var Parser, allow_trailing_brackets: bool
          if p.tok.kind notin {TkDot, TkLbracket}:
             break
    else:
-      expect_token(p, result, TkSymbol)
+      expect_token(p, TkSymbol)
       result = new_identifier_node(p, NkIdentifier)
       get_token(p)
 

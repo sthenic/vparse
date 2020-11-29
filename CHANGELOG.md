@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Fix a crash that could happen when the parser encountered invalid syntax for a
+  hierarchical identifier.
+
 ## [v0.3.1] - 2020-11-28
 
 ### Fixed

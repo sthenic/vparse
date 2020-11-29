@@ -158,14 +158,23 @@ run_test("Simple identifier w/ range '+:'", true, """
 
 
 run_test("Dot expressions", false, """
-   global.local0.local1
+   top.local0.local1
 """):
    new_node(NkDotExpression, li(1, 4), @[
       new_node(NkDotExpression, li(1, 4), @[
-         new_identifier_node(NkIdentifier, li(1, 4), "global"),
-         new_identifier_node(NkIdentifier, li(1, 11), "local0"),
+         new_identifier_node(NkIdentifier, li(1, 4), "top"),
+         new_identifier_node(NkIdentifier, li(1, 8), "local0"),
       ]),
-      new_identifier_node(NkIdentifier, li(1, 18), "local1"),
+      new_identifier_node(NkIdentifier, li(1, 15), "local1"),
+   ])
+
+
+run_test("Error w/ keyword as the first identifier", false, """
+   wire.foo
+"""):
+   new_node(NkExpectError, li(1, 4), @[
+      new_error_node(NkTokenError, li(1, 4), "Expected token Symbol, got 'wire'.", ""),
+      new_error_node(NkTokenError, li(1, 8), "Expected token Symbol, got '.'.", "")
    ])
 
 
