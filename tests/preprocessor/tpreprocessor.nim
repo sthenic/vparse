@@ -1904,6 +1904,25 @@ run_test("__LINE__", """
    new_inumber(TkIntLit, loc(1, 3, 0), Base10, -1, "3"),
 ]
 
+
+run_test("`undefall", """
+`define WIRE wire
+`define WIDTH 9
+`undefall
+`WIRE [`WIDTH-1:0] my_wire;
+"""): [
+   new_identifier(TkDirective, loc(1, 4, 0), "WIRE"),
+   new_token(TkLbracket, loc(1, 4, 6)),
+   new_identifier(TkDirective, loc(1, 4, 7), "WIDTH"),
+   new_identifier(TkOperator, loc(1, 4, 13), "-"),
+   new_inumber(TkIntLit, loc(1, 4, 14), Base10, -1, "1"),
+   new_identifier(TkColon, loc(1, 4, 15), ":"),
+   new_inumber(TkIntLit, loc(1, 4, 16), Base10, -1, "0"),
+   new_token(TkRbracket, loc(1, 4, 17)),
+   new_identifier(TkSymbol, loc(1, 4, 19), "my_wire"),
+   new_token(TkSemicolon, loc(1, 4, 26)),
+]
+
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:
 #

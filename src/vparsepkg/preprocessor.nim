@@ -315,6 +315,12 @@ proc handle_undef(pp: var Preprocessor) =
    get_lexer_token(pp)
 
 
+proc handle_undefall(pp: var Preprocessor) =
+   # Scan over `undefall
+   get_lexer_token(pp)
+   clear(pp.defines)
+
+
 proc get_include_file(pp: Preprocessor, filename: string): string =
    ## Return the full path to the file with name/path ``filename``.
    # FIXME: Environment variable for include path?
@@ -680,6 +686,8 @@ proc handle_directive(pp: var Preprocessor): bool =
       handle_insert_file(pp)
    of "__LINE__":
       handle_insert_line(pp)
+   of "undefall":
+      handle_undefall(pp)
    else:
       # If we don't recognize the directive, check if it's a macro usage which
       # has a matching entry in the macro table. Otherwise, leave the token as
