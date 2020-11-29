@@ -57,6 +57,7 @@ proc new_graph*(identifier_cache: IdentifierCache, module_cache: ModuleCache, lo
 
 
 template new_graph*(cache: IdentifierCache): Graph =
+   ## Create a new graph for a Verilog source tree.
    new_graph(cache, new_module_cache(), new_locations())
 
 
@@ -117,17 +118,21 @@ iterator walk_verilog_files*(dirs: openarray[string]): string {.inline.} =
 
 
 template walk_verilog_files*(dir: string): untyped =
-   ## Walk the Verilog files (``*.v``)in the directory ``dir``, returning the
+   ## Walk the Verilog files (``*.v``) in the directory ``dir``, returning the
    ## full path of each match.
    walk_verilog_files([dir])
 
 
 proc find_all_verilog_files*(dir: string): seq[string] =
+   ## Find all the Verilog files (``*.v``) in the directory ``dir``. The result
+   ## will contain the full path of each match.
    for filename in walk_verilog_files(dir):
       add(result, filename)
 
 
 proc find_all_verilog_files*(dirs: openarray[string]): seq[string] =
+   ## Find all the Verilog files (``*.v``) in the directories ``dirs``. See the
+   ## description from the iterator ``walk_verilog_files()``.
    for dir in dirs:
       add(result, find_all_verilog_files(dir))
 
