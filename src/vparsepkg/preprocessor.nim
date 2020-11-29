@@ -325,7 +325,7 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
    const RECURSIVE_TAIL = DirSep & "**"
    let path_relative_parent_dir = parent_dir(pp.lex.filename) / filename
    if file_exists(path_relative_parent_dir):
-      return path_relative_parent_dir
+      return expand_filename(path_relative_parent_dir)
    else:
       for path in pp.include_paths:
          if ends_with(path, RECURSIVE_TAIL):
@@ -335,15 +335,15 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
             # check that manually before we begin.
             let tmp = head / filename
             if file_exists(tmp):
-               return tmp
+               return expand_filename(tmp)
             for tail in walk_dir_rec(head, yield_filter = {pcDir}, relative = true):
                let tmp = head / tail / filename
                if file_exists(tmp):
-                  return tmp
+                  return expand_filename(tmp)
          else:
             let tmp = path / filename
             if file_exists(tmp):
-               return tmp
+               return expand_filename(tmp)
 
 
 proc handle_include(pp: var Preprocessor) =
