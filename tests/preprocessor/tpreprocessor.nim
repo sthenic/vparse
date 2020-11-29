@@ -1139,10 +1139,10 @@ wire
 ]
 
 
-run_test("Missing filename for `include -> error", """
-`include
+run_test("Invalid filename for `include -> error", """
+`include 78
 """): [
-   new_error_token(2, 0, "Expected token StrLit, got '[EOF]'."),
+   new_error_token(1, 9, "Expected token StrLit, got '78'."),
 ]
 
 
@@ -1922,6 +1922,45 @@ run_test("`undefall", """
    new_identifier(TkSymbol, loc(1, 4, 19), "my_wire"),
    new_token(TkSemicolon, loc(1, 4, 26)),
 ]
+
+
+run_test("Bracketed include paths", """
+`include < include/test1.vh >
+"""): [
+   new_identifier(TkReg, loc(2, 1, 0), "reg"),
+   new_identifier(TkSymbol, loc(2, 1, 4), "a_register"),
+   new_token(TkSemicolon, loc(2, 1, 14)),
+]
+
+
+run_test("Bracketed include path ends w/o closing bracket (error)", """
+`include <test1.vh
+wire foo;
+"""): [
+   new_error_token(2, 0, "Unexpected token 'wire' while scanning for an include path."),
+   new_identifier(TkWire, loc(1, 2, 0), "wire"),
+   new_identifier(TkSymbol, loc(1, 2, 5), "foo"),
+   new_token(TkSemicolon, loc(1, 2, 8)),
+]
+
+
+run_test("Bracketed include path contains whitespace (error)", """
+`include <include/ test1.vh>
+"""): [
+   new_error_token(1, 9, "Invalid include path: cannot contain whitespace."),
+   new_identifier(TkSymbol, loc(1, 1, 19), "test1"),
+   new_token(TkDot, loc(1, 1, 24)),
+   new_identifier(TkSymbol, loc(1, 1, 25), "vh"),
+   new_identifier(TkOperator, loc(1, 1, 27), ">"),
+]
+
+
+run_test("Bracketed include path ends w/ EOF (error)", """
+`include <test1.vh
+"""): [
+   new_error_token(2, 0, "The file ended while scanning for an include path."),
+]
+
 
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:

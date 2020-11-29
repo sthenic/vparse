@@ -352,39 +352,91 @@ proc get_include_file(pp: Preprocessor, filename: string): string =
                return expand_filename(tmp)
 
 
-proc handle_include(pp: var Preprocessor) =
-   # Skip over `include.
-   let include_loc = pp.lex_tok.loc
-   get_lexer_token(pp)
-
-   if pp.lex_tok.kind != TkStrLit:
-      add_error_token(pp, ExpectedToken, TkStrLit, pp.lex_tok)
-      get_lexer_token(pp)
-      return
-   elif pp.lex_tok.loc.line != include_loc.line:
-      add_error_token(pp, DirectiveArgLine, pp.lex_tok, "`include")
-      get_lexer_token(pp)
-      return
-
-   var filename = pp.lex_tok.literal
-   let loc = pp.lex_tok.loc
-   let full_path = get_include_file(pp, filename)
-   get_lexer_token(pp)
-   if len(full_path) == 0:
-      add_error_token(pp, loc, CannotOpenFile, filename)
-      return
-
+proc open_include_file(pp: var Preprocessor, loc: Location, filename: string) =
    # Create a new preprocessor for the include file. All the defines known at
    # this point gets passed on to the preprocessor handling the include file.
    # We also create a file map entry which includes the location of the `include
    # directive. This will allow any token consumer to trace tokens across files,
    # similar to what macro maps allow.
-   let fs = new_file_stream(full_path)
+   let fs = new_file_stream(filename)
    new pp.include_pp
-   open_preprocessor(pp.include_pp[], pp.lex.cache, fs, new_file_map(full_path, include_loc),
+   open_preprocessor(pp.include_pp[], pp.lex.cache, fs, new_file_map(filename, loc),
                      pp.locations, pp.include_paths, pp.defines)
    get_token(pp.include_pp[], pp.include_tok)
+
+
+
+proc handle_quoted_include(pp: var Preprocessor, loc: Location) =
+   var filename = pp.lex_tok.literal
+   let loc = pp.lex_tok.loc
+   let path = get_include_file(pp, filename)
+   get_lexer_token(pp)
+   if len(path) == 0:
+      add_error_token(pp, loc, CannotOpenFile, filename)
+      return
+
+   open_include_file(pp, loc, path)
    # FIXME: Ensure that the next token is on a different line?
+
+
+proc handle_angled_include(pp: var Preprocessor, loc: Location) =
+   # Scan over '<' but remember the position. We'll use this to anchor any
+   # eventual error.
+   let loc = pp.lex_tok.loc
+   get_lexer_token(pp)
+   var filename = ""
+   var col = pp.lex_tok.loc.col
+   var error = false
+   while true:
+      if pp.lex_tok.kind == TkOperator and pp.lex_tok.identifier.s == ">":
+         get_lexer_token(pp)
+         break
+      elif pp.lex_tok.kind == TkEndOfFile:
+         add_error_token(pp, "The file ended while scanning for an include path.")
+         error = true
+      elif pp.lex_tok.loc.line != loc.line:
+         add_error_token(pp, "Unexpected token $1 while scanning for an include path.", pp.lex_tok)
+         error = true
+      elif pp.lex_tok.loc.col != col:
+         add_error_token(pp, loc, "Invalid include path: cannot contain whitespace.")
+         error = true
+
+      if error:
+         # FIXME: Remove the rest of the tokens on the same line.
+         return
+
+      let part = raw(pp.lex_tok)
+      add(filename, part)
+      col = pp.lex_tok.loc.col + len(part).int16
+      get_lexer_token(pp)
+
+   # FIXME: Potentially another proc that searches another set of include
+   #        directories. But let's go with the same rules as quoted paths
+   #        for now.
+   let path = get_include_file(pp, filename)
+   if len(path) == 0:
+      add_error_token(pp, loc, CannotOpenFile, filename)
+      return
+   open_include_file(pp, loc, path)
+   # FIXME: Ensure that the next token is on a different line?
+
+
+proc handle_include(pp: var Preprocessor) =
+   # Skip over `include.
+   let include_loc = pp.lex_tok.loc
+   get_lexer_token(pp)
+
+   if pp.lex_tok.loc.line != include_loc.line:
+      add_error_token(pp, DirectiveArgLine, pp.lex_tok, "`include")
+      get_lexer_token(pp)
+   elif pp.lex_tok.kind == TkStrLit:
+      handle_quoted_include(pp, include_loc)
+   elif pp.lex_tok.kind == TkOperator and pp.lex_tok.identifier.s == "<":
+      handle_angled_include(pp, include_loc)
+   else:
+      # FIXME: Error message, not just expecting a strlit anymore.
+      add_error_token(pp, ExpectedToken, TkStrLit, pp.lex_tok)
+      get_lexer_token(pp)
 
 
 proc handle_else(pp: var Preprocessor) =
