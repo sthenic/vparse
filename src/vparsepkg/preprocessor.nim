@@ -620,12 +620,35 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
 
 
 proc handle_line(pp: var Preprocessor) =
+   # TODO: Implement
    let line = pp.lex_tok.loc.line
    add_error_token(pp, "The `line directive is currently not supported.")
    while true:
       get_lexer_token(pp)
       if pp.lex_tok.kind == TkEndOfFile or pp.lex_tok.loc.line - line > 0:
          break
+
+
+proc handle_insert_line(pp: var Preprocessor) =
+   # We replace the current lexer token (which should be the __LINE__ directive)
+   # with an unsized integer literal holding the current line number.
+   let loc = pp.lex_tok.loc
+   init(pp.lex_tok)
+   pp.lex_tok.kind = TkIntLit
+   pp.lex_tok.loc = loc
+   pp.lex_tok.size = -1
+   pp.lex_tok.base = Base10
+   pp.lex_tok.literal = $loc.line
+
+
+proc handle_insert_file(pp: var Preprocessor) =
+   # We replace the current lexer token (which should be the __FILE__ directive)
+   # with a string literal holding the full path to the current file.
+   let loc = pp.lex_tok.loc
+   init(pp.lex_tok)
+   pp.lex_tok.kind = TkStrLit
+   pp.lex_tok.loc = loc
+   pp.lex_tok.literal = pp.lex.filename
 
 
 proc handle_directive(pp: var Preprocessor): bool =
@@ -653,6 +676,10 @@ proc handle_directive(pp: var Preprocessor): bool =
       # the preprocessor and the parser.
       clear(pp.defines)
       result = false
+   of "__FILE__":
+      handle_insert_file(pp)
+   of "__LINE__":
+      handle_insert_line(pp)
    else:
       # If we don't recognize the directive, check if it's a macro usage which
       # has a matching entry in the macro table. Otherwise, leave the token as

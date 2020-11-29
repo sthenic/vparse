@@ -1,6 +1,7 @@
 import streams
 import terminal
 import strformat
+import os
 
 import ../../src/vparsepkg/preprocessor
 import ../lexer/constructors
@@ -21,7 +22,7 @@ template run_test(title, stimuli: string, token_reference: openarray[Token],
    init(tok)
    init(locations)
    open_preprocessor(pp, cache, new_string_stream(stimuli),
-                     new_file_map("", InvalidLocation),
+                     new_file_map("test.v", InvalidLocation),
                      locations, ["include"], ["EXTERNAL_FOO", "EXTERNAL_BAR=wire"])
    while true:
       get_token(pp, tok)
@@ -1882,6 +1883,26 @@ run_test("Sized integer literal with macro", """
    ),
 ])
 
+
+let test6_filename = expand_filename("include/test6.vh")
+run_test("__FILE__", """
+`__FILE__
+`include "test6.vh"
+"""): [
+   new_string_literal(loc(1, 1, 0), "test.v"),
+   new_string_literal(loc(2, 1, 0), test6_filename)
+]
+
+
+run_test("__LINE__", """
+`__LINE__
+`include "test7.vh"
+`__LINE__
+"""): [
+   new_inumber(TkIntLit, loc(1, 1, 0), Base10, -1, "1"),
+   new_inumber(TkIntLit, loc(2, 4, 0), Base10, -1, "4"),
+   new_inumber(TkIntLit, loc(1, 3, 0), Base10, -1, "3"),
+]
 
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:
