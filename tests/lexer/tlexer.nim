@@ -563,6 +563,41 @@ run_test("Asynchronous event, whitespace separated", "@( * )", @[
    new_token(TkRparen, loc(1, 1, 5)),
 ])
 
+run_test("SystemVerilog: escaped macro definitions", """
+`define msg(x,y) `"x: `\`"y`\`"`"""", @[
+   new_identifier(TkDirective, loc(1, 1, 0), "define"),
+   new_identifier(TkSymbol, loc(1, 1, 8), "msg"),
+   new_token(TkLparen, loc(1, 1, 11)),
+   new_identifier(TkSymbol, loc(1, 1, 12), "x"),
+   new_token(TkComma, loc(1, 1, 13)),
+   new_identifier(TkSymbol, loc(1, 1, 14), "y"),
+   new_token(TkRparen, loc(1, 1, 15)),
+   new_token(TkBacktickDoubleQuotes, loc(1, 1, 17)),
+   new_identifier(TkSymbol, loc(1, 1, 19), "x"),
+   new_identifier(TkColon, loc(1, 1, 20), ":"),
+   new_token(TkEscapedDoubleQuotes, loc(1, 1, 22)),
+   new_identifier(TkSymbol, loc(1, 1, 26), "y"),
+   new_token(TkEscapedDoubleQuotes, loc(1, 1, 27)),
+   new_token(TkBacktickDoubleQuotes, loc(1, 1, 31)),
+])
+
+run_test("SystemVerilog: escaped double quote (ends abruptly)", """`\` `\""", @[
+   new_token(TkInvalid, loc(1, 1, 0)),
+   new_token(TkInvalid, loc(1, 1, 4)),
+])
+
+run_test("SystemVerilog: token pasting", """
+`define append(f) f``_master""", @[
+   new_identifier(TkDirective, loc(1, 1, 0), "define"),
+   new_identifier(TkSymbol, loc(1, 1, 8), "append"),
+   new_token(TkLparen, loc(1, 1, 14)),
+   new_identifier(TkSymbol, loc(1, 1, 15), "f"),
+   new_token(TkRparen, loc(1, 1, 16)),
+   new_identifier(TkSymbol, loc(1, 1, 18), "f"),
+   new_token(TkDoubleBacktick, loc(1, 1, 19)),
+   new_identifier(TkSymbol, loc(1, 1, 21), "_master"),
+])
+
 # Print summary
 styledWriteLine(stdout, styleBright, "\n----- SUMMARY -----")
 var test_str = "test"

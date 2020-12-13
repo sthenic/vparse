@@ -58,7 +58,7 @@ type
       TkBackslash, TkComma, TkDot, TkQuestionMark, TkSemicolon, TkColon, TkAt,
       TkHash, TkLparen, TkRparen, TkLbracket, TkRbracket, TkLbrace, TkRbrace,
       TkLparenStar, TkRparenStar, TkPlusColon, TkMinusColon, TkRightArrow,
-      TkEquals, # end special characters
+      TkEquals, TkBacktickDoubleQuotes, TkEscapedDoubleQuotes, TkDoubleBacktick, # end special characters
       TkSymbol, TkOperator, TkStrLit,
       TkIntLit, TkUIntLit,
       TkAmbIntLit, TkAmbUIntLit, # Ambiguous literals
@@ -180,7 +180,7 @@ const
       "wire", "with", "within", "wor",
       "xnor", "xor",
       "\\", ",", ".", "?", ";", ":", "@", "#", "(", ")", "[", "]", "{", "}",
-      "(*", "*)", "+:", "-:", "->", "=",
+      "(*", "*)", "+:", "-:", "->", "=", "`\"", "`\\`\"", "``",
       "Symbol", "Operator", "StrLit",
       "IntLit", "UIntLit",
       "AmbIntLit", "AmbUIntLit",
@@ -466,7 +466,7 @@ proc handle_operator(l: var Lexer, tok: var Token) =
    tok.identifier = get_identifier(l.cache, addr(l.buf[l.bufpos]), pos - l.bufpos, h)
    l.bufpos = pos
 
-   if tok.identifier.id < ord(TkBackslash) or tok.identifier.id > ord(TkEquals):
+   if tok.identifier.id < ord(TkBackslash) or tok.identifier.id > ord(TkDoubleBacktick):
       # Generic operator
       tok.kind = TkOperator
    else:
@@ -777,6 +777,33 @@ proc handle_number(l: var Lexer, tok: var Token) =
       handle_real_and_decimal(l, tok)
 
 
+proc handle_backtick(l: var Lexer, tok: var Token) =
+   # Skip past the backtick.
+   inc(l.bufpos)
+   let c = l.buf[l.bufpos]
+   case c
+   of '`':
+      tok.kind = TkDoubleBacktick
+      inc(l.bufpos)
+   of '"':
+      tok.kind = TkBacktickDoubleQuotes
+      inc(l.bufpos)
+   of '\\':
+      # We have to perform opt-in lexing here and abort as soon as we see an
+      # unexpected token.
+      inc(l.bufpos)
+      for c in "`\"":
+         if l.buf[l.bufpos] != c:
+            return
+         inc(l.bufpos)
+      tok.kind = TkEscapedDoubleQuotes
+   of SymChars:
+      tok.kind = TkDirective
+      handle_identifier(l, tok, SymChars)
+   else:
+      discard
+
+
 proc eat_directive_line(l: var Lexer, tok: var Token) =
    var pos = l.bufpos
    while l.buf[pos] notin lexbase.Newlines + {lexbase.EndOfFile}:
@@ -891,9 +918,7 @@ proc get_token*(l: var Lexer, tok: var Token) =
       tok.kind = TkRbrace
       inc(l.bufpos)
    of '`':
-      inc(l.bufpos)
-      tok.kind = TkDirective
-      handle_identifier(l, tok, SymChars)
+      handle_backtick(l, tok)
    else:
       if c in OpChars:
          handle_operator(l, tok)
