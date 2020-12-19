@@ -6,6 +6,7 @@
 import streams
 import tables
 import strutils
+import sequtils
 import os
 
 import ./lexer
@@ -627,7 +628,9 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
    ## the macro token (``def.name``) has been removed from the token stream.
    # Expect arguments to follow a function-like macro. Once we've collected the
    # arguments, we perform parameter substitution in the macro's replacement
-   # list.
+   # list. Once parameter substitution is complete, we walk through the list of
+   # tokens again, this time looking for the special SystemVerilog preprocessor
+   # tokens.
    var arguments: Table[string, seq[Token]]
    var macro_map: MacroMap
    macro_map.locations = new_seq_of_cap[LocationPair](len(def.tokens))
@@ -921,16 +924,37 @@ proc merge_macro_sized_integer_literal(pp: var Preprocessor) =
       get_token_raw(pp, pp.tok_next)
 
 
+proc handle_token_pasting(pp: var Preprocessor) =
+   # When this proc gets called, pp.tok_next is a double backtick token
+   # indicating that the two identifier tokens surrounding it should be glued
+   # together. Unless both are identifiers, the operation is a noop and the
+   # double backtick character is silently removed. We intentionally avoid
+   # modifying the macro map where we potentially could remove the location
+   # entries associated with the merged tokens. It's not really necessary since
+   # an overdetermined AST is not a problem.
+   var tail: Token
+   get_token_raw(pp, tail)
+   if pp.tok.kind == TkSymbol and tail.kind == TkSymbol and pp.tok.loc.file == tail.loc.file:
+      # Even if both symbols are an
+      let s = pp.tok.identifier.s & tail.identifier.s
+      pp.tok.identifier = get_identifier(pp.lex.cache, s)
+      get_token_raw(pp, pp.tok_next)
+   else:
+      pp.tok_next = tail
+
+   if pp.tok_next.kind == TkDoubleBacktick:
+      handle_token_pasting(pp)
+
+
 proc prepare_token(pp: var Preprocessor) =
-   # While it's not strictly legal according to the standard, many parsers
-   # appear to support a syntax like `WIDTH'hF0 where `WIDTH has been defined as
-   # another integer literal. We try to detect the this case and merge the two
-   # integer literals by letting the value of the first specify the size of the
-   # second.
    if pp.tok.kind == TkIntLit and pp.tok.size == -1 and
       pp.tok_next.kind in {TkIntLit, TkUIntLit} and pp.tok_next.size == -1 and
       pp.tok.loc.file < 0 and pp.tok_next.loc.file != pp.tok.loc.file:
-      # At this point we know that:
+      # While it's not strictly legal according to the standard, many parsers
+      # appear to support a syntax like `WIDTH'hF0 where `WIDTH has been defined as
+      # another integer literal. We try to detect the this case and merge the two
+      # integer literals by letting the value of the first specify the size of the
+      # second. At this point we know that:
       #
       #   - pp.tok holds an unsized (signed) integer literal that is the result
       #     of a macro expansion; and
@@ -939,6 +963,16 @@ proc prepare_token(pp: var Preprocessor) =
       #
       # and we can try to proceed with the merge.
       merge_macro_sized_integer_literal(pp)
+   elif pp.tok_next.kind == TkDoubleBacktick:
+      # A double backtick '``' indicates preprocessor token pasting, just like
+      # '##' in C.
+      handle_token_pasting(pp)
+   # of TkBacktickDoubleQuotes:
+   #    # FIXME: Implement
+   #    inc(i)
+   # of TkEscapedDoubleQuotes:
+   #    # FIXME: Implement
+   #    inc(i)
 
 
 proc get_token*(pp: var Preprocessor, tok: var Token) =

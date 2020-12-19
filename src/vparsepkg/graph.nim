@@ -80,8 +80,8 @@ proc filter_module(module: PModule, include_paths: openarray[string]): bool =
 
 
 proc get_module*(g: Graph, name: string): PModule =
-   ## Attempt to get the from the graph's module cache. This function will return
-   ## ``nil`` if the module cannot be found.
+   ## Attempt to get the module ``name`` from the graph's module cache. This
+   ## function will return ``nil`` if the module cannot be found.
    # For efficiency reasons (speed and memory consumption), we prepare for the
    # fact that a module cache can be shared between many module graphs, all with
    # different include paths. This means that we may be able to retrieve a
@@ -187,7 +187,7 @@ proc parse(g: Graph, s: Stream, filename: string, checksum: MD5Digest,
 
 proc cache_module_declaration_helper(g: Graph, filename: string): bool =
    ## Helper proc to parse the file with path ``filename``, adding the modules it
-   ## declares to the cache. If ther file's checksum matches the one on record,
+   ## declares to the cache. If the file's checksum matches the one on record,
    ## the parsing is skipped and the return value is set to ``true``. Otherwise,
    ## the return value is set to ``false``.
    result = false

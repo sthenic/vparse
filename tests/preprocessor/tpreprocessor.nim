@@ -1962,6 +1962,167 @@ run_test("Bracketed include path ends w/ EOF (error)", """
 ]
 
 
+run_test("Macro w/ token pasting", """
+`define append(f) f``_master
+`append(clock)
+`define a_token clock``_master
+`a_token
+`define enclose(x, y) x``_bar_``y
+`enclose(foo, baz)
+""", [
+   new_identifier(TkSymbol, loc(-1, 0, 0), "clock_master"),
+   new_identifier(TkSymbol, loc(-2, 0, 0), "clock_master"),
+   new_identifier(TkSymbol, loc(-3, 0, 0), "foo_bar_baz"),
+], [
+   MacroMap(
+      name: "append",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 2, 8), loc(1, 1, 18)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 1, 21), loc(1, 1, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "a_token",
+      define_loc: loc(1, 3, 8),
+      expansion_loc: loc(1, 4, 0),
+      locations: @[
+         (loc(1, 3, 16), loc(1, 3, 16)),
+         (loc(1, 3, 21), loc(1, 3, 21)),
+         (loc(1, 3, 23), loc(1, 3, 23)),
+      ]
+   ),
+   MacroMap(
+      name: "enclose",
+      define_loc: loc(1, 5, 8),
+      expansion_loc: loc(1, 6, 0),
+      locations: @[
+         (loc(1, 6, 9), loc(1, 5, 22)),
+         (loc(1, 5, 23), loc(1, 5, 23)),
+         (loc(1, 5, 25), loc(1, 5, 25)),
+         (loc(1, 5, 30), loc(1, 5, 30)),
+         (loc(1, 6, 14), loc(1, 5, 32)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ token pasting, part from macro", """
+`define a_token _tail
+`define append(f) f``_master```a_token
+`append(clock)
+""", [
+   new_identifier(TkSymbol, loc(-1, 0, 0), "clock_master"),
+   new_identifier(TkSymbol, loc(-2, 0, 0), "_tail"),
+], [
+   MacroMap(
+      name: "append",
+      define_loc: loc(1, 2, 8),
+      expansion_loc: loc(1, 3, 0),
+      locations: @[
+         (loc(1, 3, 8), loc(1, 2, 18)),
+         (loc(1, 2, 19), loc(1, 2, 19)),
+         (loc(1, 2, 21), loc(1, 2, 21)),
+         (loc(1, 2, 28), loc(1, 2, 28)),
+         (loc(1, 2, 30), loc(1, 2, 30)),
+      ]
+   ),
+   MacroMap(
+      name: "a_token",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-1, 4, 0),
+      locations: @[
+         (loc(1, 1, 16), loc(1, 1, 16)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ token pasting, error cases", """
+`define enclose(x, y) x``_bar_``y
+
+`enclose(2, baz)
+`enclose(foo, 32)
+`define missing_tail foo_``
+`missing_tail
+`define missing_head ``_foo
+`missing_head
+""", [
+   new_inumber(TkIntLit, loc(-1, 0, 0), Base10, -1, "2"),
+   new_identifier(TkSymbol, loc(-1, 2, 0), "_bar_baz"),
+   new_identifier(TkSymbol, loc(-2, 0, 0), "foo_bar_"),
+   new_inumber(TkIntLit, loc(-2, 4, 0), Base10, -1, "32"),
+   new_identifier(TkSymbol, loc(-3, 0, 0), "foo_"),
+   new_identifier(TkSymbol, loc(-4, 1, 0), "_foo"),
+], [
+   MacroMap(
+      name: "enclose",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 3, 0),
+      locations: @[
+         (loc(1, 3, 9), loc(1, 1, 22)),
+         (loc(1, 1, 23), loc(1, 1, 23)),
+         (loc(1, 1, 25), loc(1, 1, 25)),
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 3, 12), loc(1, 1, 32)),
+      ]
+   ),
+   MacroMap(
+      name: "enclose",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 4, 0),
+      locations: @[
+         (loc(1, 4, 9), loc(1, 1, 22)),
+         (loc(1, 1, 23), loc(1, 1, 23)),
+         (loc(1, 1, 25), loc(1, 1, 25)),
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 4, 14), loc(1, 1, 32)),
+      ]
+   ),
+   MacroMap(
+      name: "missing_tail",
+      define_loc: loc(1, 5, 8),
+      expansion_loc: loc(1, 6, 0),
+      locations: @[
+         (loc(1, 5, 21), loc(1, 5, 21)),
+         (loc(1, 5, 25), loc(1, 5, 25)),
+      ]
+   ),
+   MacroMap(
+      name: "missing_head",
+      define_loc: loc(1, 7, 8),
+      expansion_loc: loc(1, 8, 0),
+      locations: @[
+         (loc(1, 7, 21), loc(1, 7, 21)),
+         (loc(1, 7, 23), loc(1, 7, 23)),
+      ]
+   ),
+])
+
+
+# run_test("Macro w/ escape tokens", """
+# `define msg(x,y) `"x: `\`"y`\`"`"
+# $display(`msg(left side,right side));
+# """, [
+#    new_identifier(TkDollar, loc(1, 2, 0), "display"),
+#    new_token(TkLparen, loc(1, 2, 8)),
+#    new_string_literal(loc(-1, 28, 0), "left side: \"right side\""),
+#    new_token(TkRparen, loc(1, 2, 8)),
+#    new_token(TkSemicolon, loc(1, 2, 8)),
+# ], [
+#    MacroMap(
+#       name: "WIDTH",
+#       define_loc: loc(1, 1, 8),
+#       expansion_loc: loc(1, 4, 0),
+#       locations: @[
+#          (loc(1, 1, 14), loc(1, 1, 14)),
+#       ]
+#    ),
+# ])
+
+
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:
 #
