@@ -6,7 +6,6 @@
 import streams
 import tables
 import strutils
-import sequtils
 import os
 
 import ./lexer
@@ -616,14 +615,15 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
 
 
 proc add_token(tokens: var seq[Token], lpairs: var seq[LocationPair],
-               file: int, x, y: Location, tok: Token) =
+               file: int, x, y: Location, tok: Token, whitespace: int) =
    var t = tok
    t.loc = Location(file: int32(file), line: uint16(len(lpairs)), col: 0)
+   t.whitespace = whitespace
    add(tokens, t)
    add(lpairs, (x, y))
 
 
-proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
+proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location, whitespace: int) =
    ## Push a new macro context onto the context stack. This proc expects that
    ## the macro token (``def.name``) has been removed from the token stream.
    # Expect arguments to follow a function-like macro. Once we've collected the
@@ -655,20 +655,30 @@ proc enter_macro_context(pp: var Preprocessor, def: var Define, loc: Location) =
       for tok in def.tokens:
          if tok.kind == TkSymbol and tok.identifier.s in arguments:
             # Go through the replacement list for the argument, making a copy
-            # with an updated position and adding an entry to the macro map.
-            for rtok in arguments[tok.identifier.s]:
-               add_token(expansion_list, macro_map.locations, file, rtok.loc, tok.loc, rtok)
+            # with an updated position and adding an entry to the macro map. The
+            # first token inherits the leading whitespace of the parameter token.
+            for i, rtok in arguments[tok.identifier.s]:
+               let whitespace = if i == 0:
+                  tok.whitespace
+               else:
+                  rtok.whitespace
+               add_token(expansion_list, macro_map.locations, file, rtok.loc, tok.loc, rtok, whitespace)
          else:
-            add_token(expansion_list, macro_map.locations, file, tok.loc, tok.loc, tok)
+            add_token(expansion_list, macro_map.locations, file, tok.loc, tok.loc, tok, tok.whitespace)
    else:
       let file = next_macro_map_index(pp.locations)
       for tok in def.tokens:
-         add_token(expansion_list, macro_map.locations, file, tok.loc, tok.loc, tok)
+         add_token(expansion_list, macro_map.locations, file, tok.loc, tok.loc, tok, tok.whitespace)
 
    # Avoid adding an empty replacement list. We still have to read any arguments
    # though.
    if len(expansion_list) == 0:
       return
+
+   # The first token in the expansion list inherits the leading whitespace from
+   # the macro usage directive. The return statement just above protects this
+   # access.
+   expansion_list[0].whitespace = whitespace
 
    # Add the macro map to the location tree.
    add_macro_map(pp.locations, macro_map)
@@ -750,8 +760,9 @@ proc handle_directive(pp: var Preprocessor): bool =
       let macro_name = pp.lex_tok.identifier.s
       if macro_name in pp.defines:
          let loc = pp.lex_tok.loc
+         let whitespace = pp.lex_tok.whitespace
          get_lexer_token(pp)
-         enter_macro_context(pp, pp.defines[macro_name], loc)
+         enter_macro_context(pp, pp.defines[macro_name], loc, whitespace)
       else:
          result = false
 
@@ -828,7 +839,8 @@ proc prepare_token_raw(pp: var Preprocessor) =
             # Read past the macro name.
             inc_context_stack(pp)
             # FIXME: possibly all the directives? handle_directive()?
-            enter_macro_context(pp, pp.defines[next_tok.identifier.s], next_tok.loc)
+            enter_macro_context(pp, pp.defines[next_tok.identifier.s], next_tok.loc,
+                                next_tok.whitespace)
          else:
             break
    else:
@@ -946,6 +958,32 @@ proc handle_token_pasting(pp: var Preprocessor) =
       handle_token_pasting(pp)
 
 
+proc handle_expanded_string_literal(pp: var Preprocessor) =
+   # We read tokens until we encounter the closing '`"' or the end of the file,
+   # which is an error. Since we're reconstructing a string literal from lexed
+   # tokens, all the whitespace information is gone. We use a cursor that points
+   # just past the last character added to the string. This is effectively the
+   # length of the string but we try to avoid recomputing it in each iteration.
+   let loc = pp.tok.loc
+   init(pp.tok)
+   pp.tok.kind = TkStrLit
+   pp.tok.loc = loc
+   while true:
+      case pp.tok_next.kind
+      of TkEndOfFile:
+         pp.tok = new_error_token(loc, UnexpectedEndOfFile)
+         break
+      of TkBacktickDoubleQuotes:
+         get_token_raw(pp, pp.tok_next)
+         break
+      of TkEscapedDoubleQuotes:
+         add(pp.tok.literal, repeat(' ', pp.tok_next.whitespace) & "\"")
+      else:
+         add(pp.tok.literal, repeat(' ', pp.tok_next.whitespace) & raw(pp.tok_next))
+
+      get_token_raw(pp, pp.tok_next)
+
+
 proc prepare_token(pp: var Preprocessor) =
    if pp.tok.kind == TkIntLit and pp.tok.size == -1 and
       pp.tok_next.kind in {TkIntLit, TkUIntLit} and pp.tok_next.size == -1 and
@@ -967,12 +1005,10 @@ proc prepare_token(pp: var Preprocessor) =
       # A double backtick '``' indicates preprocessor token pasting, just like
       # '##' in C.
       handle_token_pasting(pp)
-   # of TkBacktickDoubleQuotes:
-   #    # FIXME: Implement
-   #    inc(i)
-   # of TkEscapedDoubleQuotes:
-   #    # FIXME: Implement
-   #    inc(i)
+   elif pp.tok.kind == TkBacktickDoubleQuotes:
+      # A backtick followed by a double quote '`"' implies a string literal
+      # whose contents is subject to the regular rules of expansion.
+      handle_expanded_string_literal(pp)
 
 
 proc get_token*(pp: var Preprocessor, tok: var Token) =

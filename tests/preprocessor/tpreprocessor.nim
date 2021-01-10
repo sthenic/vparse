@@ -2102,25 +2102,101 @@ run_test("Macro w/ token pasting, error cases", """
 ])
 
 
-# run_test("Macro w/ escape tokens", """
-# `define msg(x,y) `"x: `\`"y`\`"`"
-# $display(`msg(left side,right side));
-# """, [
-#    new_identifier(TkDollar, loc(1, 2, 0), "display"),
-#    new_token(TkLparen, loc(1, 2, 8)),
-#    new_string_literal(loc(-1, 28, 0), "left side: \"right side\""),
-#    new_token(TkRparen, loc(1, 2, 8)),
-#    new_token(TkSemicolon, loc(1, 2, 8)),
-# ], [
-#    MacroMap(
-#       name: "WIDTH",
-#       define_loc: loc(1, 1, 8),
-#       expansion_loc: loc(1, 4, 0),
-#       locations: @[
-#          (loc(1, 1, 14), loc(1, 1, 14)),
-#       ]
-#    ),
-# ])
+run_test("Macro w/ string escape tokens", """
+`define msg(x,y) `"x: `\`"y`\`"`"
+$display(`msg(left side,right side));
+""", [
+   new_identifier(TkDollar, loc(1, 2, 0), "display"),
+   new_token(TkLparen, loc(1, 2, 8)),
+   new_string_literal(loc(-1, 0, 0), "left side: \"right side\""),
+   new_token(TkRparen, loc(1, 2, 35)),
+   new_token(TkSemicolon, loc(1, 2, 36)),
+], [
+   MacroMap(
+      name: "msg",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 9),
+      locations: @[
+         (loc(1, 1, 17), loc(1, 1, 17)),
+         (loc(1, 2, 14), loc(1, 1, 19)),
+         (loc(1, 2, 19), loc(1, 1, 19)),
+         (loc(1, 1, 20), loc(1, 1, 20)),
+         (loc(1, 1, 22), loc(1, 1, 22)),
+         (loc(1, 2, 24), loc(1, 1, 26)),
+         (loc(1, 2, 30), loc(1, 1, 26)),
+         (loc(1, 1, 27), loc(1, 1, 27)),
+         (loc(1, 1, 31), loc(1, 1, 31)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ string escape tokens, preserving whitespace", """
+`define foo(x) some additional text with   x
+`define msg(x,y) `"check  `foo(hello y world) x`"
+$display(`msg(left side, right  side));
+""", [
+   new_identifier(TkDollar, loc(1, 3, 0), "display"),
+   new_token(TkLparen, loc(1, 3, 8)),
+   new_string_literal(loc(-1, 0, 0), "check  some additional text with   hello right  side world left side"),
+   new_token(TkRparen, loc(1, 3, 37)),
+   new_token(TkSemicolon, loc(1, 3, 38)),
+], [
+   MacroMap(
+      name: "msg",
+      define_loc: loc(1, 2, 8),
+      expansion_loc: loc(1, 3, 9),
+      locations: @[
+         (loc(1, 2, 17), loc(1, 2, 17)),
+         (loc(1, 2, 19), loc(1, 2, 19)),
+         (loc(1, 2, 26), loc(1, 2, 26)),
+         (loc(1, 2, 30), loc(1, 2, 30)),
+         (loc(1, 2, 31), loc(1, 2, 31)),
+         (loc(1, 3, 25), loc(1, 2, 37)),
+         (loc(1, 3, 32), loc(1, 2, 37)),
+         (loc(1, 2, 39), loc(1, 2, 39)),
+         (loc(1, 2, 44), loc(1, 2, 44)),
+         (loc(1, 3, 14), loc(1, 2, 46)),
+         (loc(1, 3, 19), loc(1, 2, 46)),
+         (loc(1, 2, 47), loc(1, 2, 47)),
+      ]
+   ),
+   MacroMap(
+      name: "foo",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-1, 2, 0),
+      locations: @[
+         (loc(1, 1, 15), loc(1, 1, 15)),
+         (loc(1, 1, 20), loc(1, 1, 20)),
+         (loc(1, 1, 31), loc(1, 1, 31)),
+         (loc(1, 1, 36), loc(1, 1, 36)),
+         (loc(-1, 4, 0), loc(1, 1, 43)),
+         (loc(-1, 5, 0), loc(1, 1, 43)),
+         (loc(-1, 6, 0), loc(1, 1, 43)),
+         (loc(-1, 7, 0), loc(1, 1, 43)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ string escape tokens, unexpected EOF", """
+`define msg(x) `"hello x
+`msg(left side)
+""", [
+   new_error_token(loc(-1, 0, 0), "Unexpected end of file.")
+], [
+   MacroMap(
+      name: "msg",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 15), loc(1, 1, 15)),
+         (loc(1, 1, 17), loc(1, 1, 17)),
+         (loc(1, 2, 5), loc(1, 1, 23)),
+         (loc(1, 2, 10), loc(1, 1, 23)),
+      ]
+   ),
+])
 
 
 # FIXME: Test with include file that uses a define from the outside syntax.
