@@ -88,7 +88,7 @@ run_test("Unary operators", "+ - ! ~ & ~& | ~| ^ ~^ ^~", @[
    new_identifier(TkOperator, loc(1, 1, 18), "^"),
    new_identifier(TkOperator, loc(1, 1, 20), "~^"),
    new_identifier(TkOperator, loc(1, 1, 23), "^~")
-])
+], true)
 
 run_test("Binary operators", "+ - * / % == != === !== && || ** < <= > >= & | ^ ^~ ~^ >> << >>> <<<", @[
    new_identifier(TkOperator, loc(1, 1, 0), "+"),

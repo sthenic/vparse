@@ -77,7 +77,8 @@ type
       fnumber*: BiggestFloat # Floating point literal
       base*: NumericalBase # The numerical base
       size*: int # The size field of number
-      loc*: Location
+      loc*: Location # The token's location
+      whitespace*: int # The number of space characters preceeding the token
 
    Lexer* = object of BaseLexer
       filename*: string
@@ -253,12 +254,23 @@ proc pretty*(t: Token): string =
    add(result, ", fnumber: " & $t.fnumber)
    add(result, ", base: " & $t.base)
    add(result, ", size: " & $t.size)
+   add(result, ", ws: " & $t.whitespace)
    add(result, ")")
 
 
 proc pretty*(tokens: openarray[Token]): string =
    for t in tokens:
       add(result, pretty(t) & "\n")
+
+
+proc `==`*(x, y: Token): bool =
+   x.kind == y.kind and
+   x.identifier == y.identifier and
+   x.literal == y.literal and
+   x.fnumber == y.fnumber and
+   x.base == y.base and
+   x.size == y.size and
+   x.loc == y.loc
 
 
 proc detailed_compare*(x, y: Token) =
@@ -297,6 +309,7 @@ proc init*(t: var Token) =
    t.loc.file = 0
    t.loc.line = 0
    t.loc.col = 0
+   t.whitespace = 0
 
 
 proc new_error_token*(loc: Location, msg: string, args: varargs[string, `$`]): Token =
@@ -840,11 +853,14 @@ proc eat_directive_arguments(l: var Lexer, tok: var Token) =
 
 proc get_token*(l: var Lexer, tok: var Token) =
    # Skip until there is a token in the buffer.
-   l.bufpos = skip(l, l.bufpos)
+   let pos = skip(l, l.bufpos)
+   let whitespace = pos - l.bufpos
+   l.bufpos = pos
 
    # Initialize the token and update the position.
    init(tok)
    update_token_position(l, tok)
+   tok.whitespace = whitespace
 
    let c = l.buf[l.bufpos]
    case c
