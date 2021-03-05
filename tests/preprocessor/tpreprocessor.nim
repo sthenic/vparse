@@ -2199,6 +2199,55 @@ run_test("Macro w/ string escape tokens, unexpected EOF", """
 ])
 
 
+# TODO: Not yet supported
+# run_test("Include directive w/ macro", """
+# `define home(filename) `"/home/mydir/filename`"
+# `define home2(filename) </home/mydir/filename>
+# `include `home2(myfile)
+# """, [
+#    new_identifier(TkDollar, loc(1, 3, 0), "display"),
+#    new_token(TkLparen, loc(1, 3, 8)),
+#    new_string_literal(loc(-1, 0, 0), "check  some additional text with   hello right  side world left side"),
+#    new_token(TkRparen, loc(1, 3, 37)),
+#    new_token(TkSemicolon, loc(1, 3, 38)),
+# ], [
+#    MacroMap(
+#       name: "msg",
+#       define_loc: loc(1, 2, 8),
+#       expansion_loc: loc(1, 3, 9),
+#       locations: @[
+#          (loc(1, 2, 17), loc(1, 2, 17)),
+#          (loc(1, 2, 19), loc(1, 2, 19)),
+#          (loc(1, 2, 26), loc(1, 2, 26)),
+#          (loc(1, 2, 30), loc(1, 2, 30)),
+#          (loc(1, 2, 31), loc(1, 2, 31)),
+#          (loc(1, 3, 25), loc(1, 2, 37)),
+#          (loc(1, 3, 32), loc(1, 2, 37)),
+#          (loc(1, 2, 39), loc(1, 2, 39)),
+#          (loc(1, 2, 44), loc(1, 2, 44)),
+#          (loc(1, 3, 14), loc(1, 2, 46)),
+#          (loc(1, 3, 19), loc(1, 2, 46)),
+#          (loc(1, 2, 47), loc(1, 2, 47)),
+#       ]
+#    ),
+#    MacroMap(
+#       name: "foo",
+#       define_loc: loc(1, 1, 8),
+#       expansion_loc: loc(-1, 2, 0),
+#       locations: @[
+#          (loc(1, 1, 15), loc(1, 1, 15)),
+#          (loc(1, 1, 20), loc(1, 1, 20)),
+#          (loc(1, 1, 31), loc(1, 1, 31)),
+#          (loc(1, 1, 36), loc(1, 1, 36)),
+#          (loc(-1, 4, 0), loc(1, 1, 43)),
+#          (loc(-1, 5, 0), loc(1, 1, 43)),
+#          (loc(-1, 6, 0), loc(1, 1, 43)),
+#          (loc(-1, 7, 0), loc(1, 1, 43)),
+#       ]
+#    ),
+# ])
+
+
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:
 #

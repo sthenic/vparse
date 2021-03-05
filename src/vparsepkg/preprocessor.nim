@@ -730,6 +730,8 @@ proc handle_directive(pp: var Preprocessor): bool =
    of "undef":
       handle_undef(pp)
    of "include":
+      # TODO: Have to move this to the prepare_token() proc to support expanding
+      # arguments to `include.
       handle_include(pp)
    of "ifdef":
       handle_ifdef(pp)
