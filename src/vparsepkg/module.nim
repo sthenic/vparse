@@ -58,8 +58,8 @@ proc local_hash(x: string): Hash =
 
 
 proc get_module*(cache: ModuleCache, identifier: string, h: Hash): PModule =
-   # Use the hash as our starting point to search to buckets, but we stay within
-   # the bucket boundaries.
+   # Use the hash as our starting point to search the buckets, but we make sure
+   # to stay within the boundaries.
    var idx = h and high(cache.buckets)
    result = cache.buckets[idx]
 
@@ -161,7 +161,7 @@ proc remove_source_file*(cache: ModuleCache, filename: string) =
       return
 
    # Once we have a matching source file object, we walk over its modules in
-   # the cache. For each module, we begin by perform a lookup which serves
+   # the cache. For each module, we begin by performing a lookup which serves
    # the purpose of moving the module to the front of its linked list. This
    # allows us to cleanly remove it from the cache since being at the front
    # of the list implies that no other element holds a reference to the
