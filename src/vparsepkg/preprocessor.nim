@@ -12,12 +12,16 @@ import ./lexer
 export lexer
 
 type
+   MacroParameter = object
+      name: Token
+      default_tokens: seq[Token]
+
    Define* = object
       name*: Token
       comment*: Token
       loc*: Location
       tokens*: seq[Token]
-      parameters*: seq[Token]
+      parameters*: seq[MacroParameter]
       is_expandable: bool
 
    Context = object
@@ -193,6 +197,40 @@ proc close_preprocessor*(pp: var Preprocessor) =
    close_lexer(pp.lex)
 
 
+proc collect_default_parameter_text(pp: var Preprocessor): seq[Token] =
+   # This uses the lexer token consumption interface directly since we don't
+   # expand any macros when we collect the default tokens. The equals sign is
+   # expected to have been removed from the token stream.
+   var paren_count = 0
+   var brace_count = 0
+   while true:
+      case pp.lex_tok.kind
+      of TkLbrace:
+         inc(brace_count)
+      of TkRbrace:
+         if brace_count > 0:
+            dec(brace_count)
+      of TkLparen:
+         inc(paren_count)
+      of TkRparen:
+         if paren_count > 0:
+            dec(paren_count)
+         else:
+            break
+      of TkComma:
+         if paren_count == 0 and brace_count == 0:
+            break
+      of TkEndOfFile:
+         raise new_preprocessor_error(pp.lex_tok.loc, UnexpectedEndOfFile)
+      else:
+         discard
+
+      # If we haven't broken the control flow the token should be included in
+      # the token list.
+      add(result, pp.lex_tok)
+      get_lexer_token(pp, true)
+
+
 proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
    ## Collect the parameter list of ``def`` from the source buffer. When this
    ## proc returns, the closing parenthesis has been removed from the buffer.
@@ -202,8 +240,18 @@ proc handle_parameter_list(pp: var Preprocessor, def: var Define) =
    while true:
       if pp.lex_tok.kind != TkSymbol:
          break
-      add(def.parameters, pp.lex_tok)
+      var parameter = MacroParameter()
+      parameter.name = pp.lex_tok
+      set_len(parameter.default_tokens, 0)
       get_lexer_token(pp, true)
+
+      # An equals sign ('=') following the identifier indicates that we should
+      # expect default replacement text for the parameter.
+      if pp.lex_tok.kind == TkEquals:
+         get_lexer_token(pp, true)
+         add(parameter.default_tokens, collect_default_parameter_text(pp))
+
+      add(def.parameters, parameter)
       if (pp.lex_tok.kind != TkComma):
          break
       get_lexer_token(pp, true)
@@ -554,6 +602,12 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
    ## number of exepected arguments is the length of ``def.parameters``.
    ## Fewer arguments is an error. This proc expects the opening parenthesis
    ## as the first token in the stream.
+   template insert_token_list() =
+      if len(token_list) == 0 and len(def.parameters[idx].default_tokens) > 0:
+         result[def.parameters[idx].name.identifier.s] = def.parameters[idx].default_tokens
+      else:
+         result[def.parameters[idx].name.identifier.s] = token_list
+
    let nof_arguments = len(def.parameters)
 
    # Expect an opening parenthesis.
@@ -590,12 +644,12 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
             dec(paren_count)
          else:
             if idx < nof_arguments:
-               result[def.parameters[idx].identifier.s] = token_list
+               result[def.parameters[idx].name.identifier.s] = token_list
             break
       of TkComma:
          if paren_count == 0 and brace_count == 0:
             if idx < nof_arguments:
-               result[def.parameters[idx].identifier.s] = token_list
+               result[def.parameters[idx].name.identifier.s] = token_list
             set_len(token_list, 0)
             inc(idx)
             continue
@@ -608,10 +662,22 @@ proc collect_arguments(pp: var Preprocessor, def: Define): Table[string, seq[Tok
       # the token list.
       add(token_list, tok)
 
-   let nof_collected_arguments = idx + 1
+   # Once we've collected the arguments, we go over the parameters from the
+   # macro definition once more. The purpose is insert the default tokens for
+   # any omitted or empty parameter.
+   for parameter in def.parameters:
+      let name = parameter.name.identifier.s
+      if len(parameter.default_tokens) != 0:
+         if has_key(result, name) and len(result[name]) != 0:
+            continue
+         result[name] = parameter.default_tokens
+
+   # We have to check if the argument list is too long. For a correct invocation
+   # of the macro, len(result) is expected to be greater or equal to 'idx + 1'.
+   let nof_collected_arguments = max(len(result), idx + 1)
    if nof_collected_arguments != nof_arguments:
-      raise new_preprocessor_error(paren_loc, WrongNumberOfArguments,
-                                   nof_arguments, nof_collected_arguments)
+      raise new_preprocessor_error(paren_loc, WrongNumberOfArguments, nof_arguments,
+                                   nof_collected_arguments)
 
 
 proc add_token(tokens: var seq[Token], lpairs: var seq[LocationPair],

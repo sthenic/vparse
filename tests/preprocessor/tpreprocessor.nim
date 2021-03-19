@@ -2248,6 +2248,430 @@ run_test("Macro w/ string escape tokens, unexpected EOF", """
 # ])
 
 
+run_test("Macro w/ defaults (1)", """
+`define MACRO1(a=5,b="B",c) $display(a,,b,,c);
+`MACRO1 ( , 2, 3 )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "5"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_inumber(TkIntLit, loc(-1, 5, 0), Base10, -1, "2"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_inumber(TkIntLit, loc(-1, 8, 0), Base10, -1, "3"),
+   new_token(TkRparen, loc(-1, 9, 0)),
+   new_token(TkSemicolon, loc(-1, 10, 0)),
+], [
+   MacroMap(
+      name: "MACRO1",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 28), loc(1, 1, 28)),
+         (loc(1, 1, 36), loc(1, 1, 36)),
+         (loc(1, 1, 17), loc(1, 1, 37)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 1, 39), loc(1, 1, 39)),
+         (loc(1, 2, 12), loc(1, 1, 40)),
+         (loc(1, 1, 41), loc(1, 1, 41)),
+         (loc(1, 1, 42), loc(1, 1, 42)),
+         (loc(1, 2, 15), loc(1, 1, 43)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 1, 45), loc(1, 1, 45)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (2)", """
+`define MACRO1(a=5,b="B",c) $display(a,,b,,c);
+`MACRO1 ( 1 , , 3 )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "1"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_string_literal(loc(-1, 5, 0), "B"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_inumber(TkIntLit, loc(-1, 8, 0), Base10, -1, "3"),
+   new_token(TkRparen, loc(-1, 9, 0)),
+   new_token(TkSemicolon, loc(-1, 10, 0)),
+], [
+   MacroMap(
+      name: "MACRO1",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 28), loc(1, 1, 28)),
+         (loc(1, 1, 36), loc(1, 1, 36)),
+         (loc(1, 2, 10), loc(1, 1, 37)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 1, 39), loc(1, 1, 39)),
+         (loc(1, 1, 21), loc(1, 1, 40)),
+         (loc(1, 1, 41), loc(1, 1, 41)),
+         (loc(1, 1, 42), loc(1, 1, 42)),
+         (loc(1, 2, 16), loc(1, 1, 43)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 1, 45), loc(1, 1, 45)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (3)", """
+`define MACRO1(a=5,b="B",c) $display(a,,b,,c);
+`MACRO1 ( , 2, )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "5"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_inumber(TkIntLit, loc(-1, 5, 0), Base10, -1, "2"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_token(TkRparen, loc(-1, 8, 0)),
+   new_token(TkSemicolon, loc(-1, 9, 0)),
+], [
+   MacroMap(
+      name: "MACRO1",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 28), loc(1, 1, 28)),
+         (loc(1, 1, 36), loc(1, 1, 36)),
+         (loc(1, 1, 17), loc(1, 1, 37)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 1, 39), loc(1, 1, 39)),
+         (loc(1, 2, 12), loc(1, 1, 40)),
+         (loc(1, 1, 41), loc(1, 1, 41)),
+         (loc(1, 1, 42), loc(1, 1, 42)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 1, 45), loc(1, 1, 45)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (4)", """
+`define MACRO1(a=5,b="B",c) $display(a,,b,,c);
+`MACRO1 ( 1 )
+""", [
+   new_error_token(loc(1, 2, 8), "Expected 3 arguments, got 2.")
+])
+
+
+run_test("Macro w/ defaults (5)", """
+`define MACRO2(a=5,b,c = "C") $display(a,,b,,c);
+`MACRO2 ( 1, , 3 )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "1"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_token(TkComma, loc(-1, 5, 0)),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_inumber(TkIntLit, loc(-1, 7, 0), Base10, -1, "3"),
+   new_token(TkRparen, loc(-1, 8, 0)),
+   new_token(TkSemicolon, loc(-1, 9, 0)),
+], [
+   MacroMap(
+      name: "MACRO2",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 2, 10), loc(1, 1, 39)),
+         (loc(1, 1, 40), loc(1, 1, 40)),
+         (loc(1, 1, 41), loc(1, 1, 41)),
+         (loc(1, 1, 43), loc(1, 1, 43)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 2, 15), loc(1, 1, 45)),
+         (loc(1, 1, 46), loc(1, 1, 46)),
+         (loc(1, 1, 47), loc(1, 1, 47)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (6)", """
+`define MACRO2(a=5,b,c = "C") $display(a,,b,,c);
+`MACRO2 ( , 2, )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "5"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_inumber(TkIntLit, loc(-1, 5, 0), Base10, -1, "2"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_string_literal(loc(-1, 8, 0), "C"),
+   new_token(TkRparen, loc(-1, 9, 0)),
+   new_token(TkSemicolon, loc(-1, 10, 0)),
+], [
+   MacroMap(
+      name: "MACRO2",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 1, 17), loc(1, 1, 39)),
+         (loc(1, 1, 40), loc(1, 1, 40)),
+         (loc(1, 1, 41), loc(1, 1, 41)),
+         (loc(1, 2, 12), loc(1, 1, 42)),
+         (loc(1, 1, 43), loc(1, 1, 43)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 1, 25), loc(1, 1, 45)),
+         (loc(1, 1, 46), loc(1, 1, 46)),
+         (loc(1, 1, 47), loc(1, 1, 47)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (7)", """
+`define MACRO2(a=5,b,c = "C") $display(a,,b,,c);
+`MACRO2 ( , 2 )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "5"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_inumber(TkIntLit, loc(-1, 5, 0), Base10, -1, "2"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_string_literal(loc(-1, 8, 0), "C"),
+   new_token(TkRparen, loc(-1, 9, 0)),
+   new_token(TkSemicolon, loc(-1, 10, 0)),
+], [
+   MacroMap(
+      name: "MACRO2",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 30), loc(1, 1, 30)),
+         (loc(1, 1, 38), loc(1, 1, 38)),
+         (loc(1, 1, 17), loc(1, 1, 39)),
+         (loc(1, 1, 40), loc(1, 1, 40)),
+         (loc(1, 1, 41), loc(1, 1, 41)),
+         (loc(1, 2, 12), loc(1, 1, 42)),
+         (loc(1, 1, 43), loc(1, 1, 43)),
+         (loc(1, 1, 44), loc(1, 1, 44)),
+         (loc(1, 1, 25), loc(1, 1, 45)),
+         (loc(1, 1, 46), loc(1, 1, 46)),
+         (loc(1, 1, 47), loc(1, 1, 47)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (8)", """
+`define MACRO3(a=5, b=0, c="C") $display(a,,b,,c);
+`MACRO3 ( 1 )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "1"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_inumber(TkIntLit, loc(-1, 5, 0), Base10, -1, "0"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_string_literal(loc(-1, 8, 0), "C"),
+   new_token(TkRparen, loc(-1, 9, 0)),
+   new_token(TkSemicolon, loc(-1, 10, 0)),
+], [
+   MacroMap(
+      name: "MACRO3",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 32), loc(1, 1, 32)),
+         (loc(1, 1, 40), loc(1, 1, 40)),
+         (loc(1, 2, 10), loc(1, 1, 41)),
+         (loc(1, 1, 42), loc(1, 1, 42)),
+         (loc(1, 1, 43), loc(1, 1, 43)),
+         (loc(1, 1, 22), loc(1, 1, 44)),
+         (loc(1, 1, 45), loc(1, 1, 45)),
+         (loc(1, 1, 46), loc(1, 1, 46)),
+         (loc(1, 1, 27), loc(1, 1, 47)),
+         (loc(1, 1, 48), loc(1, 1, 48)),
+         (loc(1, 1, 49), loc(1, 1, 49)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (9)", """
+`define MACRO3(a=5, b=0, c="C") $display(a,,b,,c);
+`MACRO3 ( )
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_inumber(TkIntLit, loc(-1, 2, 0), Base10, -1, "5"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_token(TkComma, loc(-1, 4, 0)),
+   new_inumber(TkIntLit, loc(-1, 5, 0), Base10, -1, "0"),
+   new_token(TkComma, loc(-1, 6, 0)),
+   new_token(TkComma, loc(-1, 7, 0)),
+   new_string_literal(loc(-1, 8, 0), "C"),
+   new_token(TkRparen, loc(-1, 9, 0)),
+   new_token(TkSemicolon, loc(-1, 10, 0)),
+], [
+   MacroMap(
+      name: "MACRO3",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(1, 1, 32), loc(1, 1, 32)),
+         (loc(1, 1, 40), loc(1, 1, 40)),
+         (loc(1, 1, 17), loc(1, 1, 41)),
+         (loc(1, 1, 42), loc(1, 1, 42)),
+         (loc(1, 1, 43), loc(1, 1, 43)),
+         (loc(1, 1, 22), loc(1, 1, 44)),
+         (loc(1, 1, 45), loc(1, 1, 45)),
+         (loc(1, 1, 46), loc(1, 1, 46)),
+         (loc(1, 1, 27), loc(1, 1, 47)),
+         (loc(1, 1, 48), loc(1, 1, 48)),
+         (loc(1, 1, 49), loc(1, 1, 49)),
+      ]
+   ),
+])
+
+
+run_test("Macro w/ defaults (10)", """
+`define MACRO3(a=5, b=0, c="C") $display(a,,b,,c);
+`MACRO3
+""", [new_error_token(loc(1,3,0), "Expected token '(', got '[EOF]'.")])
+
+
+run_test("Macro w/ other macros as defaults", """
+`define BAR "World"
+`define FOO(x) "HELLO" `BAR x
+`define MAIN(baz, bar=`FOO("thing"), fizz=`BAR) $display(baz, bar, fizz);
+`MAIN("nice")
+""", [
+   new_identifier(TkDollar, loc(-1, 0, 0), "display"),
+   new_token(TkLparen, loc(-1, 1, 0)),
+   new_string_literal(loc(-1, 2, 0), "nice"),
+   new_token(TkComma, loc(-1, 3, 0)),
+   new_string_literal(loc(-2, 0, 0), "HELLO"),
+   new_string_literal(loc(-3, 0, 0), "World"),
+   new_string_literal(loc(-2, 2, 0), "thing"),
+   new_token(TkComma, loc(-1, 8, 0)),
+   new_string_literal(loc(-4, 0, 0), "World"),
+   new_token(TkRparen, loc(-1, 10, 0)),
+   new_token(TkSemicolon, loc(-1, 11, 0)),
+], [
+   MacroMap(
+      name: "MAIN",
+      define_loc: loc(1, 3, 8),
+      expansion_loc: loc(1, 4, 0),
+      locations: @[
+         (loc(1, 3, 48), loc(1, 3, 48)),
+         (loc(1, 3, 56), loc(1, 3, 56)),
+         (loc(1, 4, 6), loc(1, 3, 57)),
+         (loc(1, 3, 60), loc(1, 3, 60)),
+         (loc(1, 3, 22), loc(1, 3, 62)),
+         (loc(1, 3, 26), loc(1, 3, 62)),
+         (loc(1, 3, 27), loc(1, 3, 62)),
+         (loc(1, 3, 34), loc(1, 3, 62)),
+         (loc(1, 3, 65), loc(1, 3, 65)),
+         (loc(1, 3, 42), loc(1, 3, 67)),
+         (loc(1, 3, 71), loc(1, 3, 71)),
+         (loc(1, 3, 72), loc(1, 3, 72)),
+      ]
+   ),
+   MacroMap(
+      name: "FOO",
+      define_loc: loc(1, 2, 8),
+      expansion_loc: loc(-1, 4, 0),
+      locations: @[
+         (loc(1, 2, 15), loc(1, 2, 15)),
+         (loc(1, 2, 23), loc(1, 2, 23)),
+         (loc(-1, 6, 0), loc(1, 2, 28)),
+      ]
+   ),
+   MacroMap(
+      name: "BAR",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-2, 1, 0),
+      locations: @[
+         (loc(1, 1, 12), loc(1, 1, 12)),
+      ]
+   ),
+   MacroMap(
+      name: "BAR",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(-1, 9, 0),
+      locations: @[
+         (loc(1, 1, 12), loc(1, 1, 12)),
+      ]
+   ),
+])
+
+run_test("Macro w/ defaults (10)", """
+`define TOP(a,b) a + b
+`TOP ( `TOP (b,1), `TOP (42,a) )
+""", [
+   new_identifier(TkSymbol, loc(-3, 0, 0), "b"),
+   new_identifier(TkOperator, loc(-3, 1, 0), "+"),
+   new_inumber(TkIntLit, loc(-3, 2, 0), Base10, -1, "1"),
+   new_identifier(TkOperator, loc(-3, 3, 0), "+"),
+   new_inumber(TkIntLit, loc(-3, 4, 0), Base10, -1, "42"),
+   new_identifier(TkOperator, loc(-3, 5, 0), "+"),
+   new_identifier(TkSymbol, loc(-3, 6, 0), "a"),
+], [
+   MacroMap(
+      name: "TOP",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 7),
+      locations: @[
+         (loc(1, 2, 13), loc(1, 1, 17)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 2, 15), loc(1, 1, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "TOP",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 19),
+      locations: @[
+         (loc(1, 2, 25), loc(1, 1, 17)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(1, 2, 28), loc(1, 1, 21)),
+      ]
+   ),
+   MacroMap(
+      name: "TOP",
+      define_loc: loc(1, 1, 8),
+      expansion_loc: loc(1, 2, 0),
+      locations: @[
+         (loc(-1, 0, 0), loc(1, 1, 17)),
+         (loc(-1, 1, 0), loc(1, 1, 17)),
+         (loc(-1, 2, 0), loc(1, 1, 17)),
+         (loc(1, 1, 19), loc(1, 1, 19)),
+         (loc(-2, 0, 0), loc(1, 1, 21)),
+         (loc(-2, 1, 0), loc(1, 1, 21)),
+         (loc(-2, 2, 0), loc(1, 1, 21)),
+      ]
+   ),
+])
+
+
+
+# FIXME: Generate errors for parameters w/ the same name.
+
+
 # FIXME: Test with include file that uses a define from the outside syntax.
 # FIXME: Validate file maps for all test cases. Also add a test like:
 #
